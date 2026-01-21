@@ -127,7 +127,7 @@ public class SwerveSubsystem extends SubsystemBase {
           //        This is how Swerve is usually driven.
           // FALSE = "Forward" on the stick goes whichever way the robot nose is pointing.
           //         (Like driving a car).
-          true,
+          false,
           
           // 4. Open Loop (True/False)
           // FALSE = The computer checks the speedometer and adjusts power to hit exact speed.
