@@ -13,6 +13,9 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import edu.wpi.first.wpilibj.RobotBase;
+import swervelib.simulation.ironmaple.simulation.SimulatedArena;
+import swervelib.simulation.ironmaple.simulation.drivesims.SwerveDriveSimulation;
+import swervelib.simulation.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation;
 
 
 /**
@@ -67,17 +70,6 @@ public class SwerveSubsystem extends SubsystemBase {
       // 3. Tell it our maximum speed is 4.5 m/s.
       swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed);
 
-       // --- SIMULATION SETUP ---
-      // If we are running in the Simulator, we disable these advanced features.
-      // They are designed to fix "Real World" imperfections (friction, drift),
-      // but in the perfect world of simulation, they cause the robot to jitter or spin.
-      if (RobotBase.isSimulation()) {
-        swerveDrive.setHeadingCorrection(false);
-        swerveDrive.setCosineCompensator(false);
-        swerveDrive.setAngularVelocityCompensation(false, false, 0.0);
-      }
-
-
     } catch (Exception e) {
       // If this error happens, it means the code couldn't find your "deploy/swerve" folder.
       // The robot code will crash here to alert you to fix the file path.
@@ -85,6 +77,7 @@ public class SwerveSubsystem extends SubsystemBase {
     }
   }
 
+  
   /**
    * THE DRIVE COMMAND
    * This method runs continuously (every 20 milliseconds) while you are driving.

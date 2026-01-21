@@ -69,4 +69,11 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testExit() {}
+  
+  @Override
+  public void simulationPeriodic() {
+      // UPDATE THIS LINE to use the new YAGSL internal package
+    swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
+
+  }
 }
