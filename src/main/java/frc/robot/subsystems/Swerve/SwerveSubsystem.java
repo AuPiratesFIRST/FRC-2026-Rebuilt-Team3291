@@ -2,14 +2,24 @@ package frc.robot.subsystems.Swerve;
 
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.*;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.vision.VisionSubsystem;
+
 import java.io.File;
 import java.util.function.DoubleSupplier;
+
 import swervelib.SwerveDrive;
 import swervelib.parser.SwerveParser;
+
+// PathPlanner imports
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.config.PIDConstants;
+
 
 public class SwerveSubsystem extends SubsystemBase {
   private final SwerveDrive swerveDrive;
@@ -36,7 +46,11 @@ public class SwerveSubsystem extends SubsystemBase {
     } catch (Exception e) {
       throw new RuntimeException("Check your swerve JSON files!", e);
     }
+
+    setupPathPlanner();
   }
+
+  /* -------------------- TELEOP DRIVE -------------------- */
 
   public Command driveCommand(
       DoubleSupplier vX,
@@ -55,6 +69,56 @@ public class SwerveSubsystem extends SubsystemBase {
         )
     );
   }
+
+  /* -------------------- PATHPLANNER SETUP -------------------- */
+private void setupPathPlanner() {
+  RobotConfig config;
+
+  try {
+    config = RobotConfig.fromGUISettings();
+  } catch (Exception e) {
+    throw new RuntimeException(
+        "Failed to load PathPlanner RobotConfig. Check GUI settings.",
+        e
+    );
+  }
+
+  AutoBuilder.configure(
+      this::getPose,
+      this::resetOdometry,
+      this::getRobotVelocity,
+      (robotRelativeSpeeds, feedforwards) -> {
+        swerveDrive.drive(
+            robotRelativeSpeeds,
+            swerveDrive.kinematics
+                .toSwerveModuleStates(robotRelativeSpeeds),
+            feedforwards.linearForces()
+        );
+      },
+      new PPHolonomicDriveController(
+          new PIDConstants(5.0, 0.0, 0.0),
+          new PIDConstants(5.0, 0.0, 0.0)
+      ),
+      config,
+      () -> DriverStation.getAlliance()
+          .map(a -> a == DriverStation.Alliance.Red)
+          .orElse(false),
+      this
+  );
+}
+
+
+  /* -------------------- REQUIRED HELPERS -------------------- */
+
+  public void resetOdometry(Pose2d pose) {
+    swerveDrive.resetOdometry(pose);
+  }
+
+  public ChassisSpeeds getRobotVelocity() {
+    return swerveDrive.getRobotVelocity();
+  }
+
+  /* -------------------- PERIODIC -------------------- */
 
   @Override
   public void periodic() {
@@ -78,6 +142,8 @@ public class SwerveSubsystem extends SubsystemBase {
     // Tell simulated cameras where the robot is in 3D
     vision.updateSimPose(swerveDrive.getPose());
   }
+
+  /* -------------------- ACCESSORS -------------------- */
 
   public Pose2d getPose() {
     return swerveDrive.getPose();

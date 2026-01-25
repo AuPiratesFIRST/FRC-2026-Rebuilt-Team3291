@@ -32,7 +32,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double MAX_RPM = 6000.0;
 
     private static final double WHEEL_RADIUS =
-        Inches.of(2).in(Meters);
+        Inches.of(4).in(Meters);
 
     private static final double SHOOTER_HEIGHT = 0.50;
     private static final double TARGET_HEIGHT = 2.64;

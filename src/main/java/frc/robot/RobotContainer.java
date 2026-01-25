@@ -2,8 +2,13 @@ package frc.robot;
 
 import java.io.File;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -30,13 +35,12 @@ public class RobotContainer {
   private final HoodSubsystem hood = new HoodSubsystem();
   private final ShooterSubsystem shooter = new ShooterSubsystem(hood);
   private final TurretSubsystem turret =
-    new TurretSubsystem(
-        vision,
-        drivebase,
-        shooter,
-        hood
-    );
-
+      new TurretSubsystem(
+          vision,
+          drivebase,
+          shooter,
+          hood
+      );
 
   // ---------------- CONTROLLERS ----------------
   private final CommandXboxController driver =
@@ -45,8 +49,38 @@ public class RobotContainer {
   private final CommandXboxController operator =
       new CommandXboxController(1);
 
+  // ---------------- AUTO ----------------
+  private final SendableChooser<Command> autoChooser;
+
   public RobotContainer() {
+
     configureBindings();
+
+    // ---------- NamedCommands for PathPlanner ----------
+    NamedCommands.registerCommand(
+        "SpinUpShooter",
+        Commands.runOnce(shooter::spinUp, shooter)
+    );
+
+    NamedCommands.registerCommand(
+        "StopShooter",
+        Commands.runOnce(shooter::stop, shooter)
+    );
+
+    NamedCommands.registerCommand(
+        "EnableAutoAim",
+        Commands.runOnce(turret::enableHubTracking, turret)
+    );
+
+    NamedCommands.registerCommand(
+        "DisableAutoAim",
+        Commands.runOnce(turret::disableHubTracking, turret)
+    );
+
+    // ---------- Auto chooser ----------
+    autoChooser = AutoBuilder.buildAutoChooser();
+    autoChooser.setDefaultOption("Do Nothing", Commands.none());
+    SmartDashboard.putData("Auto Chooser", autoChooser);
   }
 
   private void configureBindings() {
@@ -57,20 +91,19 @@ public class RobotContainer {
             () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
             () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
             () -> {
-    double stick =
-        -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+              double stick =
+                  -MathUtil.applyDeadband(driver.getRightX(), 0.1);
 
-    // If driver is touching the stick, override auto aim
-    if (Math.abs(stick) > 0.05) {
-        turret.disableHubTracking();
-        turret.manualRotate(stick);
-        return stick;
-    }
+              // Manual override disables turret auto aim
+              if (Math.abs(stick) > 0.05) {
+                turret.disableHubTracking();
+                turret.manualRotate(stick);
+                return stick;
+              }
 
-    // Otherwise, let turret decide rotation
-    return turret.getDesiredRobotOmega();
-}
-
+              // Otherwise turret controls rotation
+              return turret.getDesiredRobotOmega();
+            }
         )
     );
 
@@ -78,7 +111,6 @@ public class RobotContainer {
     driver.a().onTrue(
         Commands.runOnce(drivebase::zeroGyro)
     );
-
 
     // ================= TURRET AUTO AIM =================
     driver.y().onTrue(
@@ -107,6 +139,7 @@ public class RobotContainer {
     operator.povLeft().onFalse(
         Commands.runOnce(() -> turret.manualRotate(0.0))
     );
+
     operator.povRight().onFalse(
         Commands.runOnce(() -> turret.manualRotate(0.0))
     );
@@ -148,10 +181,10 @@ public class RobotContainer {
 
   // ================= AUTO =================
   public Command getAutonomousCommand() {
-    return Commands.print("No autonomous command configured");
+    return autoChooser.getSelected();
   }
 
-  // Accessors (optional)
+  // ---------------- ACCESSORS ----------------
   public SwerveSubsystem getDrivebase() {
     return drivebase;
   }
