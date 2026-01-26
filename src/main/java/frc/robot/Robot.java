@@ -86,6 +86,7 @@ public void robotInit() {
     // (Based on the Javadocs you provided)
     // You might need to import: swervelib.simulation.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
     Arena2026Rebuilt.getInstance(); // This line depends on exactly how YAGSL implemented the singleton, usually accessing the instance loads it.
+    
   }
   
   @Override

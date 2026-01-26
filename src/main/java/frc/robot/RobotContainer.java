@@ -21,9 +21,15 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 
 import static edu.wpi.first.units.Units.*;
 
+/**
+ * RobotContainer
+ * -----------------------------
+ * Central wiring point for the robot.
+ */
 public class RobotContainer {
 
   // ---------------- SUBSYSTEMS ----------------
+
   private final VisionSubsystem vision = new VisionSubsystem();
 
   private final SwerveSubsystem drivebase =
@@ -33,7 +39,8 @@ public class RobotContainer {
       );
 
   private final HoodSubsystem hood = new HoodSubsystem();
-  private final ShooterSubsystem shooter = new ShooterSubsystem(hood);
+  private final ShooterSubsystem shooter = new ShooterSubsystem();
+
   private final TurretSubsystem turret =
       new TurretSubsystem(
           vision,
@@ -43,6 +50,7 @@ public class RobotContainer {
       );
 
   // ---------------- CONTROLLERS ----------------
+
   private final CommandXboxController driver =
       new CommandXboxController(0);
 
@@ -50,21 +58,21 @@ public class RobotContainer {
       new CommandXboxController(1);
 
   // ---------------- AUTO ----------------
+
   private final SendableChooser<Command> autoChooser;
 
   public RobotContainer() {
 
     configureBindings();
 
-    // ---------- NamedCommands for PathPlanner ----------
-    NamedCommands.registerCommand(
-        "SpinUpShooter",
-        Commands.runOnce(shooter::spinUp, shooter)
-    );
+    // ---------------- DEFAULT COMMANDS ----------------
+    hood.setDefaultCommand(hood.hold());
+    shooter.setDefaultCommand(shooter.stop());
 
+    // ---------------- PATHPLANNER ----------------
     NamedCommands.registerCommand(
         "StopShooter",
-        Commands.runOnce(shooter::stop, shooter)
+        shooter.stop()
     );
 
     NamedCommands.registerCommand(
@@ -77,12 +85,14 @@ public class RobotContainer {
         Commands.runOnce(turret::disableHubTracking, turret)
     );
 
-    // ---------- Auto chooser ----------
     autoChooser = AutoBuilder.buildAutoChooser();
     autoChooser.setDefaultOption("Do Nothing", Commands.none());
     SmartDashboard.putData("Auto Chooser", autoChooser);
   }
 
+  // --------------------------------------------------
+  // CONTROLLER BINDINGS
+  // --------------------------------------------------
   private void configureBindings() {
 
     // ================= DRIVE =================
@@ -94,25 +104,22 @@ public class RobotContainer {
               double stick =
                   -MathUtil.applyDeadband(driver.getRightX(), 0.1);
 
-              // Manual override disables turret auto aim
               if (Math.abs(stick) > 0.05) {
                 turret.disableHubTracking();
                 turret.manualRotate(stick);
                 return stick;
               }
 
-              // Otherwise turret controls rotation
               return turret.getDesiredRobotOmega();
             }
         )
     );
 
-    // Reset gyro
     driver.a().onTrue(
         Commands.runOnce(drivebase::zeroGyro)
     );
 
-    // ================= TURRET AUTO AIM =================
+    // ================= TURRET =================
     driver.y().onTrue(
         Commands.runOnce(turret::enableHubTracking)
     );
@@ -121,19 +128,12 @@ public class RobotContainer {
         Commands.runOnce(turret::disableHubTracking)
     );
 
-    // ================= MANUAL TURRET (D-PAD) =================
     operator.povLeft().whileTrue(
-        Commands.run(
-            () -> turret.manualRotate(-0.4),
-            turret
-        )
+        Commands.run(() -> turret.manualRotate(-0.4), turret)
     );
 
     operator.povRight().whileTrue(
-        Commands.run(
-            () -> turret.manualRotate(0.4),
-            turret
-        )
+        Commands.run(() -> turret.manualRotate(0.4), turret)
     );
 
     operator.povLeft().onFalse(
@@ -144,39 +144,22 @@ public class RobotContainer {
         Commands.runOnce(() -> turret.manualRotate(0.0))
     );
 
-    // ================= HOOD (D-PAD) =================
+    // ================= HOOD =================
     operator.povUp().onTrue(
-        Commands.runOnce(
-            () -> hood.setTargetAngle(
-                hood.getAngle().plus(Degrees.of(2))
-            )
+        hood.setAngle(
+            hood.getAngle().plus(Degrees.of(2))
         )
     );
 
     operator.povDown().onTrue(
-        Commands.runOnce(
-            () -> hood.setTargetAngle(
-                hood.getAngle().minus(Degrees.of(2))
-            )
+        hood.setAngle(
+            hood.getAngle().minus(Degrees.of(2))
         )
     );
 
     // ================= SHOOTER =================
-    operator.rightTrigger().whileTrue(
-        Commands.run(shooter::spinUp, shooter)
-    );
-
-    operator.rightTrigger().onFalse(
-        Commands.runOnce(shooter::stop)
-    );
-
-    operator.rightBumper().whileTrue(
-        Commands.run(shooter::feed, shooter)
-    );
-
-    operator.leftBumper().onTrue(
-        Commands.runOnce(shooter::stop)
-    );
+    // Shooter is now controlled ONLY by commands / autos
+    // No operator bindings here by design
   }
 
   // ================= AUTO =================

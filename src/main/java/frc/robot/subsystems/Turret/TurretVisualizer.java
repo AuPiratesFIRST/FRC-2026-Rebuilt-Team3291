@@ -13,10 +13,11 @@ import java.util.function.Supplier;
 
 public class TurretVisualizer {
 
-    private static final Translation2d TURRET_OFFSET =
+    // Shooter offset from robot center (FIXED SHOOTER)
+    private static final Translation2d SHOOTER_OFFSET =
         new Translation2d(0.35, 0.0);
 
-    private static final double SHOOTER_HEIGHT = 0.5;
+    private static final double SHOOTER_HEIGHT = 0.50; // meters
     private static final double GRAVITY = 9.81;
 
     private final Supplier<Pose3d> robotPoseSupplier;
@@ -25,7 +26,7 @@ public class TurretVisualizer {
 
     // ---------------- NT PUBLISHERS ----------------
     private final StructArrayPublisher<Pose3d> trajectoryPub;
-    private final StructPublisher<Pose3d> turretPosePub;
+    private final StructPublisher<Pose3d> shooterPosePub;
     private final BooleanPublisher willHitPub;
 
     public TurretVisualizer(
@@ -41,24 +42,27 @@ public class TurretVisualizer {
 
         trajectoryPub =
             nt.getStructArrayTopic(
-                "Turret/Trajectory",
+                "Shooter/Trajectory",
                 Pose3d.struct
             ).publish();
 
-        turretPosePub =
+        shooterPosePub =
             nt.getStructTopic(
-                "Turret/3DPose",
+                "Shooter/3DPose",
                 Pose3d.struct
             ).publish();
 
         willHitPub =
             nt.getBooleanTopic(
-                "Turret/WillHit"
+                "Shooter/WillHit"
             ).publish();
     }
 
+    // ------------------------------------------------
+    // UPDATE
+    // ------------------------------------------------
     public void update(
-        LinearVelocity ballVelocity,
+        LinearVelocity exitVelocity,
         Angle hoodAngle
     ) {
         Pose3d robotPose = robotPoseSupplier.get();
@@ -72,30 +76,34 @@ public class TurretVisualizer {
                 ? FieldConstants.HUB_BLUE
                 : FieldConstants.HUB_RED;
 
-        Translation2d turretXY =
+        // Shooter position in field space
+        Translation2d shooterXY =
             robotPose.getTranslation().toTranslation2d()
-                .plus(TURRET_OFFSET.rotateBy(robotYaw));
+                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
 
+        // Aim direction (robot → hub)
         Translation2d toHub =
-            hub.toTranslation2d().minus(turretXY);
+            hub.toTranslation2d().minus(shooterXY);
 
-        Rotation2d totalHeading =
+        Rotation2d aimHeading =
             new Rotation2d(
                 Math.atan2(toHub.getY(), toHub.getX())
             );
 
-        double v = ballVelocity.in(MetersPerSecond);
-        double hoodRad = hoodAngle.in(Radians);
+        // Initial velocities
+        double v = exitVelocity.in(MetersPerSecond);
+        double theta = hoodAngle.in(Radians);
 
-        double horizontalVel = Math.cos(hoodRad) * v;
-        double vz = Math.sin(hoodRad) * v;
+        double vHorizontal = Math.cos(theta) * v;
+        double vz = Math.sin(theta) * v;
 
+        // Include robot motion (lead compensation)
         double vx =
-            horizontalVel * totalHeading.getCos()
+            vHorizontal * aimHeading.getCos()
             + speeds.vxMetersPerSecond;
 
         double vy =
-            horizontalVel * totalHeading.getSin()
+            vHorizontal * aimHeading.getSin()
             + speeds.vyMetersPerSecond;
 
         Pose3d[] trajectory = new Pose3d[50];
@@ -113,8 +121,8 @@ public class TurretVisualizer {
         for (int i = 0; i < trajectory.length; i++) {
             double t = i * 0.04;
 
-            double x = turretXY.getX() + vx * t;
-            double y = turretXY.getY() + vy * t;
+            double x = shooterXY.getX() + vx * t;
+            double y = shooterXY.getY() + vy * t;
             double z =
                 SHOOTER_HEIGHT
                 + vz * t
@@ -143,13 +151,13 @@ public class TurretVisualizer {
         trajectoryPub.set(trajectory);
         willHitPub.set(willHit);
 
-        turretPosePub.set(
+        shooterPosePub.set(
             new Pose3d(
-                turretXY.getX(),
-                turretXY.getY(),
+                shooterXY.getX(),
+                shooterXY.getY(),
                 SHOOTER_HEIGHT,
                 new Rotation3d(
-                    0, 0, totalHeading.getRadians()
+                    0, 0, aimHeading.getRadians()
                 )
             )
         );
