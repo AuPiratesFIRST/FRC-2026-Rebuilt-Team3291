@@ -14,10 +14,9 @@ public class AimShooterFromVision extends Command {
     private final VisionSubsystem vision;
 
     public AimShooterFromVision(
-        ShooterSubsystem shooter,
-        HoodSubsystem hood,
-        VisionSubsystem vision
-    ) {
+            ShooterSubsystem shooter,
+            HoodSubsystem hood,
+            VisionSubsystem vision) {
         this.shooter = shooter;
         this.hood = hood;
         this.vision = vision;
@@ -28,18 +27,15 @@ public class AimShooterFromVision extends Command {
     @Override
     public void execute() {
 
-        Optional<Double> distance =
-            vision.getDistanceToTagMeters(
-                VisionConstants.BLUE_HUB_TAGS
-            );
+        Optional<Double> distance = vision.getDistanceToTagMeters(
+                VisionConstants.BLUE_HUB_TAGS);
 
         if (distance.isEmpty()) {
             shooter.applyRPM(0);
             return;
         }
 
-        var solution =
-            ShooterAimCalculator.solve(distance.get());
+        var solution = ShooterAimCalculator.solve(distance.get());
 
         if (!solution.valid()) {
             shooter.applyRPM(0);

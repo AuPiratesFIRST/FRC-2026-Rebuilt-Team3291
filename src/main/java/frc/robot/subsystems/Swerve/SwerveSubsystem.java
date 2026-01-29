@@ -16,13 +16,11 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 
-
 // PathPlanner imports
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.config.PIDConstants;
-
 
 public class SwerveSubsystem extends SubsystemBase {
   private final SwerveDrive swerveDrive;
@@ -34,16 +32,13 @@ public class SwerveSubsystem extends SubsystemBase {
   public SwerveSubsystem(File directory, VisionSubsystem vision) {
     this.vision = vision;
 
-    Pose2d startingPose =
-        new Pose2d(new Translation2d(4, 4), new Rotation2d());
+    Pose2d startingPose = new Pose2d(new Translation2d(4, 4), new Rotation2d());
 
-        
-    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.LOW;
+    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.POSE;
 
     try {
-      swerveDrive =
-          new SwerveParser(directory)
-              .createSwerveDrive(MAX_LINEAR_SPEED, startingPose);
+      swerveDrive = new SwerveParser(directory)
+          .createSwerveDrive(MAX_LINEAR_SPEED, startingPose);
 
       if (RobotBase.isSimulation()) {
         swerveDrive.setHeadingCorrection(false);
@@ -61,58 +56,48 @@ public class SwerveSubsystem extends SubsystemBase {
   public Command driveCommand(
       DoubleSupplier vX,
       DoubleSupplier vY,
-      DoubleSupplier vOmega
-  ) {
-    return run(() ->
-        swerveDrive.drive(
-            new Translation2d(
-                vX.getAsDouble() * MAX_LINEAR_SPEED,
-                vY.getAsDouble() * MAX_LINEAR_SPEED
-            ),
-            vOmega.getAsDouble() * MAX_ANGULAR_SPEED,
-            true,
-            false
-        )
-    );
+      DoubleSupplier vOmega) {
+    return run(() -> swerveDrive.drive(
+        new Translation2d(
+            vX.getAsDouble() * MAX_LINEAR_SPEED,
+            vY.getAsDouble() * MAX_LINEAR_SPEED),
+        vOmega.getAsDouble() * MAX_ANGULAR_SPEED,
+        true,
+        false));
   }
 
   /* -------------------- PATHPLANNER SETUP -------------------- */
-private void setupPathPlanner() {
-  RobotConfig config;
+  private void setupPathPlanner() {
+    RobotConfig config;
 
-  try {
-    config = RobotConfig.fromGUISettings();
-  } catch (Exception e) {
-    throw new RuntimeException(
-        "Failed to load PathPlanner RobotConfig. Check GUI settings.",
-        e
-    );
+    try {
+      config = RobotConfig.fromGUISettings();
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Failed to load PathPlanner RobotConfig. Check GUI settings.",
+          e);
+    }
+
+    AutoBuilder.configure(
+        this::getPose,
+        this::resetOdometry,
+        this::getRobotVelocity,
+        (robotRelativeSpeeds, feedforwards) -> {
+          swerveDrive.drive(
+              robotRelativeSpeeds,
+              swerveDrive.kinematics
+                  .toSwerveModuleStates(robotRelativeSpeeds),
+              feedforwards.linearForces());
+        },
+        new PPHolonomicDriveController(
+            new PIDConstants(5.0, 0.0, 0.0),
+            new PIDConstants(5.0, 0.0, 0.0)),
+        config,
+        () -> DriverStation.getAlliance()
+            .map(a -> a == DriverStation.Alliance.Red)
+            .orElse(false),
+        this);
   }
-
-  AutoBuilder.configure(
-      this::getPose,
-      this::resetOdometry,
-      this::getRobotVelocity,
-      (robotRelativeSpeeds, feedforwards) -> {
-        swerveDrive.drive(
-            robotRelativeSpeeds,
-            swerveDrive.kinematics
-                .toSwerveModuleStates(robotRelativeSpeeds),
-            feedforwards.linearForces()
-        );
-      },
-      new PPHolonomicDriveController(
-          new PIDConstants(5.0, 0.0, 0.0),
-          new PIDConstants(5.0, 0.0, 0.0)
-      ),
-      config,
-      () -> DriverStation.getAlliance()
-          .map(a -> a == DriverStation.Alliance.Red)
-          .orElse(false),
-      this
-  );
-}
-
 
   /* -------------------- REQUIRED HELPERS -------------------- */
 
@@ -130,16 +115,14 @@ private void setupPathPlanner() {
   public void periodic() {
     // Feed AprilTag pose estimates into YAGSL odometry
     vision.getEstimatedGlobalPose().ifPresent(est -> {
-      var trust =
-          est.targetsUsed.size() > 1
-              ? VisionConstants.MULTI_TAG_STD_DEVS
-              : VisionConstants.SINGLE_TAG_STD_DEVS;
+      var trust = est.targetsUsed.size() > 1
+          ? VisionConstants.MULTI_TAG_STD_DEVS
+          : VisionConstants.SINGLE_TAG_STD_DEVS;
 
       swerveDrive.addVisionMeasurement(
           est.estimatedPose.toPose2d(),
           est.timestampSeconds,
-          trust
-      );
+          trust);
     });
   }
 

@@ -19,50 +19,41 @@ import yams.motorcontrollers.local.SparkWrapper;
 
 public class HoodSubsystem extends SubsystemBase {
 
-    private final SparkMax hoodMotor =
-        new SparkMax(2, SparkLowLevel.MotorType.kBrushless);
+    private final SparkMax hoodMotor = new SparkMax(29, SparkLowLevel.MotorType.kBrushless);
 
-    private final SmartMotorController hoodSMC =
-        new SparkWrapper(
+    private final SmartMotorController hoodSMC = new SparkWrapper(
             hoodMotor,
             DCMotor.getNeo550(1),
             new SmartMotorControllerConfig(this)
-                .withControlMode(SmartMotorControllerConfig.ControlMode.CLOSED_LOOP)
-                .withClosedLoopController(
-                    50.0, 0.0, 0.0,
-                    DegreesPerSecond.of(180),
-                    DegreesPerSecondPerSecond.of(360)
-                )
-                  .withSimClosedLoopController(
-                    50.0, 0.0, 0.0,
-                    DegreesPerSecond.of(180),
-                    DegreesPerSecondPerSecond.of(360)
-                )
-                .withFeedforward(new ArmFeedforward(0.0, 0.3, 0.02))
-                .withSimFeedforward(new ArmFeedforward(0.0, 0.3, 0.02))
-                .withGearing(
-                    new MechanismGearing(
-                        GearBox.fromReductionStages(3, 4)
-                    )
-                )
-                .withStatorCurrentLimit(Amps.of(25))
-                  .withSupplyCurrentLimit(Amps.of(20))
-                .withIdleMode(SmartMotorControllerConfig.MotorMode.BRAKE)
-                .withTelemetry("HoodMotor",
-                    SmartMotorControllerConfig.TelemetryVerbosity.LOW)
-        );
+                    .withControlMode(SmartMotorControllerConfig.ControlMode.CLOSED_LOOP)
+                    .withClosedLoopController(
+                            50.0, 0.0, 0.0,
+                            DegreesPerSecond.of(180),
+                            DegreesPerSecondPerSecond.of(360))
+                    .withSimClosedLoopController(
+                            50.0, 0.0, 0.0,
+                            DegreesPerSecond.of(180),
+                            DegreesPerSecondPerSecond.of(360))
+                    .withFeedforward(new ArmFeedforward(0.0, 0.3, 0.02))
+                    .withSimFeedforward(new ArmFeedforward(0.0, 0.3, 0.02))
+                    .withGearing(
+                            new MechanismGearing(
+                                    GearBox.fromReductionStages(3, 4)))
+                    .withStatorCurrentLimit(Amps.of(25))
+                    .withSupplyCurrentLimit(Amps.of(20))
+                    .withIdleMode(SmartMotorControllerConfig.MotorMode.BRAKE)
+                    .withTelemetry("HoodMotor",
+                            SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
-    private final Arm hood =
-        new Arm(
+    private final Arm hood = new Arm(
             new ArmConfig(hoodSMC)
-                .withStartingPosition(Degrees.of(20))
-                .withSoftLimits(Degrees.of(5), Degrees.of(100))
-                .withHardLimit(Degrees.of(0), Degrees.of(120))
-                .withLength(Meters.of(0.30))
-                .withMass(Kilograms.of(2.0))
-                .withTelemetry("Hood",
-                    SmartMotorControllerConfig.TelemetryVerbosity.LOW)
-        );
+                    .withStartingPosition(Degrees.of(20))
+                    .withSoftLimits(Degrees.of(5), Degrees.of(100))
+                    .withHardLimit(Degrees.of(0), Degrees.of(120))
+                    .withLength(Meters.of(0.30))
+                    .withMass(Kilograms.of(2.0))
+                    .withTelemetry("Hood",
+                            SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
     private Angle lastTarget = Degrees.of(20);
     private boolean zeroed = false;
@@ -107,7 +98,7 @@ public class HoodSubsystem extends SubsystemBase {
 
         Logger.recordOutput("Hood/TargetDeg", lastTarget.in(Degrees));
         Logger.recordOutput("Hood/ActualDeg",
-            hood.getAngle().in(Degrees));
+                hood.getAngle().in(Degrees));
     }
 
     @Override

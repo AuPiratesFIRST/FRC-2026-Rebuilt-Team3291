@@ -19,8 +19,7 @@ public class TurretSubsystem extends SubsystemBase {
     // CONSTANTS
     // ------------------------------------------------
 
-    private static final Translation2d SHOOTER_OFFSET =
-        new Translation2d(0.35, 0.0);
+    private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
 
     // ------------------------------------------------
     // DEPENDENCIES
@@ -48,19 +47,17 @@ public class TurretSubsystem extends SubsystemBase {
     // CONTROLLERS
     // ------------------------------------------------
 
-    private final PIDController headingPID =
-        new PIDController(6.0, 0.0, 0.25);
+    private final PIDController headingPID = new PIDController(6.0, 0.0, 0.25);
 
     // ------------------------------------------------
     // CONSTRUCTOR
     // ------------------------------------------------
 
     public TurretSubsystem(
-        VisionSubsystem vision,
-        SwerveSubsystem swerve,
-        ShooterSubsystem shooter,
-        HoodSubsystem hood
-    ) {
+            VisionSubsystem vision,
+            SwerveSubsystem swerve,
+            ShooterSubsystem shooter,
+            HoodSubsystem hood) {
         this.vision = vision;
         this.swerve = swerve;
         this.shooter = shooter;
@@ -69,23 +66,18 @@ public class TurretSubsystem extends SubsystemBase {
         headingPID.enableContinuousInput(-Math.PI, Math.PI);
 
         // ✅ ADDED
-       visualizer =
-            new TurretVisualizer(
+        visualizer = new TurretVisualizer(
                 () -> new Pose3d(
-                    swerve.getPose().getTranslation().getX(),
-                    swerve.getPose().getTranslation().getY(),
-                    0.0,
-                    new Rotation3d(
-                        0,
-                        0,
-                        swerve.getPose().getRotation().getRadians()
-                    )
-                ),
+                        swerve.getPose().getTranslation().getX(),
+                        swerve.getPose().getTranslation().getY(),
+                        0.0,
+                        new Rotation3d(
+                                0,
+                                0,
+                                swerve.getPose().getRotation().getRadians())),
                 swerve::getFieldVelocity,
                 () -> DriverStation.getAlliance()
-                    .orElse(DriverStation.Alliance.Blue)
-                    == DriverStation.Alliance.Blue
-            );
+                        .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue);
     }
 
     // ------------------------------------------------
@@ -99,9 +91,8 @@ public class TurretSubsystem extends SubsystemBase {
 
         // ✅ FIX: correct shooter velocity getter
         visualizer.update(
-            shooter.getExitVelocity(),
-            hood.getAngle()
-        );
+                shooter.getExitVelocity(),
+                hood.getAngle());
     }
 
     // ------------------------------------------------
@@ -110,27 +101,21 @@ public class TurretSubsystem extends SubsystemBase {
 
     private void updateTargeting() {
 
-        Translation3d hub =
-            DriverStation.getAlliance()
-                .orElse(DriverStation.Alliance.Blue)
-                == DriverStation.Alliance.Blue
-                    ? Constants.FieldConstants.HUB_BLUE
-                    : Constants.FieldConstants.HUB_RED;
+        Translation3d hub = DriverStation.getAlliance()
+                .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue
+                        ? Constants.FieldConstants.HUB_BLUE
+                        : Constants.FieldConstants.HUB_RED;
 
         Pose2d robotPose = swerve.getPose();
         Rotation2d robotYaw = robotPose.getRotation();
 
-        Translation2d shooterFieldPos =
-            robotPose.getTranslation()
+        Translation2d shooterFieldPos = robotPose.getTranslation()
                 .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
 
-        Translation2d toHub =
-            hub.toTranslation2d().minus(shooterFieldPos);
+        Translation2d toHub = hub.toTranslation2d().minus(shooterFieldPos);
 
-        desiredFieldHeading =
-            new Rotation2d(
-                Math.atan2(toHub.getY(), toHub.getX())
-            );
+        desiredFieldHeading = new Rotation2d(
+                Math.atan2(toHub.getY(), toHub.getX()));
 
         distanceToHubMeters = toHub.getNorm();
     }
@@ -159,9 +144,8 @@ public class TurretSubsystem extends SubsystemBase {
     public double getDesiredRobotOmega() {
         if (hubTrackingEnabled) {
             return headingPID.calculate(
-                swerve.getPose().getRotation().getRadians(),
-                desiredFieldHeading.getRadians()
-            );
+                    swerve.getPose().getRotation().getRadians(),
+                    desiredFieldHeading.getRadians());
         }
         return manualOmega;
     }
@@ -181,30 +165,25 @@ public class TurretSubsystem extends SubsystemBase {
     private void logToAdvantageScope() {
 
         SmartDashboard.putBoolean(
-            "Turret/HubTrackingEnabled",
-            hubTrackingEnabled
-        );
+                "Turret/HubTrackingEnabled",
+                hubTrackingEnabled);
 
         SmartDashboard.putNumber(
-            "Targeting/DistanceMeters",
-            distanceToHubMeters
-        );
+                "Targeting/DistanceMeters",
+                distanceToHubMeters);
 
         SmartDashboard.putNumber(
-            "Targeting/DesiredHeadingDeg",
-            desiredFieldHeading.getDegrees()
-        );
+                "Targeting/DesiredHeadingDeg",
+                desiredFieldHeading.getDegrees());
 
         SmartDashboard.putNumber(
-            "Targeting/RobotYawDeg",
-            swerve.getPose().getRotation().getDegrees()
-        );
+                "Targeting/RobotYawDeg",
+                swerve.getPose().getRotation().getDegrees());
 
         SmartDashboard.putNumber(
-            "Targeting/HeadingErrorDeg",
-            desiredFieldHeading
-                .minus(swerve.getPose().getRotation())
-                .getDegrees()
-        );
+                "Targeting/HeadingErrorDeg",
+                desiredFieldHeading
+                        .minus(swerve.getPose().getRotation())
+                        .getDegrees());
     }
 }
