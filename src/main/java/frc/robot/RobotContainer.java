@@ -1,123 +1,155 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot;
 
 import java.io.File;
+
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.robot.subsystems.SwerveSubsystem;
+
+import frc.robot.subsystems.Shooter.HoodSubsystem;
+import frc.robot.subsystems.Shooter.ShooterSubsystem;
+import frc.robot.subsystems.Swerve.SwerveSubsystem;
+import frc.robot.subsystems.Turret.TurretSubsystem;
+import frc.robot.subsystems.vision.VisionSubsystem;
+
+import static edu.wpi.first.units.Units.*;
 
 /**
- * THE ROBOT CONTAINER
- * 
- * Think of this class as the "Pilot's Cockpit" or the "Control Room".
- * 
- * It has three main jobs:
- * 1. It sets up the Subsystems (The robot's physical hardware like the Drive Base).
- * 2. It sets up the Controllers (The Joysticks).
- * 3. It "wires" the buttons on the controller to specific actions on the robot.
+ * RobotContainer
+ * -----------------------------
+ * Central wiring point for the robot.
  */
 public class RobotContainer {
 
-  /**
-   * 1. CREATE THE DRIVE BASE
-   * 
-   * Here we initialize the "SwerveSubsystem". This represents the 4 wheels and motors.
-   * 
-   * "Filesystem.getDeployDirectory()" is a special command that automatically finds 
-   * the correct folder on the RoboRIO, no matter which laptop uploaded the code.
-   * 
-   * We tell it to look inside the "swerve" folder for our JSON configuration files.
-   */
-  private final SwerveSubsystem drivebase = new SwerveSubsystem(
-      new File(Filesystem.getDeployDirectory(), "swerve")
-  );
+    // ---------------- SUBSYSTEMS ----------------
 
-  /**
-   * 2. DEFINE THE CONTROLLER
-   * 
-   * We are defining the Driver's Controller here.
-   * 
-   * Port 0: This usually refers to the first USB controller plugged into the laptop.
-   * "CommandXboxController": We use this type because the Logitech F310 (in 'X' mode)
-   * behaves exactly like an Xbox controller, which makes programming it very easy.
-   */
-  private final CommandXboxController driverController = new CommandXboxController(0);
+    private final VisionSubsystem vision = new VisionSubsystem();
 
-  /**
-   * CONSTRUCTOR
-   * This code runs exactly once when the robot turns on.
-   * It calls the method below to "wire up" the buttons.
-   */
-  public RobotContainer() {
-    configureBindings();
-  }
+    private final SwerveSubsystem drivebase = new SwerveSubsystem(
+            new File(Filesystem.getDeployDirectory(), "swerve"),
+            vision);
 
-  /**
-   * CONFIGURE BUTTON BINDINGS
-   * This is where we tell the robot what to do when buttons are pressed or sticks are moved.
-   */
-  private void configureBindings() {
+    private final HoodSubsystem hood = new HoodSubsystem();
+    private final ShooterSubsystem shooter = new ShooterSubsystem();
 
-    /**
-     * 3. SETTING THE DEFAULT DRIVE COMMAND
-     * 
-     * "Default Command" means: "If the driver isn't pressing any other special buttons,
-     * just keep doing this." In this case, it means "Listen to the joysticks and drive."
-     */
-    drivebase.setDefaultCommand(
-        drivebase.driveCommand(
-            
-            // --- LEFT STICK Y: Moving Forward & Backward ---
-            // "DoubleSupplier" (() -> ...) means we check this value continuously, 50 times a second.
-            
-            // LOGIC EXPLANATION:
-            // 1. driverController.getLeftY(): Reads the stick.
-            // 2. MathUtil.applyDeadband(..., 0.1): This is a "Safety Zone". If the stick is 
-            //    drifting slightly (less than 10%), we ignore it so the robot doesn't creep away.
-            // 3. The Negative Sign (-): This is crucial! On joysticks, pushing UP gives a 
-            //    Negative number (-1). But we want the robot to go FORWARD with Positive speed.
-            //    So we multiply by -1 to flip it.
-            () -> -MathUtil.applyDeadband(driverController.getLeftY(), 0.1),
-            
-            // --- LEFT STICK X: Moving Left & Right (Strafing) ---
-            // Same logic as above.
-            // 1. Get the value.
-            // 2. Ignore small drift (Deadband).
-            // 3. Invert it (-) because pushing LEFT gives a negative number, but we want 
-            //    positive movement on the Y-axis (Left).
-            () -> -MathUtil.applyDeadband(driverController.getLeftX(), 0.1),
-            
-            // --- RIGHT STICK X: Spinning (Rotation) ---
-            // This controls how fast the robot spins in place.
-            // We invert it (-) because usually pushing Left spins Counter-Clockwise, 
-            // which math considers "Positive" rotation.
-            () -> -driverController.getRightX()
-        )
-    );
+    private final TurretSubsystem turret = new TurretSubsystem(
+            vision,
+            drivebase,
+            shooter,
+            hood);
 
-    /**
-     * 4. THE "RESET GYRO" BUTTON (Button A)
-     * 
-     * Sometimes, the robot's internal compass (Gyro) gets confused about where "North" or "Forward" is.
-     * This usually happens if the robot spins a lot or gets hit.
-     * 
-     * When the driver presses 'A', we tell the robot: "Reset! The direction you are facing RIGHT NOW is Forward."
-     */
-    driverController.a().onTrue(Commands.runOnce(drivebase::zeroGyro));
-  }
-  
-  /**
-   * AUTONOMOUS COMMAND
-   * This method is called to get the command that runs in Autonomous mode.
-   * Right now, it returns "No command configured," so the robot will sit still.
-   */
-  public Command getAutonomousCommand() {
-    return Commands.print("No autonomous command configured");
-  }
+    // ---------------- CONTROLLERS ----------------
+
+    private final CommandXboxController driver = new CommandXboxController(0);
+
+    private final CommandXboxController operator = new CommandXboxController(1);
+
+    // ---------------- AUTO ----------------
+
+    private final SendableChooser<Command> autoChooser;
+
+    public RobotContainer() {
+
+        configureBindings();
+
+        // ---------------- DEFAULT COMMANDS ----------------
+        hood.setDefaultCommand(hood.hold());
+        shooter.setDefaultCommand(shooter.stop());
+
+        // ---------------- PATHPLANNER ----------------
+        NamedCommands.registerCommand(
+                "StopShooter",
+                shooter.stop());
+
+        NamedCommands.registerCommand(
+                "EnableAutoAim",
+                Commands.runOnce(turret::enableHubTracking, turret));
+
+        NamedCommands.registerCommand(
+                "DisableAutoAim",
+                Commands.runOnce(turret::disableHubTracking, turret));
+
+        autoChooser = AutoBuilder.buildAutoChooser();
+        autoChooser.setDefaultOption("Do Nothing", Commands.none());
+        SmartDashboard.putData("Auto Chooser", autoChooser);
+    }
+
+    // --------------------------------------------------
+    // CONTROLLER BINDINGS
+    // --------------------------------------------------
+    private void configureBindings() {
+
+        // ================= DRIVE =================
+        drivebase.setDefaultCommand(
+                drivebase.driveCommand(
+                        () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
+                        () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
+                        () -> {
+                            double stick = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+
+                            if (Math.abs(stick) > 0.05) {
+                                turret.disableHubTracking();
+                                turret.manualRotate(stick);
+                                return stick;
+                            }
+
+                            return turret.getDesiredRobotOmega();
+                        }));
+
+        driver.a().onTrue(
+                Commands.runOnce(drivebase::zeroGyro));
+
+        // ================= TURRET =================
+        driver.y().onTrue(
+                Commands.runOnce(turret::enableHubTracking));
+
+        driver.b().onTrue(
+                Commands.runOnce(turret::disableHubTracking));
+
+        operator.povLeft().whileTrue(
+                Commands.run(() -> turret.manualRotate(-0.4), turret));
+
+        operator.povRight().whileTrue(
+                Commands.run(() -> turret.manualRotate(0.4), turret));
+
+        operator.povLeft().onFalse(
+                Commands.runOnce(() -> turret.manualRotate(0.0)));
+
+        operator.povRight().onFalse(
+                Commands.runOnce(() -> turret.manualRotate(0.0)));
+
+        // ================= HOOD =================
+        operator.povUp().onTrue(
+                hood.setAngle(
+                        hood.getAngle().plus(Degrees.of(2))));
+
+        operator.povDown().onTrue(
+                hood.setAngle(
+                        hood.getAngle().minus(Degrees.of(2))));
+
+        // ================= SHOOTER =================
+        // Shooter is now controlled ONLY by commands / autos
+        // No operator bindings here by design
+    }
+
+    // ================= AUTO =================
+    public Command getAutonomousCommand() {
+        return autoChooser.getSelected();
+    }
+
+    // ---------------- ACCESSORS ----------------
+    public SwerveSubsystem getDrivebase() {
+        return drivebase;
+    }
+
+    public VisionSubsystem getVision() {
+        return vision;
+    }
 }
