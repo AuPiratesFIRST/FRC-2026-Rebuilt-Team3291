@@ -4,7 +4,7 @@ import static frc.robot.Constants.VisionConstants.*;
 
 import edu.wpi.first.apriltag.*;
 import edu.wpi.first.math.geometry.*;
-import edu.wpi.first.networktables.*;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -16,36 +16,22 @@ import org.photonvision.targeting.*;
 
 public class VisionSubsystem extends SubsystemBase {
 
-    // ---------- CAMERAS ----------
-    private final PhotonCamera frontCamera;
+    // ---------- CAMERA ----------
     private final PhotonCamera shooterCamera;
 
-    // ---------- POSE ----------
-    private final PhotonPoseEstimator poseEstimator;
-    private final StructPublisher<Pose2d> visionPosePub;
+    // ---------- FIELD ----------
     private final AprilTagFieldLayout fieldLayout;
 
     // ---------- SIM ----------
     private VisionSystemSim visionSim;
-    private PhotonCameraSim frontCamSim;
     private PhotonCameraSim shooterCamSim;
 
     public VisionSubsystem() {
 
-        frontCamera = new PhotonCamera(FRONT_CAMERA_NAME);
         shooterCamera = new PhotonCamera(SHOOTER_CAMERA_NAME);
 
         fieldLayout = AprilTagFieldLayout.loadField(
                 AprilTagFields.k2026RebuiltWelded);
-
-        poseEstimator = new PhotonPoseEstimator(
-                fieldLayout,
-                PhotonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                ROBOT_TO_FRONT_CAMERA);
-
-        visionPosePub = NetworkTableInstance.getDefault()
-                .getStructTopic("Vision/EstimatedPose", Pose2d.struct)
-                .publish();
 
         if (RobotBase.isSimulation()) {
             setupSimulation();
@@ -64,25 +50,17 @@ public class VisionSubsystem extends SubsystemBase {
         props.setFPS(30);
         props.setAvgLatencyMs(35);
 
-        frontCamSim = new PhotonCameraSim(frontCamera, props);
         shooterCamSim = new PhotonCameraSim(shooterCamera, props);
 
-        visionSim.addCamera(frontCamSim, ROBOT_TO_FRONT_CAMERA);
-        visionSim.addCamera(shooterCamSim, ROBOT_TO_SHOOTER_CAMERA);
+        visionSim.addCamera(
+                shooterCamSim,
+                ROBOT_TO_SHOOTER_CAMERA);
     }
 
     public void updateSimPose(Pose2d robotPose) {
         if (visionSim != null) {
             visionSim.update(robotPose);
         }
-    }
-
-    // ---------------- POSE ----------------
-    public Optional<EstimatedRobotPose> getEstimatedGlobalPose() {
-        var result = frontCamera.getLatestResult();
-        if (!result.hasTargets())
-            return Optional.empty();
-        return poseEstimator.update(result);
     }
 
     // ---------------- DISTANCE (SHOOTER CAMERA) ----------------
@@ -107,10 +85,30 @@ public class VisionSubsystem extends SubsystemBase {
         return Optional.empty();
     }
 
+    // ---------------- SHOOTER YAW ONLY ----------------
+    public Optional<Double> getShooterTargetYawRad(int[] validTags) {
+
+        PhotonPipelineResult result = shooterCamera.getLatestResult();
+
+        if (!result.hasTargets())
+            return Optional.empty();
+
+        for (PhotonTrackedTarget target : result.getTargets()) {
+            for (int id : validTags) {
+                if (target.getFiducialId() == id) {
+
+                    // Photon yaw is degrees, CCW positive
+                    return Optional.of(
+                            Units.degreesToRadians(
+                                    target.getYaw()));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     @Override
     public void periodic() {
-        getEstimatedGlobalPose()
-                .ifPresent(p -> visionPosePub.set(
-                        p.estimatedPose.toPose2d()));
+        // Shooter-only vision — nothing to publish
     }
 }

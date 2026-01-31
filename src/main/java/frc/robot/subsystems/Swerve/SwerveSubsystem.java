@@ -113,23 +113,31 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // Feed AprilTag pose estimates into YAGSL odometry
-    vision.getEstimatedGlobalPose().ifPresent(est -> {
-      var trust = est.targetsUsed.size() > 1
-          ? VisionConstants.MULTI_TAG_STD_DEVS
-          : VisionConstants.SINGLE_TAG_STD_DEVS;
+    // // Feed AprilTag pose estimates into YAGSL odometry
+    // vision.getEstimatedGlobalPose().ifPresent(est -> {
+    // var trust = est.targetsUsed.size() > 1
+    // ? VisionConstants.MULTI_TAG_STD_DEVS
+    // : VisionConstants.SINGLE_TAG_STD_DEVS;
 
-      swerveDrive.addVisionMeasurement(
-          est.estimatedPose.toPose2d(),
-          est.timestampSeconds,
-          trust);
-    });
+    // swerveDrive.addVisionMeasurement(
+    // est.estimatedPose.toPose2d(),
+    // est.timestampSeconds,
+    // trust);
+    // });
   }
 
   @Override
   public void simulationPeriodic() {
     // Tell simulated cameras where the robot is in 3D
     vision.updateSimPose(swerveDrive.getPose());
+  }
+
+  /* -------------------- ROBOT-RELATIVE DRIVE -------------------- */
+  public void drive(ChassisSpeeds speeds) {
+    swerveDrive.drive(
+        speeds,
+        swerveDrive.kinematics.toSwerveModuleStates(speeds),
+        null);
   }
 
   /* -------------------- ACCESSORS -------------------- */

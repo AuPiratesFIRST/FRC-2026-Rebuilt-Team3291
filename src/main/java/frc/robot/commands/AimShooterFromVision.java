@@ -4,6 +4,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Shooter.*;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.Constants.VisionConstants;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
 import java.util.Optional;
 
@@ -17,6 +19,7 @@ public class AimShooterFromVision extends Command {
             ShooterSubsystem shooter,
             HoodSubsystem hood,
             VisionSubsystem vision) {
+
         this.shooter = shooter;
         this.hood = hood;
         this.vision = vision;
@@ -27,28 +30,40 @@ public class AimShooterFromVision extends Command {
     @Override
     public void execute() {
 
-        Optional<Double> distance = vision.getDistanceToTagMeters(
-                VisionConstants.BLUE_HUB_TAGS);
+        int[] validTags;
 
-        if (distance.isEmpty()) {
-            shooter.applyRPM(0);
-            return;
+        Alliance alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+
+        if (alliance == Alliance.Red) {
+            validTags = VisionConstants.RED_HUB_TAGS;
+        } else {
+            validTags = VisionConstants.BLUE_HUB_TAGS;
         }
 
-        var solution = ShooterAimCalculator.solve(distance.get());
+        Optional<Double> distance = vision.getDistanceToTagMeters(validTags);
+
+        ShooterAimCalculator.ShooterSolution solution;
+
+        // ---------------- FALLBACK LOGIC ----------------
+        if (distance.isEmpty()) {
+            solution = ShooterAimCalculator.fallback();
+        } else {
+            solution = ShooterAimCalculator.solve(distance.get());
+        }
 
         if (!solution.valid()) {
-            shooter.applyRPM(0);
-            return;
+            solution = ShooterAimCalculator.fallback();
         }
 
+        // ---------------- APPLY OUTPUTS ----------------
         hood.applyAngle(solution.hoodAngle());
         shooter.applyRPM(solution.rpm());
     }
 
     @Override
     public void end(boolean interrupted) {
-        shooter.applyRPM(0);
+        // Let default commands take over
+        shooter.stop().schedule();
     }
 
     @Override

@@ -16,17 +16,12 @@ import org.photonvision.targeting.PhotonTrackedTarget;
  * RESPONSIBILITIES:
  * - Convert distance (meters) -> hood angle
  * - Convert distance (meters) -> flywheel RPM
- * - Optionally validate RPM using projectile physics
+ * - Shape RPM using logarithmic acceleration
  *
  * DOES NOT:
  * - Control motors
  * - Schedule commands
  * - Use vision subsystems directly
- *  
- * SAFE TO USE FROM:
- * - Commands
- * - Autos
- * - Subsystems
  */
 public final class ShooterAimCalculator {
 
@@ -37,7 +32,7 @@ public final class ShooterAimCalculator {
     /** Shooter exit height (meters) */
     public static final double SHOOTER_HEIGHT = 0.50;
 
-    /** Target scoring height (meters) ~12" above upper AprilTag */
+    /** Target scoring height (meters) */
     public static final double TARGET_HEIGHT = 2.64;
 
     /** Shooter wheel radius (meters) */
@@ -47,11 +42,18 @@ public final class ShooterAimCalculator {
     private static final double GRAVITY = 9.81;
 
     /** Absolute RPM safety clamp */
-    public static final double MAX_RPM = 6000.0;
+    public static final double MAX_RPM = 550.0;
 
     /** Valid shooting distance bounds */
-    private static final double MIN_DISTANCE = 1.5;
+    private static final double MIN_DISTANCE = 0.1;
     private static final double MAX_DISTANCE = 3.5;
+
+    // ============================================================
+    // LOGARITHMIC RPM SHAPING
+    // ============================================================
+
+    /** Log curve aggressiveness (higher = steeper rise) */
+    private static final double LOG_K = 6.0;
 
     // ============================================================
     // TUNING MAPS (PRIMARY CONTROL SOURCE)
@@ -62,23 +64,23 @@ public final class ShooterAimCalculator {
     private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
 
     static {
-        // Distance (m) -> Flywheel RPM
-        rpmMap.put(1.5, 2500.0);
-        rpmMap.put(2.0, 3000.0);
-        rpmMap.put(2.5, 3500.0);
-        rpmMap.put(3.0, 4200.0);
-        rpmMap.put(3.5, 4800.0);
+        // Distance (m) -> Flywheel RPM (RAW, BEFORE log shaping)
+        rpmMap.put(0.10, 100.0);
+        rpmMap.put(0.20, 200.0);
+        rpmMap.put(0.25, 300.0);
+        rpmMap.put(0.27, 400.0);
+        rpmMap.put(0.30, 500.0);
 
         // Distance (m) -> Hood angle (deg)
-        hoodAngleMap.put(1.5, 25.0);
-        hoodAngleMap.put(2.0, 30.0);
-        hoodAngleMap.put(2.5, 35.0);
-        hoodAngleMap.put(3.0, 40.0);
-        hoodAngleMap.put(3.5, 45.0);
+        hoodAngleMap.put(0.10, 25.0);
+        hoodAngleMap.put(0.20, 30.0);
+        hoodAngleMap.put(0.25, 35.0);
+        hoodAngleMap.put(0.27, 40.0);
+        hoodAngleMap.put(0.30, 45.0);
     }
 
     // ============================================================
-    // PUBLIC SOLVER (USED BY COMMANDS)
+    // PUBLIC SOLVER
     // ============================================================
 
     /**
@@ -94,30 +96,60 @@ public final class ShooterAimCalculator {
 
         Angle hoodAngle = Degrees.of(hoodAngleMap.get(clamped));
 
-        double rpm = Math.min(rpmMap.get(clamped), MAX_RPM);
+        // RAW RPM from table (you control this)
+        double rawRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
 
-        // Optional physics validation (non-authoritative)
+        // 🔥 Logarithmic shaping
+        double shapedRPM = applyLogCurve(rawRPM);
+
         double physicsRPM = calculatePhysicsRPM(clamped, hoodAngle);
 
         return new ShooterSolution(
                 hoodAngle,
-                rpm,
+                shapedRPM,
                 physicsRPM,
                 clamped,
                 true);
     }
 
+    /**
+     * Fallback solution (YOU set the RPM here)
+     */
+    public static ShooterSolution fallback() {
+
+        double rawRPM = 500.0;
+        double shapedRPM = applyLogCurve(rawRPM);
+
+        return new ShooterSolution(
+                Degrees.of(35),
+                shapedRPM,
+                0.0,
+                0.0,
+                true);
+    }
+
     // ============================================================
-    // PHYSICS MODEL (VALIDATION / FUTURE AUTO-TUNING)
+    // LOGARITHMIC CURVE (CORE LOGIC)
     // ============================================================
 
-    /**
-     * Calculates RPM using projectile motion.
-     * NOT used directly for control — tuning table wins.
-     */
+    private static double applyLogCurve(double rpm) {
+
+        double normalized = MathUtil.clamp(rpm / MAX_RPM, 0.0, 1.0);
+
+        double curved = Math.log(1.0 + LOG_K * normalized) /
+                Math.log(1.0 + LOG_K);
+
+        return MAX_RPM * curved;
+    }
+
+    // ============================================================
+    // PHYSICS MODEL (VALIDATION ONLY)
+    // ============================================================
+
     private static double calculatePhysicsRPM(
             double distanceMeters,
             Angle hoodAngle) {
+
         double theta = hoodAngle.in(Radians);
         double d = distanceMeters;
         double h = TARGET_HEIGHT - SHOOTER_HEIGHT;
@@ -142,11 +174,9 @@ public final class ShooterAimCalculator {
     // PHOTONVISION UTILITY
     // ============================================================
 
-    /**
-     * Extracts horizontal distance (meters) from a Photon target.
-     */
     public static double extractPlanarDistance(
             PhotonTrackedTarget target) {
+
         Transform3d camToTarget = target.getBestCameraToTarget();
 
         double x = camToTarget.getTranslation().getX();
@@ -165,6 +195,7 @@ public final class ShooterAimCalculator {
             double physicsRPM,
             double distanceMeters,
             boolean valid) {
+
         public static ShooterSolution invalid(double distance) {
             return new ShooterSolution(
                     Degrees.zero(),
@@ -175,7 +206,6 @@ public final class ShooterAimCalculator {
         }
     }
 
-    // Prevent construction
     private ShooterAimCalculator() {
     }
 }
