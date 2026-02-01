@@ -9,22 +9,41 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import swervelib.simulation.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
 
+import org.littletonrobotics.junction.LogFileUtil;
+import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
-public class Robot extends TimedRobot {
+public class Robot extends LoggedRobot {
   private Command m_autonomousCommand;
 
   private final RobotContainer m_robotContainer;
 
   public Robot() {
+    /* ---------------- AdvantageKit Init (MUST BE FIRST) ---------------- */
+
+    Logger.recordMetadata("Robot", "Rebuilt2026");
+
+    if (isReal()) {
+      Logger.addDataReceiver(new WPILOGWriter()); // /U/logs on roboRIO
+      Logger.addDataReceiver(new NT4Publisher()); // AdvantageScope live view
+    } else {
+      setUseTiming(false); // Run sim as fast as possible
+      Logger.addDataReceiver(new NT4Publisher()); // Live sim view
+      Logger.addDataReceiver(new WPILOGWriter("logs/sim")); // Optional
+    }
+
+    Logger.start();
+    /* ------------------------------------------------------------------- */
     m_robotContainer = new RobotContainer();
   }
 
   @Override
-public void robotInit() {
-  Logger.recordMetadata("Robot", "Rebuilt2026");
-}
-
+  public void robotInit() {
+    Logger.recordMetadata("Robot", "Rebuilt2026");
+  }
 
   @Override
   public void robotPeriodic() {
@@ -33,13 +52,16 @@ public void robotInit() {
   }
 
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+  }
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+  }
 
   @Override
-  public void disabledExit() {}
+  public void disabledExit() {
+  }
 
   @Override
   public void autonomousInit() {
@@ -51,10 +73,12 @@ public void robotInit() {
   }
 
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+  }
 
   @Override
-  public void autonomousExit() {}
+  public void autonomousExit() {
+  }
 
   @Override
   public void teleopInit() {
@@ -64,10 +88,12 @@ public void robotInit() {
   }
 
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+  }
 
   @Override
-  public void teleopExit() {}
+  public void teleopExit() {
+  }
 
   @Override
   public void testInit() {
@@ -75,26 +101,30 @@ public void robotInit() {
   }
 
   @Override
-  public void testPeriodic() {}
+  public void testPeriodic() {
+  }
 
   @Override
-  public void testExit() {}
+  public void testExit() {
+  }
 
   @Override
   public void simulationInit() {
     // This tells the sim to load the 2026 "Rebuilt" game field obstacles
     // (Based on the Javadocs you provided)
-    // You might need to import: swervelib.simulation.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
-    Arena2026Rebuilt.getInstance(); // This line depends on exactly how YAGSL implemented the singleton, usually accessing the instance loads it.
-    
+    // You might need to import:
+    // swervelib.simulation.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
+    Arena2026Rebuilt.getInstance(); // This line depends on exactly how YAGSL implemented the singleton, usually
+                                    // accessing the instance loads it.
+
   }
-  
+
   @Override
   public void simulationPeriodic() {
-      // UPDATE THIS LINE to use the new YAGSL internal package
+    // UPDATE THIS LINE to use the new YAGSL internal package
     swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
-  m_robotContainer.getVision()
-      .updateSimPose(m_robotContainer.getDrivebase().getPose());
+    m_robotContainer.getVision()
+        .updateSimPose(m_robotContainer.getDrivebase().getPose());
 
   }
 }

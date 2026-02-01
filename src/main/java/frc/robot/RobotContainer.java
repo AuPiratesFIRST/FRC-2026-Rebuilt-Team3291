@@ -18,7 +18,7 @@ import frc.robot.commands.ShooterDockAtDistanceCommand;
 import frc.robot.subsystems.ImuSubsystem.*;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
-import frc.robot.subsystems.Swerve.SwerveSubsystem;
+import frc.robot.subsystems.TankDrive.TankDriveSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
@@ -36,7 +36,7 @@ public class RobotContainer {
         private final VisionSubsystem vision = new VisionSubsystem();
         private final ImuSubsystem imu = new ImuSubsystem();
 
-        private final SwerveSubsystem drivebase = new SwerveSubsystem(
+        private final TankDriveSubsystem drivebase = new TankDriveSubsystem(
                         vision);
 
         private final HoodSubsystem hood = new HoodSubsystem();
@@ -154,7 +154,7 @@ public class RobotContainer {
         }
 
         // ---------------- ACCESSORS ----------------
-        public SwerveSubsystem getDrivebase() {
+        public TankDriveSubsystem getDrivebase() {
                 return drivebase;
         }
 

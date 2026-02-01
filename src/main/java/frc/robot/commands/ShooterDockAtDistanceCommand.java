@@ -6,13 +6,13 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.VisionConstants;
-import frc.robot.subsystems.Swerve.SwerveSubsystem;
+import frc.robot.subsystems.TankDrive.TankDriveSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
 public class ShooterDockAtDistanceCommand extends Command {
 
     private final VisionSubsystem vision;
-    private final SwerveSubsystem drive;
+    private final TankDriveSubsystem drive;
     private final double targetDistanceMeters;
 
     private final PIDController yawController;
@@ -22,7 +22,7 @@ public class ShooterDockAtDistanceCommand extends Command {
 
     public ShooterDockAtDistanceCommand(
             VisionSubsystem vision,
-            SwerveSubsystem drive,
+            TankDriveSubsystem drive,
             double targetDistanceMeters) {
         this.vision = vision;
         this.drive = drive;

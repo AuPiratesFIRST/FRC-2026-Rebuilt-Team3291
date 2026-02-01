@@ -1,4 +1,4 @@
-package frc.robot.subsystems.Swerve;
+package frc.robot.subsystems.TankDrive;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator;
@@ -7,11 +7,14 @@ import edu.wpi.first.math.kinematics.*;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
-import edu.wpi.first.wpilibj2.command.*;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.subsystems.ImuSubsystem.*;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -25,17 +28,20 @@ import com.revrobotics.spark.config.SparkBaseConfig;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPLTVController;
+import com.pathplanner.lib.trajectory.PathPlannerTrajectory;
 
-import java.io.File;
+import org.littletonrobotics.junction.Logger;
+
 import java.util.function.DoubleSupplier;
 
-public class SwerveSubsystem extends SubsystemBase {
+public class TankDriveSubsystem extends SubsystemBase {
 
   /* ---------------- CONSTANTS ---------------- */
 
   private static final double TRACK_WIDTH = 0.61;
-  private static final double MAX_LINEAR_SPEED = 3.5; // m/s
-  private static final double MAX_ANGULAR_SPEED = Math.PI * 2; // rad/s
+  private static final double MAX_LINEAR_SPEED = 3.5;
+  /** Max angular speed (rad/s) for scaling manual rotation stick input. */
+  public static final double MAX_ANGULAR_SPEED = 3.0;
 
   /* ---------------- HARDWARE ---------------- */
 
@@ -54,11 +60,15 @@ public class SwerveSubsystem extends SubsystemBase {
   private final ImuSubsystem imu = new ImuSubsystem();
   private final VisionSubsystem vision;
 
-  /* ---------------- KINEMATICS / POSE ---------------- */
+  /* ---------------- POSE ---------------- */
 
   private final DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(TRACK_WIDTH);
 
   private final DifferentialDrivePoseEstimator poseEstimator;
+
+  /* ---------------- FIELD ---------------- */
+
+  private final Field2d field = new Field2d();
 
   /* ---------------- SIM ---------------- */
 
@@ -71,9 +81,14 @@ public class SwerveSubsystem extends SubsystemBase {
       TRACK_WIDTH,
       null);
 
-  /* ---------------- CONSTRUCTOR (LEGACY API) ---------------- */
+  /* ---------------- PATHPLANNER ---------------- */
 
-  public SwerveSubsystem(VisionSubsystem vision) {
+  private PathPlannerTrajectory activeTrajectory;
+  private double trajectoryStartTime = 0.0;
+
+  /* ---------------- CONSTRUCTOR ---------------- */
+
+  public TankDriveSubsystem(VisionSubsystem vision) {
     this.vision = vision;
 
     SparkMaxConfig leader = new SparkMaxConfig();
@@ -85,14 +100,23 @@ public class SwerveSubsystem extends SubsystemBase {
         .positionConversionFactor(metersPerRev)
         .velocityConversionFactor(metersPerRev / 60.0);
 
-    leftLeader.configure(leader, SparkMax.ResetMode.kResetSafeParameters, SparkMax.PersistMode.kPersistParameters);
-    rightLeader.configure(leader, SparkMax.ResetMode.kResetSafeParameters, SparkMax.PersistMode.kPersistParameters);
-
-    leftFollower.configure(new SparkMaxConfig().follow(leftLeader),
+    leftLeader.configure(
+        leader,
         SparkMax.ResetMode.kResetSafeParameters,
         SparkMax.PersistMode.kPersistParameters);
 
-    rightFollower.configure(new SparkMaxConfig().follow(rightLeader),
+    rightLeader.configure(
+        leader,
+        SparkMax.ResetMode.kResetSafeParameters,
+        SparkMax.PersistMode.kPersistParameters);
+
+    leftFollower.configure(
+        new SparkMaxConfig().follow(leftLeader),
+        SparkMax.ResetMode.kResetSafeParameters,
+        SparkMax.PersistMode.kPersistParameters);
+
+    rightFollower.configure(
+        new SparkMaxConfig().follow(rightLeader),
         SparkMax.ResetMode.kResetSafeParameters,
         SparkMax.PersistMode.kPersistParameters);
 
@@ -113,24 +137,12 @@ public class SwerveSubsystem extends SubsystemBase {
         VecBuilder.fill(0.02, 0.02, Units.degreesToRadians(2)),
         VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
 
+    SmartDashboard.putData("Field", field);
+
     setupPathPlanner();
   }
 
-  /* ---------------- TELEOP DRIVE (UNCHANGED API) ---------------- */
-
-  public Command driveCommand(
-      DoubleSupplier vX,
-      DoubleSupplier vY,
-      DoubleSupplier vOmega) {
-
-    return run(() -> drive(
-        new ChassisSpeeds(
-            vX.getAsDouble() * MAX_LINEAR_SPEED,
-            0.0,
-            vOmega.getAsDouble() * MAX_ANGULAR_SPEED)));
-  }
-
-  /* ---------------- CORE DRIVE (UNCHANGED API) ---------------- */
+  /* ---------------- DRIVE ---------------- */
 
   public void drive(ChassisSpeeds speeds) {
     DifferentialDriveWheelSpeeds wheels = kinematics.toWheelSpeeds(speeds);
@@ -140,9 +152,24 @@ public class SwerveSubsystem extends SubsystemBase {
         wheels.leftMetersPerSecond / MAX_LINEAR_SPEED,
         wheels.rightMetersPerSecond / MAX_LINEAR_SPEED,
         false);
+
+    Logger.recordOutput("Drive/TargetSpeeds", speeds);
   }
 
-  /* ---------------- REQUIRED HELPERS (UNCHANGED API) ---------------- */
+  /**
+   * Returns a Command that drives the robot from supplier inputs.
+   * Forward and strafe are -1 to 1 (strafe ignored for tank drive). Rotation is rad/s.
+   */
+  public Command driveCommand(DoubleSupplier forward, DoubleSupplier strafe, DoubleSupplier rotation) {
+    return Commands.run(
+        () -> drive(new ChassisSpeeds(
+            forward.getAsDouble() * MAX_LINEAR_SPEED,
+            strafe.getAsDouble() * MAX_LINEAR_SPEED,
+            rotation.getAsDouble())),
+        this);
+  }
+
+  /* ---------------- ACCESSORS ---------------- */
 
   public Pose2d getPose() {
     return poseEstimator.getEstimatedPosition();
@@ -155,12 +182,6 @@ public class SwerveSubsystem extends SubsystemBase {
             rightEncoder.getVelocity()));
   }
 
-  public ChassisSpeeds getFieldVelocity() {
-    return ChassisSpeeds.fromRobotRelativeSpeeds(
-        getRobotVelocity(),
-        imu.getRotation2d());
-  }
-
   public void resetOdometry(Pose2d pose) {
     imu.zeroYaw();
     poseEstimator.resetPosition(
@@ -168,10 +189,6 @@ public class SwerveSubsystem extends SubsystemBase {
         leftEncoder.getPosition(),
         rightEncoder.getPosition(),
         pose);
-  }
-
-  public void zeroGyro() {
-    imu.zeroYaw();
   }
 
   /* ---------------- PERIODIC ---------------- */
@@ -183,10 +200,30 @@ public class SwerveSubsystem extends SubsystemBase {
         leftEncoder.getPosition(),
         rightEncoder.getPosition());
 
-    SmartDashboard.putNumber("Pose/X", getPose().getX());
-    SmartDashboard.putNumber("Pose/Y", getPose().getY());
-    SmartDashboard.putNumber("Pose/Heading", getPose().getRotation().getDegrees());
+    Pose2d pose2d = getPose();
+    field.setRobotPose(pose2d);
+
+    Logger.recordOutput("Drive/Pose2d", pose2d);
+    Logger.recordOutput(
+        "Drive/WheelSpeeds",
+        new DifferentialDriveWheelSpeeds(
+            leftEncoder.getVelocity(),
+            rightEncoder.getVelocity()));
+
+    if (activeTrajectory != null) {
+      double t = Timer.getFPGATimestamp() - trajectoryStartTime;
+
+      if (t <= activeTrajectory.getTotalTimeSeconds()) {
+        var sample = activeTrajectory.sample(t);
+
+        Logger.recordOutput(
+            "Drive/Trajectory/TargetPose",
+            sample.pose);
+      }
+    }
   }
+
+  /* ---------------- SIM ---------------- */
 
   @Override
   public void simulationPeriodic() {
@@ -226,5 +263,27 @@ public class SwerveSubsystem extends SubsystemBase {
             .map(a -> a == DriverStation.Alliance.Red)
             .orElse(false),
         this);
+  }
+
+  public ChassisSpeeds getFieldVelocity() {
+    return ChassisSpeeds.fromRobotRelativeSpeeds(
+        getRobotVelocity(),
+        imu.getRotation2d());
+  }
+
+  public void zeroGyro() {
+    imu.zeroYaw();
+  }
+
+  public void setActiveTrajectory(PathPlannerTrajectory trajectory) {
+    this.activeTrajectory = trajectory;
+    trajectoryStartTime = Timer.getFPGATimestamp();
+
+    var obj = field.getObject("Trajectory");
+    obj.getPoses().clear();
+
+    for (double t = 0; t <= trajectory.getTotalTimeSeconds(); t += 0.1) {
+      obj.getPoses().add(trajectory.sample(t).pose);
+    }
   }
 }

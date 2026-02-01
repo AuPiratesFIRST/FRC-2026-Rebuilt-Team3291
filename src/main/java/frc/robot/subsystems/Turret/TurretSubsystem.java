@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
-import frc.robot.subsystems.Swerve.SwerveSubsystem;
+import frc.robot.subsystems.TankDrive.TankDriveSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
@@ -26,7 +26,7 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
 
         private final VisionSubsystem vision;
-        private final SwerveSubsystem swerve;
+        private final TankDriveSubsystem driveSubsystem;
         private final ShooterSubsystem shooter;
         private final HoodSubsystem hood;
 
@@ -55,11 +55,11 @@ public class TurretSubsystem extends SubsystemBase {
 
         public TurretSubsystem(
                         VisionSubsystem vision,
-                        SwerveSubsystem swerve,
+                        TankDriveSubsystem driveSubsystem,
                         ShooterSubsystem shooter,
                         HoodSubsystem hood) {
                 this.vision = vision;
-                this.swerve = swerve;
+                this.driveSubsystem = driveSubsystem;
                 this.shooter = shooter;
                 this.hood = hood;
 
@@ -68,14 +68,14 @@ public class TurretSubsystem extends SubsystemBase {
                 // ADDED
                 visualizer = new TurretVisualizer(
                                 () -> new Pose3d(
-                                                swerve.getPose().getTranslation().getX(),
-                                                swerve.getPose().getTranslation().getY(),
+                                                driveSubsystem.getPose().getTranslation().getX(),
+                                                driveSubsystem.getPose().getTranslation().getY(),
                                                 0.0,
                                                 new Rotation3d(
                                                                 0,
                                                                 0,
-                                                                swerve.getPose().getRotation().getRadians())),
-                                swerve::getFieldVelocity,
+                                                                driveSubsystem.getPose().getRotation().getRadians())),
+                                driveSubsystem::getFieldVelocity,
                                 () -> DriverStation.getAlliance()
                                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue);
         }
@@ -106,7 +106,7 @@ public class TurretSubsystem extends SubsystemBase {
                                                 ? Constants.FieldConstants.HUB_BLUE
                                                 : Constants.FieldConstants.HUB_RED;
 
-                Pose2d robotPose = swerve.getPose();
+                Pose2d robotPose = driveSubsystem.getPose();
                 Rotation2d robotYaw = robotPose.getRotation();
 
                 Translation2d shooterFieldPos = robotPose.getTranslation()
@@ -144,7 +144,7 @@ public class TurretSubsystem extends SubsystemBase {
         public double getDesiredRobotOmega() {
                 if (hubTrackingEnabled) {
                         return headingPID.calculate(
-                                        swerve.getPose().getRotation().getRadians(),
+                                        driveSubsystem.getPose().getRotation().getRadians(),
                                         desiredFieldHeading.getRadians());
                 }
                 return manualOmega;
@@ -178,12 +178,12 @@ public class TurretSubsystem extends SubsystemBase {
 
                 SmartDashboard.putNumber(
                                 "Targeting/RobotYawDeg",
-                                swerve.getPose().getRotation().getDegrees());
+                                driveSubsystem.getPose().getRotation().getDegrees());
 
                 SmartDashboard.putNumber(
                                 "Targeting/HeadingErrorDeg",
                                 desiredFieldHeading
-                                                .minus(swerve.getPose().getRotation())
+                                                .minus(driveSubsystem.getPose().getRotation())
                                                 .getDegrees());
         }
 }
