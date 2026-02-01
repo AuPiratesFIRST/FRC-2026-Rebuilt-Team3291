@@ -37,9 +37,7 @@ public class RobotContainer {
         private final ImuSubsystem imu = new ImuSubsystem();
 
         private final SwerveSubsystem drivebase = new SwerveSubsystem(
-                        new File(Filesystem.getDeployDirectory(), "swerve"), // unused, kept for API stability
-                        vision,
-                        imu);
+                        vision);
 
         private final HoodSubsystem hood = new HoodSubsystem();
         private final ShooterSubsystem shooter = new ShooterSubsystem();
