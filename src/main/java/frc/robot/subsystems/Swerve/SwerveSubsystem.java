@@ -1,97 +1,165 @@
 package frc.robot.subsystems.Swerve;
 
 import edu.wpi.first.math.geometry.*;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.*;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.*;
-import frc.robot.Constants.VisionConstants;
+
+import frc.robot.subsystems.ImuSubsystem.*;
 import frc.robot.subsystems.vision.VisionSubsystem;
+
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig;
+
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPLTVController;
 
 import java.io.File;
 import java.util.function.DoubleSupplier;
 
-import swervelib.SwerveDrive;
-import swervelib.parser.SwerveParser;
-import swervelib.telemetry.SwerveDriveTelemetry;
-import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
-
-// PathPlanner imports
-import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.config.RobotConfig;
-import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-import com.pathplanner.lib.config.PIDConstants;
-
 public class SwerveSubsystem extends SubsystemBase {
-  private final SwerveDrive swerveDrive;
-  private final VisionSubsystem vision;
 
-  private static final double MAX_LINEAR_SPEED = 4.5; // m/s
+  /* -------------------- CONSTANTS -------------------- */
+
+  private static final double TRACK_WIDTH_METERS = 0.61;
+  private static final double MAX_LINEAR_SPEED = 3.5; // m/s
   private static final double MAX_ANGULAR_SPEED = Math.PI * 2; // rad/s
 
-  public SwerveSubsystem(File directory, VisionSubsystem vision) {
+  /* -------------------- MOTORS -------------------- */
+
+  private final SparkMax leftLeader = new SparkMax(1, MotorType.kBrushless);
+  private final SparkMax leftFollower = new SparkMax(2, MotorType.kBrushless);
+  private final SparkMax rightLeader = new SparkMax(3, MotorType.kBrushless);
+  private final SparkMax rightFollower = new SparkMax(4, MotorType.kBrushless);
+
+  private final DifferentialDrive drive;
+
+  /* -------------------- ENCODERS -------------------- */
+
+  private final RelativeEncoder leftEncoder;
+  private final RelativeEncoder rightEncoder;
+
+  /* -------------------- IMU / VISION -------------------- */
+
+  private final ImuSubsystem imu;
+  private final VisionSubsystem vision;
+
+  /* -------------------- KINEMATICS / ODOMETRY -------------------- */
+
+  private final DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(TRACK_WIDTH_METERS);
+
+  private final DifferentialDriveOdometry odometry;
+
+  /* -------------------- CONSTRUCTOR -------------------- */
+
+  public SwerveSubsystem(File directory, VisionSubsystem vision, ImuSubsystem imu) {
     this.vision = vision;
+    this.imu = imu;
 
-    Pose2d startingPose = new Pose2d(new Translation2d(4, 4), new Rotation2d());
+    SparkMaxConfig leaderConfig = new SparkMaxConfig();
+    leaderConfig.idleMode(SparkBaseConfig.IdleMode.kBrake);
 
-    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.POSE;
+    double wheelDiameterMeters = 0.1524; // 6"
+    double gearRatio = 10.71;
+    double metersPerRotation = Math.PI * wheelDiameterMeters / gearRatio;
 
-    try {
-      swerveDrive = new SwerveParser(directory)
-          .createSwerveDrive(MAX_LINEAR_SPEED, startingPose);
+    leaderConfig.encoder
+        .positionConversionFactor(metersPerRotation)
+        .velocityConversionFactor(metersPerRotation / 60.0);
 
-      if (RobotBase.isSimulation()) {
-        swerveDrive.setHeadingCorrection(false);
-        swerveDrive.setCosineCompensator(false);
-      }
-    } catch (Exception e) {
-      throw new RuntimeException("Check your swerve JSON files!", e);
-    }
+    SparkMaxConfig leftFollowerConfig = new SparkMaxConfig();
+    leftFollowerConfig.follow(leftLeader);
+
+    SparkMaxConfig rightFollowerConfig = new SparkMaxConfig();
+    rightFollowerConfig.follow(rightLeader);
+
+    leftLeader.configure(
+        leaderConfig,
+        SparkMax.ResetMode.kResetSafeParameters,
+        SparkMax.PersistMode.kPersistParameters);
+
+    rightLeader.configure(
+        leaderConfig,
+        SparkMax.ResetMode.kResetSafeParameters,
+        SparkMax.PersistMode.kPersistParameters);
+
+    leftFollower.configure(
+        leftFollowerConfig,
+        SparkMax.ResetMode.kResetSafeParameters,
+        SparkMax.PersistMode.kPersistParameters);
+
+    rightFollower.configure(
+        rightFollowerConfig,
+        SparkMax.ResetMode.kResetSafeParameters,
+        SparkMax.PersistMode.kPersistParameters);
+
+    rightLeader.setInverted(true);
+
+    leftEncoder = leftLeader.getEncoder();
+    rightEncoder = rightLeader.getEncoder();
+
+    drive = new DifferentialDrive(leftLeader, rightLeader);
+    drive.setSafetyEnabled(false);
+
+    odometry = new DifferentialDriveOdometry(
+        imu.getRotation2d(),
+        leftEncoder.getPosition(),
+        rightEncoder.getPosition());
 
     setupPathPlanner();
   }
 
-  /* -------------------- TELEOP DRIVE -------------------- */
+  /* -------------------- TELEOP -------------------- */
+  /* vY intentionally ignored for differential */
 
   public Command driveCommand(
       DoubleSupplier vX,
       DoubleSupplier vY,
       DoubleSupplier vOmega) {
-    return run(() -> swerveDrive.drive(
-        new Translation2d(
+
+    return run(() -> drive(
+        new ChassisSpeeds(
             vX.getAsDouble() * MAX_LINEAR_SPEED,
-            vY.getAsDouble() * MAX_LINEAR_SPEED),
-        vOmega.getAsDouble() * MAX_ANGULAR_SPEED,
-        true,
-        false));
+            0.0,
+            vOmega.getAsDouble() * MAX_ANGULAR_SPEED)));
   }
 
-  /* -------------------- PATHPLANNER SETUP -------------------- */
+  /* -------------------- DRIVE CORE -------------------- */
+
+  public void drive(ChassisSpeeds speeds) {
+    DifferentialDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(speeds);
+
+    wheelSpeeds.desaturate(MAX_LINEAR_SPEED);
+
+    drive.tankDrive(
+        wheelSpeeds.leftMetersPerSecond / MAX_LINEAR_SPEED,
+        wheelSpeeds.rightMetersPerSecond / MAX_LINEAR_SPEED,
+        false);
+  }
+
+  /* -------------------- PATHPLANNER -------------------- */
+
   private void setupPathPlanner() {
     RobotConfig config;
 
     try {
       config = RobotConfig.fromGUISettings();
     } catch (Exception e) {
-      throw new RuntimeException(
-          "Failed to load PathPlanner RobotConfig. Check GUI settings.",
-          e);
+      throw new RuntimeException(e);
     }
 
     AutoBuilder.configure(
         this::getPose,
         this::resetOdometry,
-        this::getRobotVelocity,
-        (robotRelativeSpeeds, feedforwards) -> {
-          swerveDrive.drive(
-              robotRelativeSpeeds,
-              swerveDrive.kinematics
-                  .toSwerveModuleStates(robotRelativeSpeeds),
-              feedforwards.linearForces());
-        },
-        new PPHolonomicDriveController(
-            new PIDConstants(5.0, 0.0, 0.0),
-            new PIDConstants(5.0, 0.0, 0.0)),
+        this::getRobotVelocity, // MUST be robot-relative
+        this::drive, // accepts robot-relative ChassisSpeeds
+        new PPLTVController(0.02), // 20ms loop time
         config,
         () -> DriverStation.getAlliance()
             .map(a -> a == DriverStation.Alliance.Red)
@@ -99,58 +167,53 @@ public class SwerveSubsystem extends SubsystemBase {
         this);
   }
 
-  /* -------------------- REQUIRED HELPERS -------------------- */
+  /* -------------------- HELPERS -------------------- */
+
+  public Pose2d getPose() {
+    return odometry.getPoseMeters();
+  }
 
   public void resetOdometry(Pose2d pose) {
-    swerveDrive.resetOdometry(pose);
+    imu.zeroYaw();
+
+    odometry.resetPosition(
+        imu.getRotation2d(),
+        leftEncoder.getPosition(),
+        rightEncoder.getPosition(),
+        pose);
   }
 
   public ChassisSpeeds getRobotVelocity() {
-    return swerveDrive.getRobotVelocity();
+    return kinematics.toChassisSpeeds(
+        new DifferentialDriveWheelSpeeds(
+            leftEncoder.getVelocity(),
+            rightEncoder.getVelocity()));
   }
 
-  /* -------------------- PERIODIC -------------------- */
+  public ChassisSpeeds getFieldVelocity() {
+    return ChassisSpeeds.fromRobotRelativeSpeeds(
+        getRobotVelocity(),
+        imu.getRotation2d());
+  }
+
+  public void zeroGyro() {
+    imu.zeroYaw();
+  }
 
   @Override
   public void periodic() {
-    // // Feed AprilTag pose estimates into YAGSL odometry
-    // vision.getEstimatedGlobalPose().ifPresent(est -> {
-    // var trust = est.targetsUsed.size() > 1
-    // ? VisionConstants.MULTI_TAG_STD_DEVS
-    // : VisionConstants.SINGLE_TAG_STD_DEVS;
+    odometry.update(
+        imu.getRotation2d(),
+        leftEncoder.getPosition(),
+        rightEncoder.getPosition());
 
-    // swerveDrive.addVisionMeasurement(
-    // est.estimatedPose.toPose2d(),
-    // est.timestampSeconds,
-    // trust);
-    // });
+    SmartDashboard.putNumber("Pose/X", getPose().getX());
+    SmartDashboard.putNumber("Pose/Y", getPose().getY());
+    SmartDashboard.putNumber("Pose/Heading", getPose().getRotation().getDegrees());
   }
 
   @Override
   public void simulationPeriodic() {
-    // Tell simulated cameras where the robot is in 3D
-    vision.updateSimPose(swerveDrive.getPose());
-  }
-
-  /* -------------------- ROBOT-RELATIVE DRIVE -------------------- */
-  public void drive(ChassisSpeeds speeds) {
-    swerveDrive.drive(
-        speeds,
-        swerveDrive.kinematics.toSwerveModuleStates(speeds),
-        null);
-  }
-
-  /* -------------------- ACCESSORS -------------------- */
-
-  public Pose2d getPose() {
-    return swerveDrive.getPose();
-  }
-
-  public ChassisSpeeds getFieldVelocity() {
-    return swerveDrive.getFieldVelocity();
-  }
-
-  public void zeroGyro() {
-    swerveDrive.zeroGyro();
+    vision.updateSimPose(getPose());
   }
 }

@@ -12,13 +12,15 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+
 import frc.robot.commands.AimShooterFromVision;
+import frc.robot.commands.ShooterDockAtDistanceCommand;
+import frc.robot.subsystems.ImuSubsystem.*;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
-import frc.robot.commands.ShooterDockAtDistanceCommand;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -32,10 +34,12 @@ public class RobotContainer {
         // ---------------- SUBSYSTEMS ----------------
 
         private final VisionSubsystem vision = new VisionSubsystem();
+        private final ImuSubsystem imu = new ImuSubsystem();
 
         private final SwerveSubsystem drivebase = new SwerveSubsystem(
-                        new File(Filesystem.getDeployDirectory(), "swerve"),
-                        vision);
+                        new File(Filesystem.getDeployDirectory(), "swerve"), // unused, kept for API stability
+                        vision,
+                        imu);
 
         private final HoodSubsystem hood = new HoodSubsystem();
         private final ShooterSubsystem shooter = new ShooterSubsystem();
@@ -49,7 +53,6 @@ public class RobotContainer {
         // ---------------- CONTROLLERS ----------------
 
         private final CommandXboxController driver = new CommandXboxController(0);
-
         private final CommandXboxController operator = new CommandXboxController(1);
 
         // ---------------- AUTO ----------------
@@ -64,7 +67,7 @@ public class RobotContainer {
                 hood.setDefaultCommand(hood.hold());
                 shooter.setDefaultCommand(shooter.stop());
 
-                // ---------------- PATHPLANNER ----------------
+                // ---------------- PATHPLANNER NAMED COMMANDS ----------------
                 NamedCommands.registerCommand(
                                 "StopShooter",
                                 shooter.stop());
@@ -91,7 +94,8 @@ public class RobotContainer {
                 drivebase.setDefaultCommand(
                                 drivebase.driveCommand(
                                                 () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
-                                                () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
+                                                () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1), // ignored by
+                                                                                                       // diff drive
                                                 () -> {
                                                         double stick = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
 
@@ -138,13 +142,12 @@ public class RobotContainer {
                 // ================= SHOOTER =================
                 operator.rightTrigger(0.2).whileTrue(
                                 new AimShooterFromVision(shooter, hood, vision));
-                // Manual shooter test (no vision)
 
+                // Manual shooter test
                 operator.a().whileTrue(
                                 Commands.parallel(
                                                 shooter.setRPM(3000),
                                                 hood.setAngle(Degrees.of(35))));
-
         }
 
         // ================= AUTO =================
