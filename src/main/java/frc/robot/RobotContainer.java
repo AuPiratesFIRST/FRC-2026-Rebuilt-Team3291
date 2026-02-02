@@ -12,15 +12,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-
-import frc.robot.commands.AimShooterFromVision;
-import frc.robot.commands.ShooterDockAtDistanceCommand;
-import frc.robot.subsystems.ImuSubsystem.*;
-import frc.robot.subsystems.Shooter.HoodSubsystem;
-import frc.robot.subsystems.Shooter.ShooterSubsystem;
-import frc.robot.subsystems.TankDrive.TankDriveSubsystem;
-import frc.robot.subsystems.Turret.TurretSubsystem;
-import frc.robot.subsystems.vision.VisionSubsystem;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.commands.DriveCommands;
+import frc.robot.subsystems.TankDrive.Drive;
+import frc.robot.subsystems.TankDrive.DriveIO;
+import frc.robot.subsystems.TankDrive.DriveIOSim;
+import frc.robot.subsystems.TankDrive.DriveIOSpark; // Changed from DriveIOTalonSRX
+import frc.robot.subsystems.TankDrive.GyroIO;
+import frc.robot.subsystems.TankDrive.GyroIOPigeon2;
 
 import static edu.wpi.first.units.Units.*;
 
