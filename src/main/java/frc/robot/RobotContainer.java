@@ -33,10 +33,12 @@ import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
+import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 // Import the static Units class for Degrees.of()
 import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
+import frc.robot.util.FuelSim;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -109,6 +111,9 @@ public class RobotContainer {
                                 drive,
                                 shooter,
                                 hood);
+
+                // Configure FuelSim (field-level physics simulation)
+                configureFuelSim();
 
                 // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
@@ -191,6 +196,37 @@ public class RobotContainer {
         }
 
         /**
+         * Configure FuelSim for physics simulation.
+         * FuelSim is field-level (not robot-level) and must be updated from Robot.simulationPeriodic()
+         */
+        private void configureFuelSim() {
+                FuelSim instance = FuelSim.getInstance();
+                
+                // Spawn initial fuel in depot and neutral zones
+                instance.spawnStartingFuel();
+                
+                // Register robot dimensions and pose supplier
+                // Note: Replace these with your actual robot dimensions from Constants
+                instance.registerRobot(
+                        0.8,  // width (meters, left to right)
+                        1.0,  // length (meters, front to back)
+                        0.5,  // bumper height (meters)
+                        drive::getPose,
+                        drive::getChassisSpeeds);
+                
+                // Start simulation
+                instance.start();
+                
+                // Add reset fuel button to SmartDashboard
+                SmartDashboard.putData(Commands.runOnce(() -> {
+                        FuelSim.getInstance().clearFuel();
+                        FuelSim.getInstance().spawnStartingFuel();
+                })
+                .withName("Reset Fuel")
+                .ignoringDisable(true));
+        }
+
+        /**
          * Use this to pass the autonomous command to the main {@link Robot} class.
          *
          * @return the command to run in autonomous
@@ -202,5 +238,14 @@ public class RobotContainer {
 
         public VisionSubsystem getVision() {
                 return vision;
+        }
+
+        /**
+         * Log FuelSim scoring data to AdvantageKit.
+         * Call this from Robot.robotPeriodic() to continuously log scores.
+         */
+        public void logFuelScores() {
+                Logger.recordOutput("Fuel/BlueScore", FuelSim.Hub.BLUE_HUB.getScore());
+                Logger.recordOutput("Fuel/RedScore", FuelSim.Hub.RED_HUB.getScore());
         }
 }

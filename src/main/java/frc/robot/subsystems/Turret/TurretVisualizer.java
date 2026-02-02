@@ -8,6 +8,7 @@ import edu.wpi.first.networktables.*;
 import edu.wpi.first.units.measure.*;
 
 import frc.robot.Constants.FieldConstants;
+import frc.robot.util.FuelSim;
 
 import java.util.function.Supplier;
 
@@ -133,5 +134,51 @@ public class TurretVisualizer {
                         SHOOTER_HEIGHT,
                         new Rotation3d(
                                 0, 0, aimHeading.getRadians())));
+    }
+
+    // ------------------------------------------------
+    // FUEL LAUNCH (to FuelSim)
+    // ------------------------------------------------
+    public void launchFuel(LinearVelocity vel, Angle angle) {
+        Pose3d robotPose = robotPoseSupplier.get();
+        Rotation2d robotYaw = robotPose.getRotation().toRotation2d();
+
+        // Compute shooter position: offset + height
+        Translation2d shooterXY = robotPose.getTranslation().toTranslation2d()
+                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
+
+        Translation3d shooterPos = new Translation3d(
+                shooterXY.getX(),
+                shooterXY.getY(),
+                SHOOTER_HEIGHT);
+
+        // Aim direction (robot → hub)
+        Translation3d hub = isBlueAlliance.get()
+                ? FieldConstants.HUB_BLUE
+                : FieldConstants.HUB_RED;
+
+        Translation2d toHub = hub.toTranslation2d().minus(shooterXY);
+        Rotation2d aimHeading = new Rotation2d(
+                Math.atan2(toHub.getY(), toHub.getX()));
+
+        // Compute launch velocity
+        double v = vel.in(MetersPerSecond);
+        double theta = angle.in(Radians);
+
+        double vHorizontal = Math.cos(theta) * v;
+        double vz = Math.sin(theta) * v;
+
+        // Include robot motion (lead compensation)
+        ChassisSpeeds speeds = fieldSpeedsSupplier.get();
+        double vx = vHorizontal * aimHeading.getCos()
+                + speeds.vxMetersPerSecond;
+
+        double vy = vHorizontal * aimHeading.getSin()
+                + speeds.vyMetersPerSecond;
+
+        Translation3d launchVelocity = new Translation3d(vx, vy, vz);
+
+        // Spawn fuel in FuelSim
+        FuelSim.getInstance().spawnFuel(shooterPos, launchVelocity);
     }
 }
