@@ -17,7 +17,6 @@ import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
@@ -29,6 +28,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.Mode;
 import frc.robot.subsystems.TankDrive.DriveIO.DriveIOInputs;
+import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.util.LocalADStarAK;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
@@ -36,22 +36,24 @@ import org.littletonrobotics.junction.Logger;
 public class Drive extends SubsystemBase {
   private final DriveIO io;
   private final DriveIOInputs inputs = new DriveIOInputs();
-  private final GyroIO gyroIO;
-  private final GyroIO.GyroIOInputs gyroInputs = new GyroIO.GyroIOInputs(); // <-- Corrected line
+  private final ImuSubsystem imu;
 
   private final DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(trackWidth);
   private final double kS = Constants.currentMode == Mode.SIM ? simKs : realKs;
   private final double kV = Constants.currentMode == Mode.SIM ? simKv : realKv;
-  private final DifferentialDrivePoseEstimator poseEstimator = new DifferentialDrivePoseEstimator(kinematics,
-      Rotation2d.kZero, 0.0, 0.0, Pose2d.kZero);
+  private final DifferentialDrivePoseEstimator poseEstimator;
   private final SysIdRoutine sysId;
-  private Rotation2d rawGyroRotation = Rotation2d.kZero;
-  private double lastLeftPositionMeters = 0.0;
-  private double lastRightPositionMeters = 0.0;
 
-  public Drive(DriveIO io, GyroIO gyroIO) {
+  public Drive(DriveIO io, ImuSubsystem imu) {
     this.io = io;
-    this.gyroIO = gyroIO;
+    this.imu = imu;
+
+    poseEstimator = new DifferentialDrivePoseEstimator(
+        kinematics,
+        imu.getRotation2d(),
+        0.0,
+        0.0,
+        Pose2d.kZero);
 
     // Configure AutoBuilder for PathPlanner
     AutoBuilder.configure(
@@ -89,26 +91,10 @@ public class Drive extends SubsystemBase {
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    gyroIO.updateInputs(gyroInputs);
     Logger.processInputs("Drive", inputs);
-    Logger.processInputs("Drive/Gyro", gyroInputs);
-
-    // Update gyro angle
-    if (gyroInputs.connected) {
-      // Use the real gyro angle
-      rawGyroRotation = gyroInputs.yawPosition;
-    } else {
-      // Use the angle delta from the kinematics and module deltas
-      Twist2d twist = kinematics.toTwist2d(
-          getLeftPositionMeters() - lastLeftPositionMeters,
-          getRightPositionMeters() - lastRightPositionMeters);
-      rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
-      lastLeftPositionMeters = getLeftPositionMeters();
-      lastRightPositionMeters = getRightPositionMeters();
-    }
 
     // Update odometry
-    poseEstimator.update(rawGyroRotation, getLeftPositionMeters(), getRightPositionMeters());
+    poseEstimator.update(imu.getRotation2d(), getLeftPositionMeters(), getRightPositionMeters());
   }
 
   /** Runs the drive at the desired velocity. */
@@ -157,13 +143,13 @@ public class Drive extends SubsystemBase {
 
   /** Returns the current odometry rotation. */
   public Rotation2d getRotation() {
-    return getPose().getRotation();
+    return imu.getRotation2d();
   }
 
   /** Resets the current odometry pose. */
   public void setPose(Pose2d pose) {
     poseEstimator.resetPosition(
-        rawGyroRotation, getLeftPositionMeters(), getRightPositionMeters(), pose);
+      imu.getRotation2d(), getLeftPositionMeters(), getRightPositionMeters(), pose);
   }
 
   /** Returns the current chassis speeds. */

@@ -5,9 +5,7 @@
 // license that can be found in the LICENSE file
 // at the root directory of this project.
 
-package frc.robot.subsystems.TankDrive;
-
-import static frc.robot.subsystems.TankDrive.DriveConstants.*;
+package frc.robot.subsystems.imu;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
@@ -21,13 +19,18 @@ import edu.wpi.first.units.measure.AngularVelocity;
 
 /** IO implementation for Pigeon 2. */
 public class GyroIOPigeon2 implements GyroIO {
-  private final Pigeon2 pigeon = new Pigeon2(pigeonCanId);
-  private final StatusSignal<Angle> yaw = pigeon.getYaw();
-  private final StatusSignal<AngularVelocity> yawVelocity = pigeon.getAngularVelocityZWorld();
+  private final Pigeon2 pigeon;
+  private final StatusSignal<Angle> yaw;
+  private final StatusSignal<AngularVelocity> yawVelocity;
 
-  public GyroIOPigeon2() {
+  public GyroIOPigeon2(int canId, String bus) {
+    pigeon = new Pigeon2(canId, bus);
+    yaw = pigeon.getYaw();
+    yawVelocity = pigeon.getAngularVelocityZWorld();
+
     pigeon.getConfigurator().apply(new Pigeon2Configuration());
-    pigeon.getConfigurator().setYaw(0.0);
+    pigeon.setYaw(0.0);
+
     BaseStatusSignal.setUpdateFrequencyForAll(50.0, yaw, yawVelocity);
     pigeon.optimizeBusUtilization();
   }
@@ -37,5 +40,10 @@ public class GyroIOPigeon2 implements GyroIO {
     inputs.connected = BaseStatusSignal.refreshAll(yaw, yawVelocity).equals(StatusCode.OK);
     inputs.yawPosition = Rotation2d.fromDegrees(yaw.getValueAsDouble());
     inputs.yawVelocityRadPerSec = Units.degreesToRadians(yawVelocity.getValueAsDouble());
+  }
+
+  @Override
+  public void zeroYaw() {
+    pigeon.setYaw(0.0);
   }
 }

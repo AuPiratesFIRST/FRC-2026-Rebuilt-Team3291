@@ -20,21 +20,23 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.AimShooterFromVision;
 import frc.robot.commands.DriveCommands;
-import frc.robot.subsystems.ImuSubsystem.ImuSubsystem;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.TankDrive.DriveIO;
 import frc.robot.subsystems.TankDrive.DriveIOSim;
 import frc.robot.subsystems.TankDrive.DriveIOSpark;
-import frc.robot.subsystems.TankDrive.GyroIO;
-import frc.robot.subsystems.TankDrive.GyroIOPigeon2;
+import frc.robot.subsystems.TankDrive.DriveConstants;
+import frc.robot.subsystems.imu.GyroIOPigeon2;
+import frc.robot.subsystems.imu.GyroIOSim;
+import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 // Import the static Units class for Degrees.of()
 import static edu.wpi.first.units.Units.*;
+import edu.wpi.first.wpilibj.RobotBase;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -50,7 +52,7 @@ public class RobotContainer {
         private final Drive drive; // This field will now be initialized correctly
 
         private final VisionSubsystem vision = new VisionSubsystem();
-        private final ImuSubsystem imu = new ImuSubsystem(); // Unused, consider removing if not needed
+        private final ImuSubsystem imu;
 
         private final HoodSubsystem hood = new HoodSubsystem();
         private final ShooterSubsystem shooter = new ShooterSubsystem();
@@ -70,25 +72,33 @@ public class RobotContainer {
          * The container for the robot. Contains subsystems, OI devices, and commands.
          */
         public RobotContainer() {
+                GyroIOSim gyroSim = null;
+                if (!RobotBase.isReal()) {
+                        gyroSim = new GyroIOSim();
+                }
+
+                imu = new ImuSubsystem(
+                                RobotBase.isReal()
+                                                ? new GyroIOPigeon2(DriveConstants.pigeonCanId, "rio")
+                                                : gyroSim);
+
                 Drive tempDrive; // Use a local variable for initialization
                 switch (Constants.currentMode) {
                         case REAL:
                                 // Real robot, instantiate hardware IO implementations
-                                tempDrive = new Drive(new DriveIOSpark(), new GyroIOPigeon2());
+                                tempDrive = new Drive(new DriveIOSpark(), imu);
                                 break;
 
                         case SIM:
                                 // Sim robot, instantiate physics sim IO implementations
-                                tempDrive = new Drive(new DriveIOSim(), new GyroIO() {
-                                });
+                                tempDrive = new Drive(new DriveIOSim(gyroSim), imu);
                                 break;
 
                         case REPLAY: // Ensure all enum cases are handled, or a default is guaranteed
                         default: // Added default to cover any unhandled modes and guarantee initialization
                                  // Replayed robot, disable IO implementations
                                 tempDrive = new Drive(new DriveIO() {
-                                }, new GyroIO() {
-                                });
+                                }, imu);
                                 break;
                 }
                 this.drive = tempDrive; // Assign the local variable to the final field
@@ -137,9 +147,8 @@ public class RobotContainer {
                                 DriveCommands.arcadeDrive(
                                                 drive, () -> -driver.getLeftY(), () -> -driver.getRightX()));
 
-                // driver.a().onTrue(
-                // Commands.runOnce(drive::zeroGyro)); // Assuming drive has a zeroGyro method,
-                // or use imu.zeroYaw()
+                driver.a().onTrue(
+                                Commands.runOnce(imu::zeroYaw));
 
                 // ================= TURRET =================
                 driver.y().onTrue(

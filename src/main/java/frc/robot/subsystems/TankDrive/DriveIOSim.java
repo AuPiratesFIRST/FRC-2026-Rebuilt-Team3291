@@ -11,14 +11,21 @@ import static frc.robot.subsystems.TankDrive.DriveConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotGearing;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotMotor;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotWheelSize;
+import edu.wpi.first.wpilibj.Timer;
+import frc.robot.subsystems.imu.GyroIOSim;
 
 public class DriveIOSim implements DriveIO {
   private DifferentialDrivetrainSim sim = DifferentialDrivetrainSim.createKitbotSim(
       KitbotMotor.kDualCIMPerSide, KitbotGearing.k10p71, KitbotWheelSize.kSixInch, null);
+
+  private final GyroIOSim gyroSim;
+  private Rotation2d lastHeading = new Rotation2d();
+  private double lastHeadingTime = Timer.getFPGATimestamp();
 
   private double leftAppliedVolts = 0.0;
   private double rightAppliedVolts = 0.0;
@@ -27,6 +34,14 @@ public class DriveIOSim implements DriveIO {
   private PIDController rightPID = new PIDController(simKp, 0.0, simKd);
   private double leftFFVolts = 0.0;
   private double rightFFVolts = 0.0;
+
+  public DriveIOSim() {
+    this(null);
+  }
+
+  public DriveIOSim(GyroIOSim gyroSim) {
+    this.gyroSim = gyroSim;
+  }
 
   @Override
   public void updateInputs(DriveIOInputs inputs) {
@@ -41,6 +56,19 @@ public class DriveIOSim implements DriveIO {
         MathUtil.clamp(leftAppliedVolts, -12.0, 12.0),
         MathUtil.clamp(rightAppliedVolts, -12.0, 12.0));
     sim.update(0.02);
+
+    if (gyroSim != null) {
+      Rotation2d heading = sim.getHeading();
+      double now = Timer.getFPGATimestamp();
+      double dt = now - lastHeadingTime;
+      if (dt > 0.0) {
+        double deltaRad = heading.minus(lastHeading).getRadians();
+        gyroSim.setSimYaw(heading);
+        gyroSim.setSimYawRate(deltaRad / dt);
+      }
+      lastHeading = heading;
+      lastHeadingTime = now;
+    }
 
     inputs.leftPositionRad = sim.getLeftPositionMeters() / wheelRadiusMeters;
     inputs.leftVelocityRadPerSec = sim.getLeftVelocityMetersPerSecond() / wheelRadiusMeters;
