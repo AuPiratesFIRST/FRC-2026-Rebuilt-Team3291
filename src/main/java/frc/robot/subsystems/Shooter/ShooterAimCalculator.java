@@ -42,7 +42,7 @@ public final class ShooterAimCalculator {
     private static final double GRAVITY = 9.81;
 
     /** Absolute RPM safety clamp */
-    public static final double MAX_RPM = 550.0;
+    public static final double MAX_RPM = 5500.0;
 
     /** Valid shooting distance bounds */
     private static final double MIN_DISTANCE = 0.1;
@@ -65,11 +65,11 @@ public final class ShooterAimCalculator {
 
     static {
         // Distance (m) -> Flywheel RPM (RAW, BEFORE log shaping)
-        rpmMap.put(0.10, 100.0);
-        rpmMap.put(0.20, 200.0);
-        rpmMap.put(0.25, 300.0);
-        rpmMap.put(0.27, 400.0);
-        rpmMap.put(0.30, 500.0);
+        rpmMap.put(0.10, 1000.0);
+        rpmMap.put(0.20, 2000.0);
+        rpmMap.put(0.25, 3000.0);
+        rpmMap.put(0.27, 4000.0);
+        rpmMap.put(0.30, 5000.0);
 
         // Distance (m) -> Hood angle (deg)
         hoodAngleMap.put(0.10, 25.0);

@@ -7,7 +7,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
-import frc.robot.subsystems.TankDrive.TankDriveSubsystem;
+// Changed import from TankDriveSubsystem to Drive
+import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
@@ -26,7 +27,8 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
 
         private final VisionSubsystem vision;
-        private final TankDriveSubsystem driveSubsystem;
+        // Changed type from TankDriveSubsystem to Drive
+        private final Drive driveSubsystem;
         private final ShooterSubsystem shooter;
         private final HoodSubsystem hood;
 
@@ -55,7 +57,7 @@ public class TurretSubsystem extends SubsystemBase {
 
         public TurretSubsystem(
                         VisionSubsystem vision,
-                        TankDriveSubsystem driveSubsystem,
+                        Drive driveSubsystem,
                         ShooterSubsystem shooter,
                         HoodSubsystem hood) {
                 this.vision = vision;
@@ -75,7 +77,8 @@ public class TurretSubsystem extends SubsystemBase {
                                                                 0,
                                                                 0,
                                                                 driveSubsystem.getPose().getRotation().getRadians())),
-                                driveSubsystem::getFieldVelocity,
+                                // Changed driveSubsystem::getFieldVelocity to driveSubsystem::getChassisSpeeds
+                                driveSubsystem::getChassisSpeeds,
                                 () -> DriverStation.getAlliance()
                                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue);
         }

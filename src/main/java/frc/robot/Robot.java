@@ -15,6 +15,9 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+import org.littletonrobotics.urcl.URCL;
+
+import com.revrobotics.util.StatusLogger;
 
 public class Robot extends LoggedRobot {
   private Command m_autonomousCommand;
@@ -23,18 +26,47 @@ public class Robot extends LoggedRobot {
 
   public Robot() {
     /* ---------------- AdvantageKit Init (MUST BE FIRST) ---------------- */
+    // Record metadata
+    Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
+    Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
+    Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
+    Logger.recordMetadata("GitDate", BuildConstants.GIT_DATE);
+    Logger.recordMetadata("GitBranch", BuildConstants.GIT_BRANCH);
+    Logger.recordMetadata(
+        "GitDirty",
+        switch (BuildConstants.DIRTY) {
+          case 0 -> "All changes committed";
+          case 1 -> "Uncommitted changes";
+          default -> "Unknown";
+        });
 
-    Logger.recordMetadata("Robot", "Rebuilt2026");
+    // Set up data receivers & replay source
+    switch (Constants.currentMode) {
+      case REAL:
+        // Running on a real robot, log to a USB stick ("/U/logs")
+        Logger.addDataReceiver(new WPILOGWriter());
+        Logger.addDataReceiver(new NT4Publisher());
+        break;
 
-    if (isReal()) {
-      Logger.addDataReceiver(new WPILOGWriter()); // /U/logs on roboRIO
-      Logger.addDataReceiver(new NT4Publisher()); // AdvantageScope live view
-    } else {
-      setUseTiming(false); // Run sim as fast as possible
-      Logger.addDataReceiver(new NT4Publisher()); // Live sim view
-      Logger.addDataReceiver(new WPILOGWriter("logs/sim")); // Optional
+      case SIM:
+        // Running a physics simulator, log to NT
+        Logger.addDataReceiver(new NT4Publisher());
+        break;
+
+      case REPLAY:
+        // Replaying a log, set up replay source
+        setUseTiming(false); // Run as fast as possible
+        String logPath = LogFileUtil.findReplayLog();
+        Logger.setReplaySource(new WPILOGReader(logPath));
+        Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+        break;
     }
 
+    // Initialize URCL
+    Logger.registerURCL(URCL.startExternal());
+    StatusLogger.disableAutoLogging(); // Disable REVLib's built-in logging
+
+    // Start AdvantageKit logger
     Logger.start();
     /* ------------------------------------------------------------------- */
     m_robotContainer = new RobotContainer();
@@ -122,9 +154,9 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {
     // UPDATE THIS LINE to use the new YAGSL internal package
-    swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
-    m_robotContainer.getVision()
-        .updateSimPose(m_robotContainer.getDrivebase().getPose());
+    // swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
+    // m_robotContainer.getVision()
+    // .updateSimPose(m_robotContainer.getDrivebase().getPose());
 
   }
 }

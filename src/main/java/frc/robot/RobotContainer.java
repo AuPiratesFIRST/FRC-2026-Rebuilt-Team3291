@@ -1,112 +1,145 @@
+// Copyright (c) 2021-2026 Littleton Robotics
+// http://github.com/Mechanical-Advantage
+//
+// Use of this source code is governed by a BSD
+// license that can be found in the LICENSE file
+// at the root directory of this project.
+
 package frc.robot;
 
-import java.io.File;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
-
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.Filesystem;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.commands.AimShooterFromVision;
 import frc.robot.commands.DriveCommands;
+import frc.robot.subsystems.ImuSubsystem.ImuSubsystem;
+import frc.robot.subsystems.Shooter.HoodSubsystem;
+import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.TankDrive.DriveIO;
 import frc.robot.subsystems.TankDrive.DriveIOSim;
-import frc.robot.subsystems.TankDrive.DriveIOSpark; // Changed from DriveIOTalonSRX
+import frc.robot.subsystems.TankDrive.DriveIOSpark;
 import frc.robot.subsystems.TankDrive.GyroIO;
 import frc.robot.subsystems.TankDrive.GyroIOPigeon2;
+import frc.robot.subsystems.Turret.TurretSubsystem;
+import frc.robot.subsystems.vision.VisionSubsystem;
 
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+// Import the static Units class for Degrees.of()
 import static edu.wpi.first.units.Units.*;
 
 /**
- * RobotContainer
- * -----------------------------
- * Central wiring point for the robot.
+ * This class is where the bulk of the robot should be declared. Since
+ * Command-based is a
+ * "declarative" paradigm, very little robot logic should actually be handled in
+ * the {@link Robot}
+ * periodic methods (other than the scheduler calls). Instead, the structure of
+ * the robot (including
+ * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-
-        // ---------------- SUBSYSTEMS ----------------
+        // Subsystems
+        private final Drive drive; // This field will now be initialized correctly
 
         private final VisionSubsystem vision = new VisionSubsystem();
-        private final ImuSubsystem imu = new ImuSubsystem();
-
-        private final TankDriveSubsystem drivebase = new TankDriveSubsystem(
-                        vision);
+        private final ImuSubsystem imu = new ImuSubsystem(); // Unused, consider removing if not needed
 
         private final HoodSubsystem hood = new HoodSubsystem();
         private final ShooterSubsystem shooter = new ShooterSubsystem();
 
-        private final TurretSubsystem turret = new TurretSubsystem(
-                        vision,
-                        drivebase,
-                        shooter,
-                        hood);
+        // Declared as a temporary local variable first
+        private TurretSubsystem turret;
 
         // ---------------- CONTROLLERS ----------------
 
         private final CommandXboxController driver = new CommandXboxController(0);
         private final CommandXboxController operator = new CommandXboxController(1);
 
-        // ---------------- AUTO ----------------
-
+        // Dashboard inputs
         private final SendableChooser<Command> autoChooser;
 
+        /**
+         * The container for the robot. Contains subsystems, OI devices, and commands.
+         */
         public RobotContainer() {
+                Drive tempDrive; // Use a local variable for initialization
+                switch (Constants.currentMode) {
+                        case REAL:
+                                // Real robot, instantiate hardware IO implementations
+                                tempDrive = new Drive(new DriveIOSpark(), new GyroIOPigeon2());
+                                break;
 
-                configureBindings();
+                        case SIM:
+                                // Sim robot, instantiate physics sim IO implementations
+                                tempDrive = new Drive(new DriveIOSim(), new GyroIO() {
+                                });
+                                break;
 
-                // ---------------- DEFAULT COMMANDS ----------------
-                hood.setDefaultCommand(hood.hold());
-                shooter.setDefaultCommand(shooter.stop());
+                        case REPLAY: // Ensure all enum cases are handled, or a default is guaranteed
+                        default: // Added default to cover any unhandled modes and guarantee initialization
+                                 // Replayed robot, disable IO implementations
+                                tempDrive = new Drive(new DriveIO() {
+                                }, new GyroIO() {
+                                });
+                                break;
+                }
+                this.drive = tempDrive; // Assign the local variable to the final field
 
-                // ---------------- PATHPLANNER NAMED COMMANDS ----------------
-                NamedCommands.registerCommand(
-                                "StopShooter",
-                                shooter.stop());
+                // Initialize turret after drive is assigned
+                this.turret = new TurretSubsystem(
+                                vision,
+                                drive,
+                                shooter,
+                                hood);
 
-                NamedCommands.registerCommand(
-                                "EnableAutoAim",
-                                Commands.runOnce(turret::enableHubTracking, turret));
-
-                NamedCommands.registerCommand(
-                                "DisableAutoAim",
-                                Commands.runOnce(turret::disableHubTracking, turret));
-
+                // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
                 autoChooser.setDefaultOption("Do Nothing", Commands.none());
                 SmartDashboard.putData("Auto Chooser", autoChooser);
+
+                // Set up SysId routines
+                autoChooser.addOption(
+                                "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
+                autoChooser.addOption(
+                                "Drive SysId (Quasistatic Forward)",
+                                drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+                autoChooser.addOption(
+                                "Drive SysId (Quasistatic Reverse)",
+                                drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+                autoChooser.addOption(
+                                "Drive SysId (Dynamic Forward)", drive.sysIdDynamic(SysIdRoutine.Direction.kForward));
+                autoChooser.addOption(
+                                "Drive SysId (Dynamic Reverse)", drive.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+
+                // Configure the button bindings
+                configureButtonBindings();
         }
 
-        // --------------------------------------------------
-        // CONTROLLER BINDINGS
-        // --------------------------------------------------
-        private void configureBindings() {
+        /**
+         * Use this method to define your button->command mappings. Buttons can be
+         * created by
+         * instantiating a {@link GenericHID} or one of its subclasses ({@link
+         * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing
+         * it to a {@link
+         * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
+         */
+        private void configureButtonBindings() {
+                // Default drive command, normal arcade drive
+                drive.setDefaultCommand(
+                                DriveCommands.arcadeDrive(
+                                                drive, () -> -driver.getLeftY(), () -> -driver.getRightX()));
 
-                // ================= DRIVE =================
-                drivebase.setDefaultCommand(
-                                drivebase.driveCommand(
-                                                () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
-                                                () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1), // ignored by
-                                                                                                       // diff drive
-                                                () -> {
-                                                        double stick = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
-
-                                                        if (Math.abs(stick) > 0.05) {
-                                                                turret.disableHubTracking();
-                                                                turret.manualRotate(stick);
-                                                                return stick;
-                                                        }
-
-                                                        return turret.getDesiredRobotOmega();
-                                                }));
-
-                driver.a().onTrue(
-                                Commands.runOnce(drivebase::zeroGyro));
+                // driver.a().onTrue(
+                // Commands.runOnce(drive::zeroGyro)); // Assuming drive has a zeroGyro method,
+                // or use imu.zeroYaw()
 
                 // ================= TURRET =================
                 driver.y().onTrue(
@@ -145,17 +178,18 @@ public class RobotContainer {
                                 Commands.parallel(
                                                 shooter.setRPM(3000),
                                                 hood.setAngle(Degrees.of(35))));
+
         }
 
-        // ================= AUTO =================
+        /**
+         * Use this to pass the autonomous command to the main {@link Robot} class.
+         *
+         * @return the command to run in autonomous
+         */
         public Command getAutonomousCommand() {
                 return autoChooser.getSelected();
         }
-
         // ---------------- ACCESSORS ----------------
-        public TankDriveSubsystem getDrivebase() {
-                return drivebase;
-        }
 
         public VisionSubsystem getVision() {
                 return vision;
