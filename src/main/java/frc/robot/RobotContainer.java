@@ -35,10 +35,10 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
-// Import the static Units class for Degrees.of()
 import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.util.FuelSim;
+import frc.robot.commands.AutoScoreCommand;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -115,6 +115,24 @@ public class RobotContainer {
                 // Configure FuelSim (field-level physics simulation)
                 configureFuelSim();
 
+                /* ================= PATHPLANNER NAMED COMMANDS ================= */
+
+                // Auto score: pathfind + vision dock
+                NamedCommands.registerCommand(
+                                "AutoScore", new AutoScoreCommand(drive, vision));
+
+                NamedCommands.registerCommand(
+                                "StopShooter",
+                                shooter.stop());
+
+                NamedCommands.registerCommand(
+                                "EnableAutoAim",
+                                Commands.runOnce(turret::enableHubTracking, turret));
+
+                NamedCommands.registerCommand(
+                                "DisableAutoAim",
+                                Commands.runOnce(turret::disableHubTracking, turret));
+
                 // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
                 autoChooser.setDefaultOption("Do Nothing", Commands.none());
@@ -161,6 +179,11 @@ public class RobotContainer {
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
+                // ================= AUTO SCORE =================
+
+                // Press X to auto path + vision align
+                driver.x().onTrue(
+                                new AutoScoreCommand(drive, vision));
 
                 operator.povLeft().whileTrue(
                                 Commands.run(() -> turret.manualRotate(-0.4), turret));

@@ -45,6 +45,8 @@ public class Constants {
 
         public static class VisionConstants {
 
+                public static final double SHOOTING_DISTANCE_METERS = 3.25;
+
                 // ---------- FRONT (POSE) CAMERA ----------
                 public static final String FRONT_CAMERA_NAME = "frontCamera";
                 public static final Transform3d ROBOT_TO_FRONT_CAMERA = new Transform3d(

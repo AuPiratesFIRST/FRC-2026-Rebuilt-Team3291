@@ -5,28 +5,27 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+
 import frc.robot.Constants.VisionConstants;
-// Changed import from TankDriveSubsystem to Drive
 import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
 public class ShooterDockAtDistanceCommand extends Command {
 
         private final VisionSubsystem vision;
-        // Changed type from TankDriveSubsystem to Drive
         private final Drive drive;
         private final double targetDistanceMeters;
 
         private final PIDController yawController;
         private final PIDController distanceController;
 
-        private boolean hasTarget = false;
+        private boolean hasTarget;
 
         public ShooterDockAtDistanceCommand(
                         VisionSubsystem vision,
-                        // Changed type from TankDriveSubsystem to Drive
                         Drive drive,
                         double targetDistanceMeters) {
+
                 this.vision = vision;
                 this.drive = drive;
                 this.targetDistanceMeters = targetDistanceMeters;
@@ -58,14 +57,12 @@ public class ShooterDockAtDistanceCommand extends Command {
 
         @Override
         public void execute() {
-
                 int[] hubTags = getAllianceHubTags();
 
                 var yawOpt = vision.getTargetYawRad(hubTags);
                 var distOpt = vision.getDistanceToTagMeters(hubTags);
 
                 if (yawOpt.isEmpty() || distOpt.isEmpty()) {
-                        // Changed drive.drive to drive.runClosedLoop
                         drive.runClosedLoop(new ChassisSpeeds());
                         hasTarget = false;
                         return;
@@ -73,15 +70,9 @@ public class ShooterDockAtDistanceCommand extends Command {
 
                 hasTarget = true;
 
-                double yawRad = yawOpt.get();
-                double distanceM = distOpt.get();
-
-                // Rotate to face hub center
-                double omega = yawController.calculate(yawRad, 0.0);
-
-                // Drive to desired shooting distance
+                double omega = yawController.calculate(yawOpt.get(), 0.0);
                 double xSpeed = distanceController.calculate(
-                                distanceM,
+                                distOpt.get(),
                                 targetDistanceMeters);
 
                 omega = MathUtil.clamp(
@@ -94,16 +85,12 @@ public class ShooterDockAtDistanceCommand extends Command {
                                 -VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED,
                                 VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED);
 
-                // Changed drive.drive to drive.runClosedLoop
-                drive.runClosedLoop(new ChassisSpeeds(
-                                xSpeed,
-                                0.0,
-                                omega));
+                // TANK SAFE
+                drive.runClosedLoop(new ChassisSpeeds(xSpeed, 0.0, omega));
         }
 
         @Override
         public void end(boolean interrupted) {
-                // Changed drive.drive to drive.runClosedLoop
                 drive.runClosedLoop(new ChassisSpeeds());
         }
 
