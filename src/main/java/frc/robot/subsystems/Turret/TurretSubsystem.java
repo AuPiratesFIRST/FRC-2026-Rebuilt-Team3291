@@ -7,38 +7,30 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
-// Changed import from TankDriveSubsystem to Drive
 import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
-import frc.robot.subsystems.Turret.TurretVisualizer;
 
 public class TurretSubsystem extends SubsystemBase {
 
         // ------------------------------------------------
         // CONSTANTS
         // ------------------------------------------------
-
         private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
 
         // ------------------------------------------------
         // DEPENDENCIES
         // ------------------------------------------------
-
         private final VisionSubsystem vision;
-        // Changed type from TankDriveSubsystem to Drive
-        private final Drive driveSubsystem;
+        private final Drive drive;
         private final ShooterSubsystem shooter;
         private final HoodSubsystem hood;
-
-        // ADDED
         private final TurretVisualizer visualizer;
 
         // ------------------------------------------------
         // STATE
         // ------------------------------------------------
-
         private boolean hubTrackingEnabled = false;
         private double manualOmega = 0.0;
 
@@ -48,37 +40,27 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
         // CONTROLLERS
         // ------------------------------------------------
-
         private final PIDController headingPID = new PIDController(6.0, 0.0, 0.25);
 
         // ------------------------------------------------
         // CONSTRUCTOR
         // ------------------------------------------------
-
         public TurretSubsystem(
                         VisionSubsystem vision,
-                        Drive driveSubsystem,
+                        Drive drive,
                         ShooterSubsystem shooter,
                         HoodSubsystem hood) {
+
                 this.vision = vision;
-                this.driveSubsystem = driveSubsystem;
+                this.drive = drive;
                 this.shooter = shooter;
                 this.hood = hood;
 
                 headingPID.enableContinuousInput(-Math.PI, Math.PI);
 
-                // ADDED
                 visualizer = new TurretVisualizer(
-                                () -> new Pose3d(
-                                                driveSubsystem.getPose().getTranslation().getX(),
-                                                driveSubsystem.getPose().getTranslation().getY(),
-                                                0.0,
-                                                new Rotation3d(
-                                                                0,
-                                                                0,
-                                                                driveSubsystem.getPose().getRotation().getRadians())),
-                                // Changed driveSubsystem::getFieldVelocity to driveSubsystem::getChassisSpeeds
-                                driveSubsystem::getChassisSpeeds,
+                                () -> new Pose3d(drive.getPose()),
+                                drive::getChassisSpeeds,
                                 () -> DriverStation.getAlliance()
                                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue);
         }
@@ -86,30 +68,27 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
         // PERIODIC
         // ------------------------------------------------
-
         @Override
         public void periodic() {
                 updateTargeting();
                 logToAdvantageScope();
 
-                // FIX: correct shooter velocity getter
                 visualizer.update(
-                                shooter.getExitVelocity(),
-                                hood.getAngle());
+                                shooter.getTargetRPM(),
+                                hood.getTargetAngle());
+
         }
 
         // ------------------------------------------------
         // TARGETING MATH
         // ------------------------------------------------
-
         private void updateTargeting() {
-
                 Translation3d hub = DriverStation.getAlliance()
                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue
                                                 ? Constants.FieldConstants.HUB_BLUE
                                                 : Constants.FieldConstants.HUB_RED;
 
-                Pose2d robotPose = driveSubsystem.getPose();
+                Pose2d robotPose = drive.getPose();
                 Rotation2d robotYaw = robotPose.getRotation();
 
                 Translation2d shooterFieldPos = robotPose.getTranslation()
@@ -117,8 +96,7 @@ public class TurretSubsystem extends SubsystemBase {
 
                 Translation2d toHub = hub.toTranslation2d().minus(shooterFieldPos);
 
-                desiredFieldHeading = new Rotation2d(
-                                Math.atan2(toHub.getY(), toHub.getX()));
+                desiredFieldHeading = new Rotation2d(Math.atan2(toHub.getY(), toHub.getX()));
 
                 distanceToHubMeters = toHub.getNorm();
         }
@@ -126,7 +104,6 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
         // CONTROL API
         // ------------------------------------------------
-
         public void enableHubTracking() {
                 hubTrackingEnabled = true;
         }
@@ -138,7 +115,6 @@ public class TurretSubsystem extends SubsystemBase {
 
         public void manualRotate(double omega) {
                 manualOmega = omega;
-
                 if (Math.abs(omega) > 0.05) {
                         hubTrackingEnabled = false;
                 }
@@ -147,7 +123,7 @@ public class TurretSubsystem extends SubsystemBase {
         public double getDesiredRobotOmega() {
                 if (hubTrackingEnabled) {
                         return headingPID.calculate(
-                                        driveSubsystem.getPose().getRotation().getRadians(),
+                                        drive.getPose().getRotation().getRadians(),
                                         desiredFieldHeading.getRadians());
                 }
                 return manualOmega;
@@ -162,11 +138,9 @@ public class TurretSubsystem extends SubsystemBase {
         }
 
         // ------------------------------------------------
-        // LOGGING (ADVANTAGESCOPE)
+        // LOGGING
         // ------------------------------------------------
-
         private void logToAdvantageScope() {
-
                 SmartDashboard.putBoolean(
                                 "Turret/HubTrackingEnabled",
                                 hubTrackingEnabled);
@@ -181,12 +155,12 @@ public class TurretSubsystem extends SubsystemBase {
 
                 SmartDashboard.putNumber(
                                 "Targeting/RobotYawDeg",
-                                driveSubsystem.getPose().getRotation().getDegrees());
+                                drive.getPose().getRotation().getDegrees());
 
                 SmartDashboard.putNumber(
                                 "Targeting/HeadingErrorDeg",
                                 desiredFieldHeading
-                                                .minus(driveSubsystem.getPose().getRotation())
+                                                .minus(drive.getPose().getRotation())
                                                 .getDegrees());
         }
 }

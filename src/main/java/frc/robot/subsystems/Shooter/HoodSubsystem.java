@@ -82,6 +82,10 @@ public class HoodSubsystem extends SubsystemBase {
         hood.setAngle(() -> angle).schedule();
     }
 
+    public Angle getTargetAngle() {
+        return lastTarget;
+    }
+
     // ------------------------------------------------
     // PERIODIC
     // ------------------------------------------------

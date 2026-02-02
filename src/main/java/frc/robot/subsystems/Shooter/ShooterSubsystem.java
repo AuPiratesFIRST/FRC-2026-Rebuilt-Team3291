@@ -90,6 +90,14 @@ public class ShooterSubsystem extends SubsystemBase {
         flywheel.setSpeed(RPM.of(rpm)).schedule();
     }
 
+    public double getTargetRPM() {
+        return lastTargetRPM;
+    }
+
+    public double getActualRPM() {
+        return flywheel.getSpeed().in(RPM);
+    }
+
     // ------------------------------------------------
     // PERIODIC
     // ------------------------------------------------

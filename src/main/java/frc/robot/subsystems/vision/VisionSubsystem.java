@@ -5,6 +5,7 @@ import static frc.robot.Constants.VisionConstants.*;
 import edu.wpi.first.apriltag.*;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -16,29 +17,56 @@ import org.photonvision.targeting.*;
 
 public class VisionSubsystem extends SubsystemBase {
 
-    // ---------- CAMERA ----------
-    private final PhotonCamera shooterCamera;
+    // ============================================================
+    // CAMERA (SINGLE, MULTI-PURPOSE)
+    // ============================================================
 
-    // ---------- FIELD ----------
+    private final PhotonCamera camera;
+
+    // ============================================================
+    // FIELD + POSE
+    // ============================================================
+
     private final AprilTagFieldLayout fieldLayout;
+    private final PhotonPoseEstimator poseEstimator;
+    private final StructPublisher<Pose2d> visionPosePub;
 
-    // ---------- SIM ----------
+    // ============================================================
+    // SIMULATION
+    // ============================================================
+
     private VisionSystemSim visionSim;
-    private PhotonCameraSim shooterCamSim;
+    private PhotonCameraSim cameraSim;
+
+    // ============================================================
+    // CONSTRUCTOR
+    // ============================================================
 
     public VisionSubsystem() {
 
-        shooterCamera = new PhotonCamera(SHOOTER_CAMERA_NAME);
+        camera = new PhotonCamera(SHOOTER_CAMERA_NAME);
 
         fieldLayout = AprilTagFieldLayout.loadField(
                 AprilTagFields.k2026RebuiltWelded);
+
+        poseEstimator = new PhotonPoseEstimator(
+                fieldLayout,
+                PhotonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+                ROBOT_TO_SHOOTER_CAMERA);
+
+        visionPosePub = NetworkTableInstance.getDefault()
+                .getStructTopic("Vision/EstimatedPose", Pose2d.struct)
+                .publish();
 
         if (RobotBase.isSimulation()) {
             setupSimulation();
         }
     }
 
-    // ---------------- SIM ----------------
+    // ============================================================
+    // SIM SETUP
+    // ============================================================
+
     private void setupSimulation() {
 
         visionSim = new VisionSystemSim("Vision");
@@ -46,30 +74,51 @@ public class VisionSubsystem extends SubsystemBase {
         visionSim.addAprilTags(fieldLayout);
 
         SimCameraProperties props = new SimCameraProperties();
-        props.setCalibration(960, 720, Rotation2d.fromDegrees(100));
+        props.setCalibration(960, 720, Rotation2d.fromDegrees(90));
         props.setFPS(30);
         props.setAvgLatencyMs(35);
+        props.setCalibError(0.25, 0.25);
 
-        shooterCamSim = new PhotonCameraSim(shooterCamera, props);
+        cameraSim = new PhotonCameraSim(camera, props);
 
         visionSim.addCamera(
-                shooterCamSim,
+                cameraSim,
                 ROBOT_TO_SHOOTER_CAMERA);
     }
 
+    /** MUST be called from DriveSubsystem.simulationPeriodic() */
     public void updateSimPose(Pose2d robotPose) {
         if (visionSim != null) {
             visionSim.update(robotPose);
         }
     }
 
-    // ---------------- DISTANCE (SHOOTER CAMERA) ----------------
+    // ============================================================
+    // GLOBAL POSE ESTIMATION
+    // ============================================================
+
+    public Optional<EstimatedRobotPose> getEstimatedGlobalPose() {
+
+        PhotonPipelineResult result = camera.getLatestResult();
+
+        if (!result.hasTargets()) {
+            return Optional.empty();
+        }
+
+        return poseEstimator.update(result);
+    }
+
+    // ============================================================
+    // DISTANCE TO TAG (PLANAR)
+    // ============================================================
+
     public Optional<Double> getDistanceToTagMeters(int[] validTags) {
 
-        PhotonPipelineResult result = shooterCamera.getLatestResult();
+        PhotonPipelineResult result = camera.getLatestResult();
 
-        if (!result.hasTargets())
+        if (!result.hasTargets()) {
             return Optional.empty();
+        }
 
         for (PhotonTrackedTarget target : result.getTargets()) {
             for (int id : validTags) {
@@ -85,30 +134,39 @@ public class VisionSubsystem extends SubsystemBase {
         return Optional.empty();
     }
 
-    // ---------------- SHOOTER YAW ONLY ----------------
-    public Optional<Double> getShooterTargetYawRad(int[] validTags) {
+    // ============================================================
+    // YAW TO TARGET (FOR AIMING)
+    // ============================================================
 
-        PhotonPipelineResult result = shooterCamera.getLatestResult();
+    public Optional<Double> getTargetYawRad(int[] validTags) {
 
-        if (!result.hasTargets())
+        PhotonPipelineResult result = camera.getLatestResult();
+
+        if (!result.hasTargets()) {
             return Optional.empty();
+        }
 
         for (PhotonTrackedTarget target : result.getTargets()) {
             for (int id : validTags) {
                 if (target.getFiducialId() == id) {
 
-                    // Photon yaw is degrees, CCW positive
+                    // Photon yaw is degrees, CCW+
                     return Optional.of(
-                            Units.degreesToRadians(
-                                    target.getYaw()));
+                            Units.degreesToRadians(target.getYaw()));
                 }
             }
         }
         return Optional.empty();
     }
 
+    // ============================================================
+    // PERIODIC LOGGING
+    // ============================================================
+
     @Override
     public void periodic() {
-        // Shooter-only vision — nothing to publish
+
+        getEstimatedGlobalPose().ifPresent(pose -> visionPosePub.set(
+                pose.estimatedPose.toPose2d()));
     }
 }

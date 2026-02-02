@@ -156,8 +156,9 @@ public class Robot extends LoggedRobot {
   public void simulationPeriodic() {
     // UPDATE THIS LINE to use the new YAGSL internal package
     // swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
-    // m_robotContainer.getVision()
-    // .updateSimPose(m_robotContainer.getDrivebase().getPose());
+    m_robotContainer.getVision()
+        .updateSimPose(m_robotContainer.getDrivebase().getPose());
+
     FuelSim.getInstance().updateSim();
 
   }

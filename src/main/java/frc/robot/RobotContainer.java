@@ -88,19 +88,19 @@ public class RobotContainer {
                 switch (Constants.currentMode) {
                         case REAL:
                                 // Real robot, instantiate hardware IO implementations
-                                tempDrive = new Drive(new DriveIOSpark(), imu);
+                                tempDrive = new Drive(new DriveIOSpark(), imu, vision);
                                 break;
 
                         case SIM:
                                 // Sim robot, instantiate physics sim IO implementations
-                                tempDrive = new Drive(new DriveIOSim(gyroSim), imu);
+                                tempDrive = new Drive(new DriveIOSim(gyroSim), imu, vision);
                                 break;
 
                         case REPLAY: // Ensure all enum cases are handled, or a default is guaranteed
                         default: // Added default to cover any unhandled modes and guarantee initialization
                                  // Replayed robot, disable IO implementations
                                 tempDrive = new Drive(new DriveIO() {
-                                }, imu);
+                                }, imu, vision);
                                 break;
                 }
                 this.drive = tempDrive; // Assign the local variable to the final field
@@ -190,40 +190,41 @@ public class RobotContainer {
                 // Manual shooter test
                 operator.a().whileTrue(
                                 Commands.parallel(
-                                                shooter.setRPM(3000),
-                                                hood.setAngle(Degrees.of(35))));
+                                                shooter.setRPM(1500),
+                                                hood.setAngle(Degrees.of(55))));
 
         }
 
         /**
          * Configure FuelSim for physics simulation.
-         * FuelSim is field-level (not robot-level) and must be updated from Robot.simulationPeriodic()
+         * FuelSim is field-level (not robot-level) and must be updated from
+         * Robot.simulationPeriodic()
          */
         private void configureFuelSim() {
                 FuelSim instance = FuelSim.getInstance();
-                
+
                 // Spawn initial fuel in depot and neutral zones
                 instance.spawnStartingFuel();
-                
+
                 // Register robot dimensions and pose supplier
                 // Note: Replace these with your actual robot dimensions from Constants
                 instance.registerRobot(
-                        0.8,  // width (meters, left to right)
-                        1.0,  // length (meters, front to back)
-                        0.5,  // bumper height (meters)
-                        drive::getPose,
-                        drive::getChassisSpeeds);
-                
+                                0.8, // width (meters, left to right)
+                                1.0, // length (meters, front to back)
+                                0.5, // bumper height (meters)
+                                drive::getPose,
+                                drive::getChassisSpeeds);
+
                 // Start simulation
                 instance.start();
-                
+
                 // Add reset fuel button to SmartDashboard
                 SmartDashboard.putData(Commands.runOnce(() -> {
                         FuelSim.getInstance().clearFuel();
                         FuelSim.getInstance().spawnStartingFuel();
                 })
-                .withName("Reset Fuel")
-                .ignoringDisable(true));
+                                .withName("Reset Fuel")
+                                .ignoringDisable(true));
         }
 
         /**
@@ -234,7 +235,11 @@ public class RobotContainer {
         public Command getAutonomousCommand() {
                 return autoChooser.getSelected();
         }
+
         // ---------------- ACCESSORS ----------------
+        public Drive getDrivebase() {
+                return drive;
+        }
 
         public VisionSubsystem getVision() {
                 return vision;

@@ -61,7 +61,7 @@ public class ShooterDockAtDistanceCommand extends Command {
 
                 int[] hubTags = getAllianceHubTags();
 
-                var yawOpt = vision.getShooterTargetYawRad(hubTags);
+                var yawOpt = vision.getTargetYawRad(hubTags);
                 var distOpt = vision.getDistanceToTagMeters(hubTags);
 
                 if (yawOpt.isEmpty() || distOpt.isEmpty()) {

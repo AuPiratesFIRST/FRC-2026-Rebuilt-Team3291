@@ -55,7 +55,7 @@ public class Constants {
                 public static final String SHOOTER_CAMERA_NAME = "shooterCamera";
                 public static final Transform3d ROBOT_TO_SHOOTER_CAMERA = new Transform3d(
                                 new Translation3d(0.15, 0.0, 0.55), // above shooter
-                                new Rotation3d(0, Units.degreesToRadians(-20), 0) // pitched down
+                                new Rotation3d(0, Units.degreesToRadians(0), 0) // pitched down
                 );
 
                 // ---------- SHOOTER DOCKING ----------
