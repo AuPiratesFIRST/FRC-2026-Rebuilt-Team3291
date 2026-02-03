@@ -3,57 +3,41 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 7.674821683309556,
-        "y": 5.839942938659058
+        "x": 2.12,
+        "y": 4.986
       },
       "prevControl": null,
       "nextControl": {
-        "x": 7.504870379480341,
-        "y": 6.163708318709111
+        "x": 1.6170750582787368,
+        "y": 4.0468630165513435
       },
-      "isLocked": false,
+      "isLocked": true,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 4.647175463623395,
-        "y": 7.444336661911555
+        "x": 1.6730111111111112,
+        "y": 4.200655555555556
       },
       "prevControl": {
-        "x": 5.676323585034399,
-        "y": 7.2551184040610295
+        "x": 1.8295724897870895,
+        "y": 4.474084770998568
       },
       "nextControl": {
-        "x": 4.161048236861338,
-        "y": 7.533715581260413
+        "x": 1.4915062685770162,
+        "y": 3.8836634141161435
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 3.4826961483594863,
-        "y": 7.159686162624822
+        "x": 1.088,
+        "y": 3.84
       },
       "prevControl": {
-        "x": 3.821070240240219,
-        "y": 7.444156133082277
-      },
-      "nextControl": {
-        "x": 2.998585966629687,
-        "y": 6.752696347508096
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 2.124,
-        "y": 4.986
-      },
-      "prevControl": {
-        "x": 2.5005837047246073,
-        "y": 4.776568341321463
+        "x": 1.5617311898450659,
+        "y": 4.264586513437391
       },
       "nextControl": null,
       "isLocked": true,
@@ -63,14 +47,7 @@
   "rotationTargets": [],
   "constraintZones": [],
   "pointTowardsZones": [],
-  "eventMarkers": [
-    {
-      "name": "",
-      "waypointRelativePos": 3.0,
-      "endWaypointRelativePos": null,
-      "command": null
-    }
-  ],
+  "eventMarkers": [],
   "globalConstraints": {
     "maxVelocity": 3.0,
     "maxAcceleration": 3.0,

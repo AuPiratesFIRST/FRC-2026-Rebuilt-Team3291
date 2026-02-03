@@ -71,33 +71,36 @@ public class RobotContainer {
         // ========================================
         // These are the robot's physical mechanisms.
         // Each subsystem is created ONCE and reused throughout the match.
-        
+
         // Drivetrain subsystem - controls left and right motors, odometry, pathfinding
         private final Drive drive; // This field will now be initialized correctly
 
         // Vision subsystem - AprilTag detection for pose estimation and targeting
         private final VisionSubsystem vision = new VisionSubsystem();
-        
+
         // IMU (gyroscope) - provides robot heading for odometry
         private final ImuSubsystem imu;
 
         // Shooter mechanism subsystems
-        private final HoodSubsystem hood = new HoodSubsystem();  // Adjustable angle
-        private final ShooterSubsystem shooter = new ShooterSubsystem();  // Flywheel
+        private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
+        private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
 
-        // Turret subsystem - calculates auto-aim heading (virtual turret, no physical rotation)
+        // Turret subsystem - calculates auto-aim heading (virtual turret, no physical
+        // rotation)
         // Declared as temporary local variable first (will be initialized after drive)
         private TurretSubsystem turret;
 
         // ========================================
         // DRIVER INTERFACE
         // ========================================
-        // Controllers are created here and button bindings defined in configureButtonBindings()
-        
+        // Controllers are created here and button bindings defined in
+        // configureButtonBindings()
+
         // Driver controller (USB port 0) - controls robot movement
         private final CommandXboxController driver = new CommandXboxController(0);
-        
-        // Operator controller (USB port 1) - controls shooter, hood, and other mechanisms
+
+        // Operator controller (USB port 1) - controls shooter, hood, and other
+        // mechanisms
         private final CommandXboxController operator = new CommandXboxController(1);
 
         // ========================================
@@ -245,7 +248,7 @@ public class RobotContainer {
                                 DriveCommands.arcadeDrive(
                                                 drive,
                                                 turret,
-                                                () -> -driver.getLeftY(),    // Forward/backward
+                                                () -> -driver.getLeftY(), // Forward/backward
                                                 () -> -driver.getRightX())); // Rotation
 
                 // ================= IMU / FIELD ORIENTATION =================
@@ -258,7 +261,7 @@ public class RobotContainer {
                 // These buttons enable/disable "heading lock" mode
                 // When enabled, robot automatically rotates to face hub
                 // Driver still controls forward/backward movement
-                
+
                 // Y button: Enable hub tracking (turn on auto-aim)
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
@@ -266,7 +269,7 @@ public class RobotContainer {
                 // B button: Disable hub tracking (back to manual rotation)
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
-                
+
                 // ================= AUTO SCORE SEQUENCE =================
                 // X button: Full autonomous scoring sequence
                 // 1. Pathfind to scoring position near hub
@@ -277,11 +280,11 @@ public class RobotContainer {
                                                 new AutoScoreCommand(drive, vision)
                                                                 .withInterruptBehavior(
                                                                                 Command.InterruptionBehavior.kCancelSelf));
-                
+
                 // ================= TURRET MANUAL ROTATION =================
                 // D-pad allows manual turret adjustment (overrides auto-aim)
                 // Useful for testing or if auto-aim isn't working
-                
+
                 // D-pad left: Rotate turret left (negative omega)
                 operator.povLeft().whileTrue(
                                 Commands.run(() -> turret.manualRotate(-0.4), turret));
@@ -300,7 +303,7 @@ public class RobotContainer {
                 // ================= HOOD ANGLE ADJUSTMENT =================
                 // D-pad up/down for fine-tuning hood angle
                 // Adjusts in 2-degree increments
-                
+
                 // D-pad up: Increase hood angle (higher arc)
                 operator.povUp().onTrue(
                                 hood.setAngle(
@@ -312,7 +315,7 @@ public class RobotContainer {
                                                 hood.getAngle().minus(Degrees.of(2))));
 
                 // ================= SHOOTER CONTROLS =================
-                
+
                 // Right trigger: Vision-based automatic aiming
                 // Continuously adjusts shooter RPM and hood angle based on distance
                 // Deadband of 0.2 prevents accidental activation
