@@ -16,17 +16,46 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 
+/**
+ * DriveCommands - Factory class for creating drive-related commands.
+ * 
+ * This class contains static methods that return Command objects for controlling
+ * the drivetrain. Using factory methods keeps command creation logic organized
+ * and allows reusing the same commands in multiple places.
+ * 
+ * Commands provided:
+ * - arcadeDrive(): Main teleop drive with optional turret heading lock
+ * - feedforwardCharacterization(): Measures kS and kV for tuning
+ */
 public class DriveCommands {
+  // Joystick deadband - ignore inputs smaller than this to prevent drift
   private static final double DEADBAND = 0.1;
-  private static final double FF_RAMP_RATE = 0.1; // Volts/Sec
+  
+  // How fast to ramp voltage during feedforward testing (Volts per second)
+  private static final double FF_RAMP_RATE = 0.1;
 
+  // Private constructor prevents instantiation (this is a utility class)
   private DriveCommands() {
   }
 
   /**
-   * Arcade drive with optional turret heading lock.
-   * Forward/back always from driver.
-   * Rotation comes from turret when enabled.
+   * Arcade drive command with smart turret integration.
+   * 
+   * This is the main teleop driving command. It reads joystick inputs and controls
+   * the drivetrain. When turret auto-aim is enabled, rotation comes from the turret
+   * PID controller instead of the driver's joystick.
+   * 
+   * Why this matters:
+   * - Driver controls forward/backward speed normally
+   * - When auto-aim button is pressed, robot automatically rotates to face hub
+   * - Driver can still strafe/drive while auto-aim handles rotation
+   * - This is called "heading lock" or "turret mode"
+   * 
+   * @param drive The drive subsystem to control
+   * @param turret The turret subsystem (provides rotation when auto-aiming)
+   * @param xSupplier Forward/backward speed (-1.0 to 1.0, typically left stick Y)
+   * @param zSupplier Rotation speed (-1.0 to 1.0, typically right stick X)
+   * @return Command that runs continuously (default command for drive)
    */
   public static Command arcadeDrive(
       Drive drive,
@@ -36,26 +65,31 @@ public class DriveCommands {
 
     return Commands.run(
         () -> {
-          // Forward/back from driver
+          // Get forward/backward input from driver and apply deadband
+          // Deadband prevents tiny stick drift from causing unwanted movement
           double x = MathUtil.applyDeadband(xSupplier.getAsDouble(), DEADBAND);
 
-          // Rotation source
+          // Determine rotation source: turret auto-aim OR manual driver control
           double omega;
           if (turret.isHubTrackingEnabled()) {
-            // 🔒 Heading lock
+            // 🔒 HEADING LOCK MODE: Turret calculates rotation to aim at hub
+            // Turret's PID controller calculates omega needed to face target
             omega = turret.getDesiredRobotOmega();
           } else {
-            // 🎮 Manual rotation
+            // 🎮 MANUAL MODE: Driver controls rotation with joystick
             omega = MathUtil.applyDeadband(zSupplier.getAsDouble(), DEADBAND);
           }
 
+          // Convert arcade-style inputs to left/right wheel speeds
+          // squareInputs=true makes controls less sensitive at low speeds (more precise)
           var speeds = DifferentialDrive.arcadeDriveIK(x, omega, true);
 
+          // Command the drivetrain to run at calculated speeds
           drive.runClosedLoop(
-              speeds.left * maxSpeedMetersPerSec,
+              speeds.left * maxSpeedMetersPerSec,   // Scale to max speed
               speeds.right * maxSpeedMetersPerSec);
         },
-        drive);
+        drive);  // Requires drive subsystem (prevents conflicts)
   }
 
   /** Measures the velocity feedforward constants for the drive. */

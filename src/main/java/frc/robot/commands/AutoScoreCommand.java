@@ -19,8 +19,20 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 import java.util.Set;
 
 /**
- * Alliance-correct auto scoring command.
- * Tank-drive safe.
+ * AutoScoreCommand - Fully autonomous scoring sequence.
+ * 
+ * This command combines pathfinding and vision alignment to automatically
+ * navigate to the scoring position and align for shooting.
+ * 
+ * Sequence:
+ * 1. Pathfind to a scoring position near the hub (using PathPlanner)
+ * 2. Use vision to fine-tune distance from hub (get to exact shooting distance)
+ * 
+ * The scoring position is defined in BLUE alliance coordinates and automatically
+ * flipped for RED alliance using PathPlanner's field mirroring.
+ * 
+ * Alliance-safe: Works correctly regardless of which alliance we're on!
+ * Tank-drive safe: Uses DeferredCommand to ensure alliance check happens when command runs
  */
 public class AutoScoreCommand extends SequentialCommandGroup {
 

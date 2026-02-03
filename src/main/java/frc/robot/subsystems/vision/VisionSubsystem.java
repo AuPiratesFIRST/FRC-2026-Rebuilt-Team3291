@@ -15,26 +15,45 @@ import org.photonvision.*;
 import org.photonvision.simulation.*;
 import org.photonvision.targeting.*;
 
+/**
+ * Vision Subsystem - Detects AprilTags using PhotonVision for pose estimation and targeting.
+ * 
+ * This subsystem manages the robot's camera and processes AprilTag detections to:
+ * 1. Estimate the robot's global position on the field (pose estimation)
+ * 2. Measure distance and angle to specific tags for shooter aiming
+ * 3. Provide realistic simulation data for testing
+ * 
+ * PhotonVision runs on a coprocessor (like a Raspberry Pi) and sends results
+ * to the roboRIO via NetworkTables. This subsystem reads those results.
+ */
 public class VisionSubsystem extends SubsystemBase {
 
     // ============================================================
     // CAMERA (SINGLE, MULTI-PURPOSE)
     // ============================================================
-
+    // PhotonCamera connects to PhotonVision instance running on coprocessor
+    // Camera name must match the name configured in the PhotonVision web interface
     private final PhotonCamera camera;
 
     // ============================================================
-    // FIELD + POSE
+    // FIELD + POSE ESTIMATION
     // ============================================================
-
+    // AprilTag field layout contains the 3D positions of all tags on the field
+    // This is loaded from WPILib's built-in field layouts (updated yearly)
     private final AprilTagFieldLayout fieldLayout;
+    
+    // PhotonPoseEstimator uses detected tags + field layout to estimate robot pose
+    // Uses MULTI_TAG_PNP_ON_COPROCESSOR strategy for best accuracy with multiple tags
     private final PhotonPoseEstimator poseEstimator;
+    
+    // NetworkTables publisher to share vision pose with other programs (AdvantageScope, etc.)
     private final StructPublisher<Pose2d> visionPosePub;
 
     // ============================================================
     // SIMULATION
     // ============================================================
-
+    // These are only used in simulation to provide realistic camera behavior
+    // null on real robot
     private VisionSystemSim visionSim;
     private PhotonCameraSim cameraSim;
 
@@ -42,10 +61,17 @@ public class VisionSubsystem extends SubsystemBase {
     // CONSTRUCTOR
     // ============================================================
 
+    /**
+     * Creates a new VisionSubsystem.
+     * Initializes camera connection, loads field layout, and sets up simulation if needed.
+     */
     public VisionSubsystem() {
 
+        // Connect to PhotonVision camera by name (must match PhotonVision config)
         camera = new PhotonCamera(SHOOTER_CAMERA_NAME);
 
+        // Load the official 2026 Rebulit field AprilTag layout
+        // This contains the 3D position of every AprilTag on the field
         fieldLayout = AprilTagFieldLayout.loadField(
                 AprilTagFields.k2026RebuiltWelded);
 

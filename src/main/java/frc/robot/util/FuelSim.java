@@ -10,20 +10,61 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
+/**
+ * FuelSim - Field-level physics simulation for game pieces ("fuel").
+ * 
+ * This is a sophisticated physics simulator that runs independently of the robot.
+ * It simulates game pieces bouncing around the field, including:
+ * - 3D physics (projectile motion with gravity)
+ * - Collisions with field elements (walls, bumps, hubs)
+ * - Collisions between game pieces
+ * - Robot interactions (intakes, scoring)
+ * - Realistic friction and coefficient of restitution
+ * 
+ * WHY THIS EXISTS:
+ * In simulation, we need to model where game pieces go after we shoot them.
+ * This allows testing autonomous scoring routines without a real field.
+ * 
+ * HOW TO USE:
+ * 1. Call FuelSim.getInstance() to get the singleton
+ * 2. Call registerRobot() with your robot dimensions and pose supplier
+ * 3. Call start() to begin simulation
+ * 4. Call update() from Robot.simulationPeriodic()
+ * 
+ * The sim automatically logs game piece positions to AdvantageScope for visualization.
+ * 
+ * NOTE: This is SIMULATION ONLY - has no effect on real robot!
+ */
 public class FuelSim {
-    private static final double PERIOD = 0.02; // sec
-    private static int subticks = 5;
-    private static final Translation3d GRAVITY = new Translation3d(0, 0, -9.81); // m/s^2
-    private static final double FIELD_COR = Math.sqrt(22 / 51.5); // coefficient of restitution with the field
-    private static final double FUEL_COR = 0.5; // coefficient of restitution with another fuel
-    private static final double ROBOT_COR = 0.3; // coefficient of restitution with a robot
-    private static final double FUEL_RADIUS = 0.075;
-    private static final double FIELD_LENGTH = 16.51;
-    private static final double FIELD_WIDTH = 8.04;
-    private static final double FRICTION = 0.1; // proportion of horizontal velocity to lose per second while on ground
+    // ========== PHYSICS CONSTANTS ==========
+    // Simulation runs at 50Hz (same as robot code) with 5 sub-ticks for accuracy
+    private static final double PERIOD = 0.02; // seconds (20ms)
+    private static int subticks = 5;  // Physics updates per robot loop
+    
+    // Gravity vector (pointing down in Z-axis)
+    private static final Translation3d GRAVITY = new Translation3d(0, 0, -9.81); // m/s²
+    
+    // Coefficients of restitution (bounciness)
+    // CoR = 1.0 means perfectly elastic (no energy lost)
+    // CoR = 0.0 means perfectly inelastic (no bounce)
+    private static final double FIELD_COR = Math.sqrt(22 / 51.5); // How bouncy is the field?
+    private static final double FUEL_COR = 0.5; // How bouncy are fuel-fuel collisions?
+    private static final double ROBOT_COR = 0.3; // How bouncy is hitting the robot?
+    
+    // Game piece and field dimensions
+    private static final double FUEL_RADIUS = 0.075;  // meters (game piece radius)
+    private static final double FIELD_LENGTH = 16.51;  // meters (2026 field)
+    private static final double FIELD_WIDTH = 8.04;    // meters
+    
+    // Friction coefficient - fuel loses this fraction of horizontal velocity per second when rolling
+    private static final double FRICTION = 0.1;
 
+    // Singleton pattern - only one FuelSim exists
     private static FuelSim instance = null;
 
+    // ========== FIELD GEOMETRY ==========
+    // These arrays define the field's 3D structure (walls, ramps, bumps)
+    // Each line segment can deflect game pieces
     private static final Translation3d[] FIELD_XZ_LINE_STARTS = {
             new Translation3d(0, 0, 0),
             new Translation3d(3.96, 1.57, 0),

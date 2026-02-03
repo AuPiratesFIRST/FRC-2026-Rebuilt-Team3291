@@ -13,26 +13,61 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 
+/**
+ * Turret Subsystem - Provides auto-aiming by calculating desired robot heading.
+ * 
+ * IMPORTANT: This is NOT a physical rotating turret! Instead, it's a "virtual turret"
+ * that calculates what direction the entire robot should face to aim at the hub.
+ * 
+ * How it works:
+ * 1. Continuously calculates angle from robot to hub based on field position
+ * 2. When enabled, runs a PID controller to determine rotation speed (omega)
+ * 3. Drive commands read this omega value and rotate the robot accordingly
+ * 
+ * This design allows the driver to control forward/backward movement while
+ * auto-aim handles rotation - called "heading lock" or "turret mode".
+ */
 public class TurretSubsystem extends SubsystemBase {
 
+        // Distance from robot center to shooter (meters)
+        // This accounts for the fact that the shooter isn't at the robot's center
         private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
 
+        // Maximum rotation speed when auto-aiming (rad/sec)
+        // Limited to prevent spinning too fast and losing control
         private static final double MAX_OMEGA_RAD_PER_SEC = 3.0;
 
-        private final VisionSubsystem vision;
-        private final Drive drive;
-        private final ShooterSubsystem shooter;
-        private final HoodSubsystem hood;
-        private final TurretVisualizer visualizer;
+        // Subsystem dependencies - we need these to calculate aiming
+        private final VisionSubsystem vision;      // For distance measurements (future use)
+        private final Drive drive;                  // For current robot pose
+        private final ShooterSubsystem shooter;     // For visualization
+        private final HoodSubsystem hood;           // For visualization
+        private final TurretVisualizer visualizer;  // 3D visualization in AdvantageScope
 
-        private boolean hubTrackingEnabled = false;
-        private double manualOmega = 0.0;
+        // ========== STATE VARIABLES ==========
+        // These track whether we're in auto-aim mode or manual control
+        private boolean hubTrackingEnabled = false;  // Is auto-aim active?
+        private double manualOmega = 0.0;            // Manual rotation from driver
 
-        private Rotation2d desiredFieldHeading = new Rotation2d();
-        private double distanceToHubMeters = 0.0;
+        // ========== CALCULATED VALUES ==========
+        // Updated every loop in periodic()
+        private Rotation2d desiredFieldHeading = new Rotation2d();  // Which way should we face?
+        private double distanceToHubMeters = 0.0;                   // How far to target?
 
+        // ========== PID CONTROLLER ==========
+        // Calculates rotation speed needed to reach desired heading
+        // Gains: kP=6.0 (aggressive), kI=0.0 (no integral), kD=0.25 (light damping)
         private final PIDController headingPID = new PIDController(6.0, 0.0, 0.25);
 
+        /**
+         * Creates a new TurretSubsystem.
+         * Sets up PID controller and visualization.
+         * 
+         * @param vision Vision subsystem (for future distance-based aiming)
+         * @param drive Drive subsystem (to read robot pose)
+         * @param shooter Shooter subsystem (for visualization)
+         * @param hood Hood subsystem (for visualization)
+         */
         public TurretSubsystem(
                         VisionSubsystem vision,
                         Drive drive,
@@ -44,8 +79,11 @@ public class TurretSubsystem extends SubsystemBase {
                 this.shooter = shooter;
                 this.hood = hood;
 
+                // Enable continuous input for heading PID (wraps around at ±π)
+                // This ensures -179° and +179° are treated as close together
                 headingPID.enableContinuousInput(-Math.PI, Math.PI);
 
+                // Create visualizer for 3D view in AdvantageScope
                 visualizer = new TurretVisualizer(
                                 () -> new Pose3d(drive.getPose()),
                                 drive::getChassisSpeeds,

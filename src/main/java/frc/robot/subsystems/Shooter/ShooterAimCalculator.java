@@ -58,25 +58,43 @@ public final class ShooterAimCalculator {
     // ============================================================
     // TUNING MAPS (PRIMARY CONTROL SOURCE)
     // ============================================================
+    // These maps are the MAIN TUNING INTERFACE for shooters.
+    // Add distance→RPM/angle pairs from testing, and the calculator
+    // will automatically interpolate between them.
+    //
+    // InterpolatingDoubleTreeMap does LINEAR INTERPOLATION between points:
+    // Example: If you have (0.10m → 1000 RPM) and (0.20m → 2000 RPM)
+    //          and ask for 0.15m, you get 1500 RPM
+    //
+    // HOW TO TUNE:
+    // 1. Stand robot at a known distance from hub
+    // 2. Manually adjust RPM and hood angle until shots score
+    // 3. Record the distance, RPM, and angle
+    // 4. Add that data point below
+    // 5. Repeat at multiple distances (close, medium, far)
+    // 6. The calculator handles everything in between!
 
     private static final InterpolatingDoubleTreeMap rpmMap = new InterpolatingDoubleTreeMap();
 
     private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
 
     static {
-        // Distance (m) -> Flywheel RPM (RAW, BEFORE log shaping)
-        rpmMap.put(0.10, 1000.0);
-        rpmMap.put(0.20, 2000.0);
-        rpmMap.put(0.25, 3000.0);
-        rpmMap.put(0.27, 4000.0);
-        rpmMap.put(0.30, 5000.0);
+        // Distance (m) → Flywheel RPM (RAW, BEFORE log shaping)
+        // These are STARTING VALUES - tune based on real testing!
+        rpmMap.put(0.10, 1000.0);  // Very close shot
+        rpmMap.put(0.20, 2000.0);  // Short distance
+        rpmMap.put(0.25, 3000.0);  // Medium distance
+        rpmMap.put(0.27, 4000.0);  // Longer shot
+        rpmMap.put(0.30, 5000.0);  // Maximum range
 
-        // Distance (m) -> Hood angle (deg)
-        hoodAngleMap.put(0.10, 25.0);
+        // Distance (m) → Hood angle (degrees)
+        // Lower angles = flatter trajectory (close shots)
+        // Higher angles = arced trajectory (far shots)
+        hoodAngleMap.put(0.10, 25.0);  // Low angle for close range
         hoodAngleMap.put(0.20, 30.0);
         hoodAngleMap.put(0.25, 35.0);
         hoodAngleMap.put(0.27, 40.0);
-        hoodAngleMap.put(0.30, 45.0);
+        hoodAngleMap.put(0.30, 45.0);  // High angle for long range
     }
 
     // ============================================================
@@ -85,18 +103,36 @@ public final class ShooterAimCalculator {
 
     /**
      * Computes a complete shooter solution from distance alone.
+     * 
+     * This is the main entry point called by commands. Give it a distance,
+     * get back RPM and hood angle settings.
+     * 
+     * Process:
+     * 1. Check if distance is in valid range
+     * 2. Look up RPM and angle from interpolation maps
+     * 3. Apply logarithmic shaping to RPM (smooth acceleration curve)
+     * 4. Calculate physics-based RPM for comparison/validation
+     * 5. Return complete solution
+     * 
+     * @param distanceMeters Horizontal distance to target (from vision)
+     * @return ShooterSolution containing RPM, hood angle, and validity flag
      */
     public static ShooterSolution solve(double distanceMeters) {
 
+        // Validate distance is within our tested range
         if (distanceMeters < MIN_DISTANCE || distanceMeters > MAX_DISTANCE) {
             return ShooterSolution.invalid(distanceMeters);
         }
 
+        // Clamp just in case (defensive programming)
         double clamped = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
 
+        // Look up hood angle from interpolation table
+        // InterpolatingDoubleTreeMap automatically interpolates between known points
         Angle hoodAngle = Degrees.of(hoodAngleMap.get(clamped));
 
-        // RAW RPM from table (you control this)
+        // Look up RAW RPM from table (before curve shaping)
+        // This is what YOU tuned during testing
         double rawRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
 
         // 🔥 Logarithmic shaping

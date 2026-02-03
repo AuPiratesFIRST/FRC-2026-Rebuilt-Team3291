@@ -41,64 +41,124 @@ import frc.robot.util.FuelSim;
 import frc.robot.commands.AutoScoreCommand;
 
 /**
- * This class is where the bulk of the robot should be declared. Since
- * Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in
- * the {@link Robot}
- * periodic methods (other than the scheduler calls). Instead, the structure of
- * the robot (including
- * subsystems, commands, and button mappings) should be declared here.
+ * RobotContainer - The heart of the robot's organization and control structure.
+ * 
+ * This class is where EVERYTHING comes together:
+ * - All subsystems are created here (one instance of each)
+ * - All controllers (driver and operator) are defined here
+ * - Button bindings connect controller buttons to commands
+ * - Autonomous routines are configured and selected here
+ * - Default commands are set here
+ * 
+ * Think of RobotContainer as the "wiring diagram" for the robot's software.
+ * Just like an electrical diagram shows how components connect, this class
+ * shows how subsystems, commands, and controls connect.
+ * 
+ * IMPORTANT: This class is created ONCE when the robot boots up.
+ * The same instance is used for the entire match (and practice sessions).
+ * 
+ * Organization:
+ * 1. Subsystem creation (with proper mode switching for sim/real/replay)
+ * 2. Controller creation
+ * 3. PathPlanner named command registration
+ * 4. Auto chooser setup
+ * 5. Button bindings
+ * 6. Utility methods for autonomous
  */
 public class RobotContainer {
-        // Subsystems
+        // ========================================
+        // SUBSYSTEMS
+        // ========================================
+        // These are the robot's physical mechanisms.
+        // Each subsystem is created ONCE and reused throughout the match.
+        
+        // Drivetrain subsystem - controls left and right motors, odometry, pathfinding
         private final Drive drive; // This field will now be initialized correctly
 
+        // Vision subsystem - AprilTag detection for pose estimation and targeting
         private final VisionSubsystem vision = new VisionSubsystem();
+        
+        // IMU (gyroscope) - provides robot heading for odometry
         private final ImuSubsystem imu;
 
-        private final HoodSubsystem hood = new HoodSubsystem();
-        private final ShooterSubsystem shooter = new ShooterSubsystem();
+        // Shooter mechanism subsystems
+        private final HoodSubsystem hood = new HoodSubsystem();  // Adjustable angle
+        private final ShooterSubsystem shooter = new ShooterSubsystem();  // Flywheel
 
-        // Declared as a temporary local variable first
+        // Turret subsystem - calculates auto-aim heading (virtual turret, no physical rotation)
+        // Declared as temporary local variable first (will be initialized after drive)
         private TurretSubsystem turret;
 
-        // ---------------- CONTROLLERS ----------------
-
+        // ========================================
+        // DRIVER INTERFACE
+        // ========================================
+        // Controllers are created here and button bindings defined in configureButtonBindings()
+        
+        // Driver controller (USB port 0) - controls robot movement
         private final CommandXboxController driver = new CommandXboxController(0);
+        
+        // Operator controller (USB port 1) - controls shooter, hood, and other mechanisms
         private final CommandXboxController operator = new CommandXboxController(1);
 
-        // Dashboard inputs
+        // ========================================
+        // AUTONOMOUS SELECTION
+        // ========================================
+        // SendableChooser allows selecting autonomous routine from dashboard
         private final SendableChooser<Command> autoChooser;
 
         /**
-         * The container for the robot. Contains subsystems, OI devices, and commands.
+         * RobotContainer constructor - called ONCE when robot boots.
+         * 
+         * This is where we:
+         * 1. Create subsystems with appropriate IO implementations (real/sim/replay)
+         * 2. Configure PathPlanner named commands
+         * 3. Build autonomous chooser
+         * 4. Set up button bindings
+         * 5. Configure field simulation (FuelSim)
+         * 
+         * Order matters! Some subsystems depend on others:
+         * - IMU must exist before Drive (Drive needs gyro)
+         * - Drive must exist before Turret (Turret reads drive pose)
          */
         public RobotContainer() {
+                // Initialize gyro simulation reference if in sim mode
+                // This allows Drive and IMU to share the same simulated gyro
                 GyroIOSim gyroSim = null;
                 if (!RobotBase.isReal()) {
                         gyroSim = new GyroIOSim();
                 }
 
+                // Create IMU subsystem with appropriate IO implementation
                 imu = new ImuSubsystem(
                                 RobotBase.isReal()
                                                 ? new GyroIOPigeon2(DriveConstants.pigeonCanId, "rio")
                                                 : gyroSim);
 
+                // Create Drive subsystem with mode-appropriate IO implementation
+                // This switch ensures we use the right hardware interface:
+                // - REAL: Actual SparkMax motor controllers
+                // - SIM: Physics simulation
+                // - REPLAY: No-op (just replays logged data)
                 Drive tempDrive; // Use a local variable for initialization
                 switch (Constants.currentMode) {
                         case REAL:
-                                // Real robot, instantiate hardware IO implementations
+                                // Real robot - instantiate hardware IO implementations
+                                // Talks to actual motor controllers via CAN bus
                                 tempDrive = new Drive(new DriveIOSpark(), imu, vision);
                                 break;
 
                         case SIM:
-                                // Sim robot, instantiate physics sim IO implementations
+                                // Sim robot - instantiate physics sim IO implementations
+                                // Simulates motor physics, encoder counts, and dynamics
+                                // Uses the shared gyroSim instance for synchronized heading
                                 tempDrive = new Drive(new DriveIOSim(gyroSim), imu, vision);
                                 break;
 
-                        case REPLAY: // Ensure all enum cases are handled, or a default is guaranteed
+                        case REPLAY: // Ensure all enum cases are handled
                         default: // Added default to cover any unhandled modes and guarantee initialization
-                                 // Replayed robot, disable IO implementations
+                                 // Replayed robot - disable IO implementations
+                                 // DriveIO() with no methods = does nothing
+                                 // All data comes from log file instead
                                 tempDrive = new Drive(new DriveIO() {
                                 }, imu, vision);
                                 break;
@@ -162,65 +222,106 @@ public class RobotContainer {
         }
 
         /**
-         * Use this method to define your button->command mappings. Buttons can be
-         * created by
-         * instantiating a {@link GenericHID} or one of its subclasses ({@link
-         * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing
-         * it to a {@link
-         * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
+         * Configures button bindings - connects controller buttons to commands.
+         * 
+         * This is where you define what happens when buttons are pressed.
+         * Called once from the constructor.
+         * 
+         * Button binding types:
+         * - .whileTrue() - Command runs while button held
+         * - .onTrue() - Command runs once when pressed
+         * - .toggleOnTrue() - Command toggles on/off with each press
+         * - .onFalse() - Triggers when button released
+         * 
+         * Requirements matter!
+         * - Commands must addRequirements() for subsystems they use
+         * - Scheduler prevents conflicts (only one command per subsystem)
+         * - Default commands automatically resume when command ends
          */
         private void configureButtonBindings() {
-                // Default drive command, normal arcade drive
+                // ================= DRIVE DEFAULT COMMAND =================
+                // This command runs continuously whenever nothing else is using drive
                 drive.setDefaultCommand(
                                 DriveCommands.arcadeDrive(
                                                 drive,
                                                 turret,
-                                                () -> -driver.getLeftY(),
-                                                () -> -driver.getRightX()));
+                                                () -> -driver.getLeftY(),    // Forward/backward
+                                                () -> -driver.getRightX())); // Rotation
 
+                // ================= IMU / FIELD ORIENTATION =================
+                // A button: Zero gyro heading (reset which way is "forward")
+                // Use this if gyro drifts or you need to reset field-relative orientation
                 driver.a().onTrue(
                                 Commands.runOnce(imu::zeroYaw));
 
-                // ================= TURRET =================
+                // ================= TURRET AUTO-AIM =================
+                // These buttons enable/disable "heading lock" mode
+                // When enabled, robot automatically rotates to face hub
+                // Driver still controls forward/backward movement
+                
+                // Y button: Enable hub tracking (turn on auto-aim)
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
 
+                // B button: Disable hub tracking (back to manual rotation)
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
-                // ================= AUTO SCORE =================
-
-                // Press X to auto path + vision align
+                
+                // ================= AUTO SCORE SEQUENCE =================
+                // X button: Full autonomous scoring sequence
+                // 1. Pathfind to scoring position near hub
+                // 2. Vision align to exact distance
+                // kCancelSelf = can be interrupted by driver taking manual control
                 driver.x()
                                 .onTrue(
                                                 new AutoScoreCommand(drive, vision)
                                                                 .withInterruptBehavior(
                                                                                 Command.InterruptionBehavior.kCancelSelf));
+                
+                // ================= TURRET MANUAL ROTATION =================
+                // D-pad allows manual turret adjustment (overrides auto-aim)
+                // Useful for testing or if auto-aim isn't working
+                
+                // D-pad left: Rotate turret left (negative omega)
                 operator.povLeft().whileTrue(
                                 Commands.run(() -> turret.manualRotate(-0.4), turret));
 
+                // D-pad right: Rotate turret right (positive omega)
                 operator.povRight().whileTrue(
                                 Commands.run(() -> turret.manualRotate(0.4), turret));
 
+                // When button released, stop manual rotation
                 operator.povLeft().onFalse(
                                 Commands.runOnce(() -> turret.manualRotate(0.0)));
 
                 operator.povRight().onFalse(
                                 Commands.runOnce(() -> turret.manualRotate(0.0)));
 
-                // ================= HOOD =================
+                // ================= HOOD ANGLE ADJUSTMENT =================
+                // D-pad up/down for fine-tuning hood angle
+                // Adjusts in 2-degree increments
+                
+                // D-pad up: Increase hood angle (higher arc)
                 operator.povUp().onTrue(
                                 hood.setAngle(
                                                 hood.getAngle().plus(Degrees.of(2))));
 
+                // D-pad down: Decrease hood angle (flatter trajectory)
                 operator.povDown().onTrue(
                                 hood.setAngle(
                                                 hood.getAngle().minus(Degrees.of(2))));
 
-                // ================= SHOOTER =================
+                // ================= SHOOTER CONTROLS =================
+                
+                // Right trigger: Vision-based automatic aiming
+                // Continuously adjusts shooter RPM and hood angle based on distance
+                // Deadband of 0.2 prevents accidental activation
                 operator.rightTrigger(0.2).whileTrue(
                                 new AimShooterFromVision(shooter, hood, vision));
 
-                // Manual shooter test
+                // A button: Manual shooter test at fixed settings
+                // Useful for testing shooter mechanics without vision
+                // 1300 RPM and 75° hood angle = medium-range shot
                 operator.a().whileTrue(
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
