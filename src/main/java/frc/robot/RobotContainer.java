@@ -132,6 +132,11 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "DisableAutoAim",
                                 Commands.runOnce(turret::disableHubTracking, turret));
+                NamedCommands.registerCommand(
+                                "PrepShot",
+                                Commands.parallel(
+                                                shooter.setRPM(1300),
+                                                hood.setAngle(Degrees.of(75))));
 
                 // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
@@ -168,7 +173,10 @@ public class RobotContainer {
                 // Default drive command, normal arcade drive
                 drive.setDefaultCommand(
                                 DriveCommands.arcadeDrive(
-                                                drive, () -> -driver.getLeftY(), () -> -driver.getRightX()));
+                                                drive,
+                                                turret,
+                                                () -> -driver.getLeftY(),
+                                                () -> -driver.getRightX()));
 
                 driver.a().onTrue(
                                 Commands.runOnce(imu::zeroYaw));
@@ -182,9 +190,11 @@ public class RobotContainer {
                 // ================= AUTO SCORE =================
 
                 // Press X to auto path + vision align
-                driver.x().onTrue(
-                                new AutoScoreCommand(drive, vision));
-
+                driver.x()
+                                .onTrue(
+                                                new AutoScoreCommand(drive, vision)
+                                                                .withInterruptBehavior(
+                                                                                Command.InterruptionBehavior.kCancelSelf));
                 operator.povLeft().whileTrue(
                                 Commands.run(() -> turret.manualRotate(-0.4), turret));
 
@@ -213,8 +223,8 @@ public class RobotContainer {
                 // Manual shooter test
                 operator.a().whileTrue(
                                 Commands.parallel(
-                                                shooter.setRPM(1500),
-                                                hood.setAngle(Degrees.of(55))));
+                                                shooter.setRPM(1300),
+                                                hood.setAngle(Degrees.of(75))));
 
         }
 

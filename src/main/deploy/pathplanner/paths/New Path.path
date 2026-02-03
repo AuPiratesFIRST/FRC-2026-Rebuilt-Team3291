@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 7.5971897289586305,
-        "y": 6.383366619115549
+        "x": 7.504870379480341,
+        "y": 6.163708318709111
       },
       "isLocked": false,
       "linkedName": null
@@ -20,43 +20,43 @@
         "y": 7.444336661911555
       },
       "prevControl": {
-        "x": 5.4412389386141315,
-        "y": 7.770313188588366
+        "x": 5.676323585034399,
+        "y": 7.2551184040610295
       },
       "nextControl": {
-        "x": 3.7727631721427413,
-        "y": 7.085375583058633
+        "x": 4.161048236861338,
+        "y": 7.533715581260413
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.7840085592011405,
-        "y": 7.004422253922967
+        "x": 3.4826961483594863,
+        "y": 7.159686162624822
       },
       "prevControl": {
-        "x": 3.3068303576065836,
-        "y": 7.418846686211614
+        "x": 3.821070240240219,
+        "y": 7.444156133082277
       },
       "nextControl": {
-        "x": 2.3453943962880666,
-        "y": 6.656746571666796
+        "x": 2.998585966629687,
+        "y": 6.752696347508096
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.4217261055634807,
-        "y": 3.9638373751783167
+        "x": 2.124136947218259,
+        "y": 4.985991440798859
       },
       "prevControl": {
-        "x": 2.826879350737199,
-        "y": 4.9049026984880175
+        "x": 2.5007203437527776,
+        "y": 4.776559227957857
       },
       "nextControl": null,
-      "isLocked": false,
+      "isLocked": true,
       "linkedName": null
     }
   ],
@@ -66,13 +66,7 @@
   "eventMarkers": [
     {
       "name": "",
-      "waypointRelativePos": 0,
-      "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
-      "name": "",
-      "waypointRelativePos": 2.7,
+      "waypointRelativePos": 3.0,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -89,7 +83,7 @@
     "velocity": 0,
     "rotation": 0.0
   },
-  "reversed": false,
+  "reversed": true,
   "folder": null,
   "idealStartingState": {
     "velocity": 0,

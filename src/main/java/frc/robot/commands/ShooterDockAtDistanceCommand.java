@@ -19,7 +19,7 @@ public class ShooterDockAtDistanceCommand extends Command {
         private final PIDController yawController;
         private final PIDController distanceController;
 
-        private boolean hasTarget;
+        private boolean hasTarget = false;
 
         public ShooterDockAtDistanceCommand(
                         VisionSubsystem vision,
@@ -62,15 +62,19 @@ public class ShooterDockAtDistanceCommand extends Command {
                 var yawOpt = vision.getTargetYawRad(hubTags);
                 var distOpt = vision.getDistanceToTagMeters(hubTags);
 
+                // Do NOT clear hasTarget on vision dropout
                 if (yawOpt.isEmpty() || distOpt.isEmpty()) {
                         drive.runClosedLoop(new ChassisSpeeds());
-                        hasTarget = false;
                         return;
                 }
 
                 hasTarget = true;
 
+                // ✅ CORRECT PID CONVENTION
+                // measurement, setpoint
                 double omega = yawController.calculate(yawOpt.get(), 0.0);
+
+                // ✅ CORRECT DRIVE DIRECTION
                 double xSpeed = distanceController.calculate(
                                 distOpt.get(),
                                 targetDistanceMeters);
@@ -85,7 +89,7 @@ public class ShooterDockAtDistanceCommand extends Command {
                                 -VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED,
                                 VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED);
 
-                // TANK SAFE
+                // Robot-relative (correct for tank)
                 drive.runClosedLoop(new ChassisSpeeds(xSpeed, 0.0, omega));
         }
 

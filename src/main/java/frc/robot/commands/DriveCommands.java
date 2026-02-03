@@ -1,10 +1,3 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
-
 package frc.robot.commands;
 
 import static frc.robot.subsystems.TankDrive.DriveConstants.maxSpeedMetersPerSec;
@@ -15,6 +8,8 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.TankDrive.Drive;
+import frc.robot.subsystems.Turret.TurretSubsystem;
+
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.LinkedList;
@@ -29,24 +24,36 @@ public class DriveCommands {
   }
 
   /**
-   * Standard joystick drive, where X is the forward-backward axis (positive =
-   * forward) and Z is the
-   * left-right axis (positive = counter-clockwise).
+   * Arcade drive with optional turret heading lock.
+   * Forward/back always from driver.
+   * Rotation comes from turret when enabled.
    */
   public static Command arcadeDrive(
-      Drive drive, DoubleSupplier xSupplier, DoubleSupplier zSupplier) {
+      Drive drive,
+      TurretSubsystem turret,
+      DoubleSupplier xSupplier,
+      DoubleSupplier zSupplier) {
+
     return Commands.run(
         () -> {
-          // Apply deadband
+          // Forward/back from driver
           double x = MathUtil.applyDeadband(xSupplier.getAsDouble(), DEADBAND);
-          double z = MathUtil.applyDeadband(zSupplier.getAsDouble(), DEADBAND);
 
-          // Calculate speeds
-          var speeds = DifferentialDrive.arcadeDriveIK(x, z, true);
+          // Rotation source
+          double omega;
+          if (turret.isHubTrackingEnabled()) {
+            // 🔒 Heading lock
+            omega = turret.getDesiredRobotOmega();
+          } else {
+            // 🎮 Manual rotation
+            omega = MathUtil.applyDeadband(zSupplier.getAsDouble(), DEADBAND);
+          }
 
-          // Apply output
+          var speeds = DifferentialDrive.arcadeDriveIK(x, omega, true);
+
           drive.runClosedLoop(
-              speeds.left * maxSpeedMetersPerSec, speeds.right * maxSpeedMetersPerSec);
+              speeds.left * maxSpeedMetersPerSec,
+              speeds.right * maxSpeedMetersPerSec);
         },
         drive);
   }
@@ -58,7 +65,6 @@ public class DriveCommands {
     Timer timer = new Timer();
 
     return Commands.sequence(
-        // Reset data
         Commands.runOnce(
             () -> {
               velocitySamples.clear();
@@ -66,7 +72,6 @@ public class DriveCommands {
               timer.restart();
             }),
 
-        // Accelerate and gather data
         Commands.run(
             () -> {
               double voltage = timer.get() * FF_RAMP_RATE;
@@ -76,7 +81,6 @@ public class DriveCommands {
             },
             drive)
 
-            // When cancelled, calculate and print results
             .finallyDo(
                 () -> {
                   int n = velocitySamples.size();

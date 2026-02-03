@@ -2,48 +2,62 @@ package frc.robot.commands;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.path.PathConstraints;
+import com.pathplanner.lib.util.FlippingUtil;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
 import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
+import java.util.Set;
+
 /**
- * Pathfinds to a scoring approach pose, then uses vision
- * to precisely dock at shooting distance.
- *
+ * Alliance-correct auto scoring command.
  * Tank-drive safe.
  */
 public class AutoScoreCommand extends SequentialCommandGroup {
 
         public AutoScoreCommand(Drive drive, VisionSubsystem vision) {
 
-                /* --------- APPROACH POSE (VISION DOES FINAL ALIGN) --------- */
-                Pose2d scoringApproachPose = new Pose2d(
-                                2.409,
-                                3.962,
-                                Rotation2d.fromDegrees(180));
+                Pose2d bluePose = new Pose2d(
+                                2.544,
+                                5.787,
+                                Rotation2d.fromDegrees(36.39));
 
-                /* --------- PATHFINDING CONSTRAINTS --------- */
                 PathConstraints constraints = new PathConstraints(
-                                2.5, // max velocity (m/s)
-                                2.0, // max acceleration (m/s^2)
-                                Math.PI, // max angular velocity (rad/s)
-                                2 * Math.PI // max angular acceleration (rad/s^2)
+                                2.5,
+                                2.0,
+                                Math.PI,
+                                2 * Math.PI);
+
+                /* --------- DEFERRED PATHFIND (ALLIANCE SAFE) --------- */
+                Command pathfindToScore = new DeferredCommand(
+                                () -> {
+                                        Pose2d targetPose = bluePose;
+                                        DriverStation.reportWarning(
+                                                        "AUTO TARGET POSE: " + targetPose, false);
+
+                                        if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) {
+                                                targetPose = FlippingUtil.flipFieldPose(bluePose);
+                                        }
+
+                                        return AutoBuilder.pathfindToPose(
+                                                        targetPose,
+                                                        constraints,
+                                                        0.0);
+                                },
+
+                                Set.of(drive)
+
                 );
 
-                /* --------- PATHFIND COMMAND (CORRECT OVERLOAD) --------- */
-                Command pathfindToScore = AutoBuilder.pathfindToPose(
-                                scoringApproachPose,
-                                constraints,
-                                0.0 // goal end velocity (m/s)
-                );
-
-                /* --------- FINAL VISION ALIGN --------- */
                 Command visionAlign = new ShooterDockAtDistanceCommand(
                                 vision,
                                 drive,
