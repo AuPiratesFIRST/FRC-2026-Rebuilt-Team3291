@@ -28,6 +28,8 @@ public class SwerveSubsystem extends SubsystemBase {
 
   private static final double MAX_LINEAR_SPEED = 4.5; // m/s
   private static final double MAX_ANGULAR_SPEED = Math.PI * 2; // rad/s
+  private double lastVisionUpdate = 0.0;
+  private static final double VISION_PERIOD = 0.05; // 20 Hz
 
   public SwerveSubsystem(File directory, VisionSubsystem vision) {
     this.vision = vision;
@@ -62,7 +64,7 @@ public class SwerveSubsystem extends SubsystemBase {
             vX.getAsDouble() * MAX_LINEAR_SPEED,
             vY.getAsDouble() * MAX_LINEAR_SPEED),
         vOmega.getAsDouble() * MAX_ANGULAR_SPEED,
-        true,
+        false,
         false));
   }
 
@@ -113,17 +115,23 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // // Feed AprilTag pose estimates into YAGSL odometry
-    // vision.getEstimatedGlobalPose().ifPresent(est -> {
-    // var trust = est.targetsUsed.size() > 1
-    // ? VisionConstants.MULTI_TAG_STD_DEVS
-    // : VisionConstants.SINGLE_TAG_STD_DEVS;
+    double now = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
 
-    // swerveDrive.addVisionMeasurement(
-    // est.estimatedPose.toPose2d(),
-    // est.timestampSeconds,
-    // trust);
-    // });
+    if (now - lastVisionUpdate < VISION_PERIOD) {
+      return;
+    }
+    lastVisionUpdate = now;
+
+    vision.getEstimatedGlobalPose().ifPresent(est -> {
+      var trust = est.targetsUsed.size() > 1
+          ? VisionConstants.MULTI_TAG_STD_DEVS
+          : VisionConstants.SINGLE_TAG_STD_DEVS;
+
+      swerveDrive.addVisionMeasurement(
+          est.estimatedPose.toPose2d(),
+          est.timestampSeconds,
+          trust);
+    });
   }
 
   @Override
@@ -134,10 +142,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
   /* -------------------- ROBOT-RELATIVE DRIVE -------------------- */
   public void drive(ChassisSpeeds speeds) {
-    swerveDrive.drive(
-        speeds,
-        swerveDrive.kinematics.toSwerveModuleStates(speeds),
-        null);
+    swerveDrive.setChassisSpeeds(speeds);
   }
 
   /* -------------------- ACCESSORS -------------------- */
