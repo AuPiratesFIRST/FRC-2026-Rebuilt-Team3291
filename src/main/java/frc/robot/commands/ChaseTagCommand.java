@@ -32,7 +32,7 @@ public class ChaseTagCommand extends Command {
         this.tagIds = tagIds;
         this.targetDistanceMeters = targetDistanceMeters;
 
-        // Yaw PID → STRAFE (left/right), NOT rotation
+        // Yaw PID → ROTATION (omega)
         yawController = new PIDController(
                 VisionConstants.SHOOTER_YAW_KP,
                 0.0,
@@ -41,7 +41,7 @@ public class ChaseTagCommand extends Command {
         yawController.setTolerance(
                 VisionConstants.SHOOTER_YAW_TOLERANCE_RAD);
 
-        // Distance PID → forward/back
+        // Distance PID → FORWARD/BACK
         distanceController = new PIDController(
                 VisionConstants.SHOOTER_DISTANCE_KP,
                 0.0,
@@ -65,7 +65,6 @@ public class ChaseTagCommand extends Command {
         var yawOpt = vision.getTargetYawRad(tagIds);
         var distOpt = vision.getDistanceToTagMeters(tagIds);
 
-        // No target → stop
         if (yawOpt.isEmpty() || distOpt.isEmpty()) {
             drive.drive(new ChassisSpeeds());
             hasTarget = false;
@@ -77,18 +76,20 @@ public class ChaseTagCommand extends Command {
         double yawRad = yawOpt.get();
         double distanceM = distOpt.get();
 
-        // Forward/back to hold distance
+        // Forward/back: get to target distance
         double xSpeed = distanceController.calculate(
-                distanceM,
-                targetDistanceMeters);
+                targetDistanceMeters,
+                distanceM);
 
-        // Left/right strafe to keep tag centered
+        // Strafe: keep tag centered in camera
         double ySpeed = yawController.calculate(
                 yawRad,
                 0.0);
 
-        // Do NOT rotate to chase a moving tag
-        double omega = 0.0;
+        // Rotate robot to face tag (slower than strafe)
+        double omega = yawController.calculate(
+                yawRad,
+                0.0);
 
         xSpeed = MathUtil.clamp(
                 xSpeed,
@@ -100,6 +101,12 @@ public class ChaseTagCommand extends Command {
                 -VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED,
                 VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED);
 
+        omega = MathUtil.clamp(
+                omega,
+                -VisionConstants.SHOOTER_MAX_ANGULAR_SPEED,
+                VisionConstants.SHOOTER_MAX_ANGULAR_SPEED);
+
+        // ROBOT-RELATIVE chase
         drive.drive(new ChassisSpeeds(
                 xSpeed,
                 ySpeed,

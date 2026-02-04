@@ -16,7 +16,7 @@ import frc.robot.commands.AimShooterFromVision;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
-// import frc.robot.subsystems.Turret.TurretSubsystem;
+import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.commands.ShooterDockAtDistanceCommand;
 import frc.robot.commands.ChaseTagCommand;
@@ -41,9 +41,9 @@ public class RobotContainer {
         // private final HoodSubsystem hood = new HoodSubsystem();
         // private final ShooterSubsystem shooter = new ShooterSubsystem();
 
-        // private final TurretSubsystem turret = new TurretSubsystem(
-        // vision,
-        // drivebase);
+        private final TurretSubsystem turret = new TurretSubsystem(
+                        vision,
+                        drivebase);
 
         // ---------------- CONTROLLERS ----------------
 
@@ -87,38 +87,38 @@ public class RobotContainer {
         private void configureBindings() {
 
                 // ================= DRIVE =================
-                // drivebase.setDefaultCommand(
-                // drivebase.driveCommand(
-                // () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
-                // () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
-                // () -> {
-                // double stick = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+                drivebase.setDefaultCommand(
+                                drivebase.driveCommand(
+                                                () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
+                                                () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
+                                                () -> {
+                                                        double stick = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
 
-                // if (Math.abs(stick) > 0.05) {
-                // turret.disableHubTracking();
-                // turret.manualRotate(stick);
-                // return stick;
-                // }
+                                                        if (Math.abs(stick) > 0.05) {
+                                                                turret.disableHubTracking();
+                                                                turret.manualRotate(stick);
+                                                                return stick;
+                                                        }
 
-                // return turret.getDesiredRobotOmega();
-                // }));
+                                                        return turret.getDesiredRobotOmega();
+                                                }));
 
                 driver.a().onTrue(
                                 Commands.runOnce(drivebase::zeroGyro));
 
-                // // ================= TURRET =================
-                // driver.y().onTrue(
-                // Commands.runOnce(turret::enableHubTracking));
+                // ================= TURRET =================
+                driver.y().onTrue(
+                                Commands.runOnce(turret::enableHubTracking));
 
                 driver.x().whileTrue(
                                 new ChaseTagCommand(
                                                 vision,
                                                 drivebase,
-                                                new int[] { 32 },
-                                                1.5));
+                                                new int[] { 25 },
+                                                1));
 
-                // driver.b().onTrue(
-                // Commands.runOnce(turret::disableHubTracking));
+                driver.b().onTrue(
+                                Commands.runOnce(turret::disableHubTracking));
 
                 // operator.povLeft().whileTrue(
                 // Commands.run(() -> turret.manualRotate(-0.4), turret));
