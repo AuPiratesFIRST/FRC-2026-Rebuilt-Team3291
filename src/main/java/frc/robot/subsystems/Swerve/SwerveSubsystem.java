@@ -36,7 +36,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
     Pose2d startingPose = new Pose2d(new Translation2d(4, 4), new Rotation2d());
 
-    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.POSE;
+    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
 
     try {
       swerveDrive = new SwerveParser(directory)

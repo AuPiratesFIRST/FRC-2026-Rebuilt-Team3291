@@ -43,7 +43,7 @@ public class Constants {
                 );
 
                 // ---------- SHOOTER DOCKING ----------
-                public static final double SHOOTER_YAW_KP = 4.0;
+                public static final double SHOOTER_YAW_KP = 3.0;
                 public static final double SHOOTER_YAW_KD = 0.25;
 
                 public static final double SHOOTER_DISTANCE_KP = 2.0;
@@ -53,7 +53,7 @@ public class Constants {
 
                 public static final double SHOOTER_DISTANCE_TOLERANCE_M = 0.05; // 5 cm
 
-                public static final double SHOOTER_MAX_TRANSLATION_SPEED = 1.5; // m/s
+                public static final double SHOOTER_MAX_TRANSLATION_SPEED = 0.5; // m/s
                 public static final double SHOOTER_MAX_ANGULAR_SPEED = Math.PI; // rad/s
 
                 // ---------- VISION UNCERTAINTY ----------
