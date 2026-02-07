@@ -23,24 +23,25 @@ import yams.motorcontrollers.local.SparkWrapper;
 public class ElevatorSubsystem extends SubsystemBase {
 
     // ---------------- CONFIG ----------------
-
     private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
             .withControlMode(ControlMode.CLOSED_LOOP)
             .withMechanismCircumference(Meters.of(0.05))
-            .withClosedLoopController(4, 0, 0,
+            .withClosedLoopController(
+                    5.9, 0, 0.12,
                     MetersPerSecond.of(1),
                     MetersPerSecondPerSecond.of(2))
             .withFeedforward(new ElevatorFeedforward(0, 0, 0))
             .withTelemetry("ElevatorMotor", TelemetryVerbosity.HIGH)
+            .withGearing(12)
             .withMotorInverted(false)
+            .withStatorCurrentLimit(Amps.of(40))
             .withIdleMode(MotorMode.BRAKE);
 
     // ---------------- MOTOR ----------------
 
-    private final SparkMax motor = new SparkMax(4, MotorType.kBrushless);
+    private final SparkMax motor = new SparkMax(5, MotorType.kBrushless);
 
-    private final SmartMotorController smartMotor = new SparkWrapper(motor,
-            DCMotor.getNEO(1), motorConfig);
+    private final SmartMotorController smartMotor = new SparkWrapper(motor, DCMotor.getNEO(1), motorConfig);
 
     // ---------------- MECHANISM ----------------
 
@@ -54,21 +55,26 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     // ---------------- COMMAND FACTORIES ----------------
 
+    /** Runs elevator continuously to height */
     public Command setHeight(Distance height) {
         return elevator.run(height);
     }
 
+    /** Runs to height and ends when within tolerance */
     public Command setHeightAndStop(Distance height) {
-        return elevator.runTo(height);
+        return elevator.runTo(height, Meters.of(0.02));
     }
 
+    /** Percent output manual control */
     public Command manual(double percent) {
         return elevator.set(percent);
     }
 
+    /** SysId characterization */
     public Command sysId() {
-        return elevator.sysId(Volts.of(6),
-                Volts.of(2).per(Seconds.of(1)),
+        return elevator.sysId(
+                Volts.of(6),
+                Volts.of(2).per(Second),
                 Seconds.of(4));
     }
 

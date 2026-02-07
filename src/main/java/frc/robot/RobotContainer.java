@@ -32,6 +32,7 @@ import frc.robot.subsystems.imu.GyroIOSim;
 import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
+import frc.robot.subsystems.Elevator.ElevatorSubsystem;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -84,6 +85,8 @@ public class RobotContainer {
         // Shooter mechanism subsystems
         private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
         private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
+
+        private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
 
         // Turret subsystem - calculates auto-aim heading (virtual turret, no physical
         // rotation)
@@ -222,6 +225,9 @@ public class RobotContainer {
 
                 // Configure the button bindings
                 configureButtonBindings();
+
+                shooter.setDefaultCommand(shooter.stop());
+
         }
 
         /**
@@ -285,50 +291,55 @@ public class RobotContainer {
                 // D-pad allows manual turret adjustment (overrides auto-aim)
                 // Useful for testing or if auto-aim isn't working
 
-                // D-pad left: Rotate turret left (negative omega)
-                operator.povLeft().whileTrue(
-                                Commands.run(() -> turret.manualRotate(-0.4), turret));
+                // // D-pad left: Rotate turret left (negative omega)
+                // operator.povLeft().whileTrue(
+                // Commands.run(() -> turret.manualRotate(-0.4), turret));
 
-                // D-pad right: Rotate turret right (positive omega)
-                operator.povRight().whileTrue(
-                                Commands.run(() -> turret.manualRotate(0.4), turret));
+                // // D-pad right: Rotate turret right (positive omega)
+                // operator.povRight().whileTrue(
+                // Commands.run(() -> turret.manualRotate(0.4), turret));
 
-                // When button released, stop manual rotation
-                operator.povLeft().onFalse(
-                                Commands.runOnce(() -> turret.manualRotate(0.0)));
+                // // When button released, stop manual rotation
+                // operator.povLeft().onFalse(
+                // Commands.runOnce(() -> turret.manualRotate(0.0)));
 
-                operator.povRight().onFalse(
-                                Commands.runOnce(() -> turret.manualRotate(0.0)));
+                // operator.povRight().onFalse(
+                // Commands.runOnce(() -> turret.manualRotate(0.0)));
 
-                // ================= HOOD ANGLE ADJUSTMENT =================
-                // D-pad up/down for fine-tuning hood angle
-                // Adjusts in 2-degree increments
+                // // ================= HOOD ANGLE ADJUSTMENT =================
+                // // D-pad up/down for fine-tuning hood angle
+                // // Adjusts in 2-degree increments
 
-                // D-pad up: Increase hood angle (higher arc)
-                operator.povUp().onTrue(
-                                hood.setAngle(
-                                                hood.getAngle().plus(Degrees.of(2))));
+                // // D-pad up: Increase hood angle (higher arc)
+                // operator.povUp().onTrue(
+                // hood.setAngle(
+                // hood.getAngle().plus(Degrees.of(2))));
 
-                // D-pad down: Decrease hood angle (flatter trajectory)
-                operator.povDown().onTrue(
-                                hood.setAngle(
-                                                hood.getAngle().minus(Degrees.of(2))));
+                // // D-pad down: Decrease hood angle (flatter trajectory)
+                // operator.povDown().onTrue(
+                // hood.setAngle(
+                // hood.getAngle().minus(Degrees.of(2))));
 
-                // ================= SHOOTER CONTROLS =================
+                // // ================= SHOOTER CONTROLS =================
 
-                // Right trigger: Vision-based automatic aiming
-                // Continuously adjusts shooter RPM and hood angle based on distance
-                // Deadband of 0.2 prevents accidental activation
+                // // Right trigger: Vision-based automatic aiming
+                // // Continuously adjusts shooter RPM and hood angle based on distance
+                // // Deadband of 0.2 prevents accidental activation
                 operator.rightTrigger(0.2).whileTrue(
                                 new AimShooterFromVision(shooter, hood, vision));
 
-                // A button: Manual shooter test at fixed settings
-                // Useful for testing shooter mechanics without vision
-                // 1300 RPM and 75° hood angle = medium-range shot
+                // // A button: Manual shooter test at fixed settings
+                // // Useful for testing shooter mechanics without vision
+                // // 1300 RPM and 75° hood angle = medium-range shot
                 operator.a().whileTrue(
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
                                                 hood.setAngle(Degrees.of(75))));
+
+                // Schedule `setHeight` when the Xbox controller's B button is pressed,
+                // cancelling on release.
+                // operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
+                // operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
 
         }
 

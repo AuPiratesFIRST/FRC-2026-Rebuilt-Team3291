@@ -23,7 +23,8 @@ import yams.motorcontrollers.local.SparkWrapper;
 /**
  * Shooter Subsystem - Controls the flywheel that launches game pieces.
  * 
- * This subsystem manages a single NEO motor spinning a flywheel wheel to shoot game pieces.
+ * This subsystem manages a single NEO motor spinning a flywheel wheel to shoot
+ * game pieces.
  * The flywheel speed is controlled in RPM (revolutions per minute).
  * 
  * Key Features:
@@ -38,7 +39,8 @@ import yams.motorcontrollers.local.SparkWrapper;
  */
 public class ShooterSubsystem extends SubsystemBase {
 
-    // Maximum safe RPM for the flywheel (limited by motor and mechanical constraints)
+    // Maximum safe RPM for the flywheel (limited by motor and mechanical
+    // constraints)
     private static final double MAX_RPM = 6000.0;
 
     // ========== HARDWARE ==========
@@ -51,23 +53,25 @@ public class ShooterSubsystem extends SubsystemBase {
     // simulation, and simplified configuration
     private final SmartMotorController shooterSMC = new SparkWrapper(
             shooterMotor,
-            DCMotor.getNEO(1),  // Motor model for physics simulation
+            DCMotor.getNEO(1), // Motor model for physics simulation
             new SmartMotorControllerConfig(this)
                     // Use closed-loop (PID) control for accurate velocity
                     .withControlMode(SmartMotorControllerConfig.ControlMode.CLOSED_LOOP)
                     // PID gains: P=0.001 (gentle), I=0, D=0
-                    // Max velocity = 6000 RPM, max acceleration = 1200 RPM/s
+                    // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.001, 0.0, 0.0,
+                            0.02, 0.0, 0.0,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(1200))
+                            RotationsPerSecondPerSecond.of(400))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
-                            new SimpleMotorFeedforward(0.25, 0.12, 0.015))
-                    // 3:4 gear reduction (motor spins faster than flywheel)
+                            new SimpleMotorFeedforward(
+                                    0.15, 0.121, 0.0))
+
+                    // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
                             new MechanismGearing(
-                                    GearBox.fromReductionStages(3, 4)))
+                                    GearBox.fromReductionStages(1, 1)))
                     // Coast mode = motor freewheels when disabled (reduces heat)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                     // Limit current to 40A to prevent brownouts

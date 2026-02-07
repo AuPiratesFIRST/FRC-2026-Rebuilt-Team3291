@@ -42,7 +42,7 @@ public final class ShooterAimCalculator {
     private static final double GRAVITY = 9.81;
 
     /** Absolute RPM safety clamp */
-    public static final double MAX_RPM = 5500.0;
+    public static final double MAX_RPM = 6000.0;
 
     /** Valid shooting distance bounds */
     private static final double MIN_DISTANCE = 0.1;
@@ -64,7 +64,7 @@ public final class ShooterAimCalculator {
     //
     // InterpolatingDoubleTreeMap does LINEAR INTERPOLATION between points:
     // Example: If you have (0.10m → 1000 RPM) and (0.20m → 2000 RPM)
-    //          and ask for 0.15m, you get 1500 RPM
+    // and ask for 0.15m, you get 1500 RPM
     //
     // HOW TO TUNE:
     // 1. Stand robot at a known distance from hub
@@ -81,20 +81,20 @@ public final class ShooterAimCalculator {
     static {
         // Distance (m) → Flywheel RPM (RAW, BEFORE log shaping)
         // These are STARTING VALUES - tune based on real testing!
-        rpmMap.put(0.10, 1000.0);  // Very close shot
-        rpmMap.put(0.20, 2000.0);  // Short distance
-        rpmMap.put(0.25, 3000.0);  // Medium distance
-        rpmMap.put(0.27, 4000.0);  // Longer shot
-        rpmMap.put(0.30, 5000.0);  // Maximum range
+        rpmMap.put(0.10, 1000.0); // Very close shot
+        rpmMap.put(0.20, 2000.0); // Short distance
+        rpmMap.put(0.25, 3000.0); // Medium distance
+        rpmMap.put(1.27, 4000.0); // Longer shot
+        rpmMap.put(2.30, 5000.0); // Maximum range
 
         // Distance (m) → Hood angle (degrees)
         // Lower angles = flatter trajectory (close shots)
         // Higher angles = arced trajectory (far shots)
-        hoodAngleMap.put(0.10, 25.0);  // Low angle for close range
+        hoodAngleMap.put(0.10, 25.0); // Low angle for close range
         hoodAngleMap.put(0.20, 30.0);
         hoodAngleMap.put(0.25, 35.0);
         hoodAngleMap.put(0.27, 40.0);
-        hoodAngleMap.put(0.30, 45.0);  // High angle for long range
+        hoodAngleMap.put(0.30, 45.0); // High angle for long range
     }
 
     // ============================================================
@@ -153,7 +153,7 @@ public final class ShooterAimCalculator {
      */
     public static ShooterSolution fallback() {
 
-        double rawRPM = 500.0;
+        double rawRPM = 0.0;
         double shapedRPM = applyLogCurve(rawRPM);
 
         return new ShooterSolution(
