@@ -1,10 +1,3 @@
-// Copyright (c) 2021-2026 Littleton Robotics
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by a BSD
-// license that can be found in the LICENSE file
-// at the root directory of this project.
-
 package frc.robot;
 
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -33,6 +26,7 @@ import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Elevator.ElevatorSubsystem;
+import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -87,6 +81,8 @@ public class RobotContainer {
         private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
 
         private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
+        private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
+        public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new fuelSim of FuelSim
 
         // Turret subsystem - calculates auto-aim heading (virtual turret, no physical
         // rotation)
@@ -171,15 +167,21 @@ public class RobotContainer {
                 }
                 this.drive = tempDrive; // Assign the local variable to the final field
 
+                // Basic FuelSim initialization (before turret)
+                fuelSim.spawnStartingFuel();
+                fuelSim.start();
+
                 // Initialize turret after drive is assigned
+                // Pass the RobotContainer's fuelSim instance
                 this.turret = new TurretSubsystem(
                                 vision,
                                 drive,
                                 shooter,
-                                hood);
+                                hood,
+                                fuelSim); // Pass fuelSim here
 
-                // Configure FuelSim (field-level physics simulation)
-                configureFuelSim();
+                // NOW register robot and intake with FuelSim, as turret and drive are ready
+                registerFuelSimComponents(drive, turret, intakeRollerSubsystem);
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
@@ -260,8 +262,8 @@ public class RobotContainer {
                 // ================= IMU / FIELD ORIENTATION =================
                 // A button: Zero gyro heading (reset which way is "forward")
                 // Use this if gyro drifts or you need to reset field-relative orientation
-                driver.a().onTrue(
-                                Commands.runOnce(imu::zeroYaw));
+                // driver.a().onTrue(
+                // Commands.runOnce(imu::zeroYaw));
 
                 // ================= TURRET AUTO-AIM =================
                 // These buttons enable/disable "heading lock" mode
@@ -281,7 +283,7 @@ public class RobotContainer {
                 // 1. Pathfind to scoring position near hub
                 // 2. Vision align to exact distance
                 // kCancelSelf = can be interrupted by driver taking manual control
-                driver.x()
+                operator.x()
                                 .onTrue(
                                                 new AutoScoreCommand(drive, vision)
                                                                 .withInterruptBehavior(
@@ -331,48 +333,73 @@ public class RobotContainer {
                 // // A button: Manual shooter test at fixed settings
                 // // Useful for testing shooter mechanics without vision
                 // // 1300 RPM and 75° hood angle = medium-range shot
-                operator.a().whileTrue(
+                driver.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(75))));
+                                                hood.setAngle(Degrees.of(75)),
+                                                Commands.run(turret::shoot, turret))); // Use turret::shoot
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.
                 // operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
                 // operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
+                driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
+                // driver.y().whileTrue(intakeRollerSubsystem.out(1.0));
+                // driver.b().whileTrue(intakeRollerSubsystem.stop());
 
         }
 
         /**
-         * Configure FuelSim for physics simulation.
-         * FuelSim is field-level (not robot-level) and must be updated from
-         * Robot.simulationPeriodic()
+         * Register the robot and intake components with FuelSim.
+         * This method is called after all necessary subsystems (drive, turret, intake)
+         * are initialized.
+         * 
+         * @param drivebase       The Drive subsystem instance.
+         * @param turretSubsystem The TurretSubsystem instance.
+         * @param intakeSubsystem The IntakeRollerSubsystem instance.
          */
-        private void configureFuelSim() {
-                FuelSim instance = FuelSim.getInstance();
+        private void registerFuelSimComponents(Drive drivebase, TurretSubsystem turretSubsystem,
+                        IntakeRollerSubsystem intakeSubsystem) {
+                FuelSim sim = fuelSim;
 
-                // Spawn initial fuel in depot and neutral zones
-                instance.spawnStartingFuel();
+                // Register robot with real dimensions
+                sim.registerRobot(
+                                0.724, // width in meters
+                                0.673, // length in meters
+                                0.5, // bumper height (unchanged)
+                                drivebase::getPose,
+                                drivebase::getChassisSpeeds);
 
-                // Register robot dimensions and pose supplier
-                // Note: Replace these with your actual robot dimensions from Constants
-                instance.registerRobot(
-                                0.8, // width (meters, left to right)
-                                1.0, // length (meters, front to back)
-                                0.5, // bumper height (meters)
-                                drive::getPose,
-                                drive::getChassisSpeeds);
+                // Define the intake bounding box in robot-centric coordinates
+                double robotHalfWidth = 0.724 / 2.0;
+                double robotHalfLength = 0.673 / 2.0;
 
-                // Start simulation
-                instance.start();
+                // Assuming a front-mounted intake, spanning robot width
+                // Adjust these values to match your robot's actual intake geometry
+                double intakeMinX = robotHalfLength - 0.1; // Extends slightly behind the front bumper
+                double intakeMaxX = robotHalfLength + 0.1; // Extends slightly in front of the front bumper
+                double intakeMinY = -robotHalfWidth;
+                double intakeMaxY = robotHalfWidth;
 
-                // Add reset fuel button to SmartDashboard
+                sim.registerIntake(
+                                intakeMinX,
+                                intakeMaxX,
+                                intakeMinY,
+                                intakeMaxY,
+                                // shouldIntakeSupplier: only active when intakeRollerSubsystem is running AND
+                                // turret has capacity
+                                () -> intakeSubsystem.isRunning()
+                                                && turretSubsystem.getFuelStored() < TurretSubsystem.FUEL_CAPACITY,
+                                () -> turretSubsystem.intakeFuel() // Callback to increment fuel count in
+                                                                   // TurretSubsystem
+                );
+
+                // SmartDashboard reset button (keep here as it's FuelSim related)
                 SmartDashboard.putData(Commands.runOnce(() -> {
-                        FuelSim.getInstance().clearFuel();
-                        FuelSim.getInstance().spawnStartingFuel();
-                })
-                                .withName("Reset Fuel")
-                                .ignoringDisable(true));
+                        sim.clearFuel();
+                        sim.spawnStartingFuel();
+                        turretSubsystem.resetFuelStored(); // Also reset fuel count in TurretSubsystem
+                }).withName("Reset Fuel").ignoringDisable(true));
         }
 
         /**

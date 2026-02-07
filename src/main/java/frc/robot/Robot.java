@@ -159,7 +159,7 @@ public class Robot extends LoggedRobot {
     m_robotContainer.getVision()
         .updateSimPose(m_robotContainer.getDrivebase().getPose());
 
-    FuelSim.getInstance().updateSim();
+    m_robotContainer.fuelSim.updateSim();
 
   }
 }

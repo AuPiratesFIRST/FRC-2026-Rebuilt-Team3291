@@ -12,12 +12,15 @@ import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
+import frc.robot.util.FuelSim;
 
 /**
  * Turret Subsystem - Provides auto-aiming by calculating desired robot heading.
  * 
- * IMPORTANT: This is NOT a physical rotating turret! Instead, it's a "virtual turret"
- * that calculates what direction the entire robot should face to aim at the hub.
+ * IMPORTANT: This is NOT a physical rotating turret! Instead, it's a "virtual
+ * turret"
+ * that calculates what direction the entire robot should face to aim at the
+ * hub.
  * 
  * How it works:
  * 1. Continuously calculates angle from robot to hub based on field position
@@ -38,21 +41,26 @@ public class TurretSubsystem extends SubsystemBase {
         private static final double MAX_OMEGA_RAD_PER_SEC = 3.0;
 
         // Subsystem dependencies - we need these to calculate aiming
-        private final VisionSubsystem vision;      // For distance measurements (future use)
-        private final Drive drive;                  // For current robot pose
-        private final ShooterSubsystem shooter;     // For visualization
-        private final HoodSubsystem hood;           // For visualization
-        private final TurretVisualizer visualizer;  // 3D visualization in AdvantageScope
+        private final VisionSubsystem vision; // For future distance measurements (future use)
+        private final Drive drive; // For current robot pose
+        private final ShooterSubsystem shooter; // For visualization
+        private final HoodSubsystem hood; // For visualization
+        private final TurretVisualizer visualizer; // 3D visualization in AdvantageScope
+        private final FuelSim fuelSim;
+
+        // ========== FUEL STORAGE ==========
+        private int fuelStored = 0;
+        public static final int FUEL_CAPACITY = 200; // Example capacity for fuel
 
         // ========== STATE VARIABLES ==========
         // These track whether we're in auto-aim mode or manual control
-        private boolean hubTrackingEnabled = false;  // Is auto-aim active?
-        private double manualOmega = 0.0;            // Manual rotation from driver
+        private boolean hubTrackingEnabled = false; // Is auto-aim active?
+        private double manualOmega = 0.0; // Manual rotation from driver
 
         // ========== CALCULATED VALUES ==========
         // Updated every loop in periodic()
-        private Rotation2d desiredFieldHeading = new Rotation2d();  // Which way should we face?
-        private double distanceToHubMeters = 0.0;                   // How far to target?
+        private Rotation2d desiredFieldHeading = new Rotation2d(); // Which way should we face?
+        private double distanceToHubMeters = 0.0; // How far to target?
 
         // ========== PID CONTROLLER ==========
         // Calculates rotation speed needed to reach desired heading
@@ -63,28 +71,31 @@ public class TurretSubsystem extends SubsystemBase {
          * Creates a new TurretSubsystem.
          * Sets up PID controller and visualization.
          * 
-         * @param vision Vision subsystem (for future distance-based aiming)
-         * @param drive Drive subsystem (to read robot pose)
+         * @param vision  Vision subsystem (for future distance-based aiming)
+         * @param drive   Drive subsystem (to read robot pose)
          * @param shooter Shooter subsystem (for visualization)
-         * @param hood Hood subsystem (for visualization)
+         * @param hood    Hood subsystem (for visualization)
+         * @param fuelSim The FuelSim instance from RobotContainer
          */
         public TurretSubsystem(
                         VisionSubsystem vision,
                         Drive drive,
                         ShooterSubsystem shooter,
-                        HoodSubsystem hood) {
+                        HoodSubsystem hood,
+                        FuelSim fuelSim) { // Added FuelSim parameter
 
                 this.vision = vision;
                 this.drive = drive;
                 this.shooter = shooter;
                 this.hood = hood;
+                this.fuelSim = fuelSim; // Assign the passed FuelSim
 
                 // Enable continuous input for heading PID (wraps around at ±π)
                 // This ensures -179° and +179° are treated as close together
                 headingPID.enableContinuousInput(-Math.PI, Math.PI);
 
                 // Create visualizer for 3D view in AdvantageScope
-                visualizer = new TurretVisualizer(
+                visualizer = new TurretVisualizer(fuelSim, // Pass the correct fuelSim here
                                 () -> new Pose3d(drive.getPose()),
                                 drive::getChassisSpeeds,
                                 () -> DriverStation.getAlliance()
@@ -165,6 +176,43 @@ public class TurretSubsystem extends SubsystemBase {
                 return distanceToHubMeters;
         }
 
+        // Fuel storage and shooting methods
+        public void intakeFuel() {
+                if (fuelStored < FUEL_CAPACITY) {
+                        fuelStored++;
+                        System.out.println("Fuel intaken! Total: " + fuelStored); // For debugging
+                }
+        }
+
+        public boolean canShoot() {
+                return fuelStored > 0;
+        }
+
+        public int getFuelStored() {
+                return fuelStored;
+        }
+
+        public void resetFuelStored() {
+                fuelStored = 0;
+                System.out.println("Fuel stored reset to 0.");
+        }
+
+        public void shoot() {
+                if (!edu.wpi.first.wpilibj.RobotBase.isSimulation()) {
+                        return;
+                }
+
+                if (canShoot()) { // Check if we have fuel
+                        fuelStored--; // Decrement fuel count
+                        System.out.println("Shooting fuel! Remaining: " + fuelStored); // For debugging
+                        visualizer.fire(
+                                        shooter.getTargetRPM(),
+                                        hood.getTargetAngle());
+                } else {
+                        System.out.println("Cannot shoot: No fuel stored."); // For debugging
+                }
+        }
+
         private void logToAdvantageScope() {
                 SmartDashboard.putBoolean(
                                 "Turret/HubTrackingEnabled",
@@ -181,5 +229,6 @@ public class TurretSubsystem extends SubsystemBase {
                 SmartDashboard.putNumber(
                                 "Targeting/RobotYawDeg",
                                 drive.getPose().getRotation().getDegrees());
+                SmartDashboard.putNumber("Turret/FuelStored", fuelStored); // Log fuel count
         }
 }

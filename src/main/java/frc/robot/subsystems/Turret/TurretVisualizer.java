@@ -6,6 +6,7 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.*;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.LinearVelocity;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.util.FuelSim;
 import java.util.function.Supplier;
@@ -24,13 +25,14 @@ public class TurretVisualizer {
         private static final double DT = 0.04;
         private static final int TRAJ_LEN = 50;
 
-        // Shooter wheel (used to convert RPM → exit velocity)
-        private static final double WHEEL_RADIUS = Inches.of(2.0).in(Meters); // 4" wheel
+        // 4" wheel
+        private static final double WHEEL_RADIUS = Inches.of(2.0).in(Meters);
 
         // ------------------------------------------------
         // DEPENDENCIES
         // ------------------------------------------------
 
+        private final FuelSim fuelSim;
         private final Supplier<Pose3d> robotPoseSupplier;
         private final Supplier<ChassisSpeeds> fieldSpeedsSupplier;
         private final Supplier<Boolean> isBlueAlliance;
@@ -54,10 +56,12 @@ public class TurretVisualizer {
         // ------------------------------------------------
 
         public TurretVisualizer(
+                        FuelSim fuelSim,
                         Supplier<Pose3d> robotPoseSupplier,
                         Supplier<ChassisSpeeds> fieldSpeedsSupplier,
                         Supplier<Boolean> isBlueAlliance) {
 
+                this.fuelSim = fuelSim;
                 this.robotPoseSupplier = robotPoseSupplier;
                 this.fieldSpeedsSupplier = fieldSpeedsSupplier;
                 this.isBlueAlliance = isBlueAlliance;
@@ -75,12 +79,10 @@ public class TurretVisualizer {
         }
 
         // ------------------------------------------------
-        // UPDATE (SETPOINT-BASED VISUALIZATION)
+        // VISUAL TRAJECTORY ONLY
         // ------------------------------------------------
 
-        public void update(
-                        double targetRPM,
-                        Angle hoodAngle) {
+        public void update(double targetRPM, Angle hoodAngle) {
 
                 Pose3d robotPose = robotPoseSupplier.get();
                 ChassisSpeeds speeds = fieldSpeedsSupplier.get();
@@ -91,23 +93,20 @@ public class TurretVisualizer {
                                 ? FieldConstants.HUB_BLUE
                                 : FieldConstants.HUB_RED;
 
-                // Shooter position (field space)
                 Translation2d shooterXY = robotPose.getTranslation().toTranslation2d()
                                 .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
 
-                // Aim direction (robot → hub)
                 Translation2d toHub = hub.toTranslation2d().minus(shooterXY);
 
-                Rotation2d aimHeading = new Rotation2d(
-                                Math.atan2(toHub.getY(), toHub.getX()));
+                Rotation2d aimHeading = new Rotation2d(Math.atan2(
+                                toHub.getY(), toHub.getX()));
 
-                // ---------------- VELOCITY FROM SETPOINT ----------------
-
-                double exitVelocity = (targetRPM / 60.0) * (2.0 * Math.PI * WHEEL_RADIUS);
+                double exitVelocity = (targetRPM / 60.0)
+                                * (2.0 * Math.PI * WHEEL_RADIUS);
 
                 double theta = Math.max(
                                 hoodAngle.in(Radians),
-                                Degrees.of(5).in(Radians)); // visual safety clamp
+                                Degrees.of(5).in(Radians));
 
                 double vHorizontal = Math.cos(theta) * exitVelocity;
                 double vz = Math.sin(theta) * exitVelocity;
@@ -118,8 +117,6 @@ public class TurretVisualizer {
                 double vy = vHorizontal * aimHeading.getSin()
                                 + speeds.vyMetersPerSecond;
 
-                // ---------------- FUNNEL GEOMETRY ----------------
-
                 double funnelRadius = FieldConstants.FUNNEL_RADIUS.in(Meters);
 
                 double funnelBottomZ = Inches.of(56.4).in(Meters);
@@ -127,8 +124,6 @@ public class TurretVisualizer {
                 double funnelTopZ = Inches.of(72.0).in(Meters);
 
                 boolean willHit = false;
-
-                // ---------------- TRAJECTORY ----------------
 
                 for (int i = 0; i < TRAJ_LEN; i++) {
                         double t = i * DT;
@@ -140,14 +135,9 @@ public class TurretVisualizer {
                                         - 0.5 * GRAVITY * t * t;
 
                         trajectory[i] = new Pose3d(
-                                        x,
-                                        y,
-                                        Math.max(0.0, z),
-                                        new Rotation3d(
-                                                        0.0,
-                                                        -theta, // pitch
-                                                        aimHeading.getRadians() // yaw
-                                        ));
+                                        x, y, Math.max(0.0, z),
+                                        new Rotation3d(0.0, -theta,
+                                                        aimHeading.getRadians()));
 
                         if (!willHit
                                         && z >= funnelBottomZ
@@ -158,8 +148,6 @@ public class TurretVisualizer {
                         }
                 }
 
-                // ---------------- LOGGING ----------------
-
                 trajectoryPub.set(trajectory);
                 willHitPub.set(willHit);
 
@@ -167,9 +155,7 @@ public class TurretVisualizer {
                                 shooterXY.getX(),
                                 shooterXY.getY(),
                                 SHOOTER_HEIGHT,
-                                new Rotation3d(
-                                                0.0,
-                                                0.0,
+                                new Rotation3d(0.0, 0.0,
                                                 aimHeading.getRadians())));
 
                 Logger.recordOutput("Shooter/Trajectory", trajectory);
@@ -177,50 +163,63 @@ public class TurretVisualizer {
         }
 
         // ------------------------------------------------
-        // FUEL SIM (AUTHORITATIVE PHYSICS)
+        // AUTHORITATIVE FUEL SIM FIRE
         // ------------------------------------------------
 
-        public void launchFuel(
-                        double targetRPM,
-                        Angle hoodAngle) {
+        public void fire(double targetRPM, Angle hoodAngle) {
+
+                if (targetRPM <= 0)
+                        return;
 
                 Pose3d robotPose = robotPoseSupplier.get();
+                ChassisSpeeds speeds = fieldSpeedsSupplier.get(); // Get current robot field-centric speeds
                 Rotation2d robotYaw = robotPose.getRotation().toRotation2d();
-
-                Translation2d shooterXY = robotPose.getTranslation().toTranslation2d()
-                                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
-
-                Translation3d shooterPos = new Translation3d(
-                                shooterXY.getX(),
-                                shooterXY.getY(),
-                                SHOOTER_HEIGHT);
 
                 Translation3d hub = isBlueAlliance.get()
                                 ? FieldConstants.HUB_BLUE
                                 : FieldConstants.HUB_RED;
 
+                // Calculate the shooter's actual field-centric horizontal position
+                Translation2d shooterXY = robotPose.getTranslation().toTranslation2d()
+                                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
+
+                // Calculate the aiming heading towards the hub from the shooter's position
                 Translation2d toHub = hub.toTranslation2d().minus(shooterXY);
+                Rotation2d aimHeading = new Rotation2d(Math.atan2(
+                                toHub.getY(), toHub.getX()));
 
-                Rotation2d aimHeading = new Rotation2d(
-                                Math.atan2(toHub.getY(), toHub.getX()));
+                // Calculate exit velocity magnitude
+                double exitVelocity = (targetRPM / 60.0)
+                                * (2.0 * Math.PI * WHEEL_RADIUS);
 
-                double exitVelocity = (targetRPM / 60.0) * (2.0 * Math.PI * WHEEL_RADIUS);
+                // Calculate hood angle, ensuring a minimum for physics
+                double theta = Math.max(
+                                hoodAngle.in(Radians),
+                                Degrees.of(5).in(Radians));
 
-                double theta = hoodAngle.in(Radians);
-
+                // Decompose exit velocity into horizontal and vertical components relative to
+                // shooter's aim
                 double vHorizontal = Math.cos(theta) * exitVelocity;
                 double vz = Math.sin(theta) * exitVelocity;
 
-                ChassisSpeeds speeds = fieldSpeedsSupplier.get();
-
+                // Combine shooter's horizontal velocity with robot's field-centric speeds
+                // This accounts for the robot's motion affecting the projectile's initial
+                // velocity
                 double vx = vHorizontal * aimHeading.getCos()
-                                + speeds.vxMetersPerSecond;
-
+                                + speeds.vxMetersPerSecond; // Add robot's forward/backward speed
                 double vy = vHorizontal * aimHeading.getSin()
-                                + speeds.vyMetersPerSecond;
+                                + speeds.vyMetersPerSecond; // Add robot's strafe speed
 
-                FuelSim.getInstance().spawnFuel(
-                                shooterPos,
-                                new Translation3d(vx, vy, vz));
+                // Initial position of the fuel
+                Translation3d initialPos = new Translation3d(
+                                shooterXY.getX(),
+                                shooterXY.getY(),
+                                SHOOTER_HEIGHT);
+
+                // Initial velocity vector of the fuel
+                Translation3d initialVel = new Translation3d(vx, vy, vz);
+
+                fuelSim.spawnFuel(initialPos, initialVel); // Use spawnFuel with calculated initial position and
+                                                           // velocity
         }
 }
