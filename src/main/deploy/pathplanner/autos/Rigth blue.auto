@@ -7,25 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "New New Path"
+            "pathName": "Rigth bule align to shoot preload "
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "New Path"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0
+            "pathName": " Rigth blue drive and align to intake "
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "New New New Path"
+            "pathName": "Rigth blue drive and align to shoot "
           }
         }
       ]
