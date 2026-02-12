@@ -19,6 +19,7 @@ import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.TankDrive.DriveIO;
 import frc.robot.subsystems.TankDrive.DriveIOSim;
 import frc.robot.subsystems.TankDrive.DriveIOSpark;
+import frc.robot.subsystems.TankDrive.DriveIOTalonFX;
 import frc.robot.subsystems.TankDrive.DriveConstants;
 import frc.robot.subsystems.imu.GyroIOPigeon2;
 import frc.robot.subsystems.imu.GyroIOSim;
@@ -146,7 +147,7 @@ public class RobotContainer {
                         case REAL:
                                 // Real robot - instantiate hardware IO implementations
                                 // Talks to actual motor controllers via CAN bus
-                                tempDrive = new Drive(new DriveIOSpark(), imu, vision);
+                                tempDrive = new Drive(new DriveIOTalonFX(), imu, vision);
                                 break;
 
                         case SIM:
@@ -159,7 +160,6 @@ public class RobotContainer {
                         case REPLAY: // Ensure all enum cases are handled
                         default: // Added default to cover any unhandled modes and guarantee initialization
                                  // Replayed robot - disable IO implementations
-                                 // DriveIO() with no methods = does nothing
                                  // All data comes from log file instead
                                 tempDrive = new Drive(new DriveIO() {
                                 }, imu, vision);
