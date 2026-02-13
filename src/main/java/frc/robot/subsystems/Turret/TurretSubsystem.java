@@ -25,7 +25,7 @@ public class TurretSubsystem extends SubsystemBase {
                         0.0);
 
         // ========== FUEL STORAGE ==========
-        private int fuelStored = 0;
+        private int fuelStored = 5;
         public static final int FUEL_CAPACITY = 200; // Example capacity for fuel
 
         // ------------------------------------------------

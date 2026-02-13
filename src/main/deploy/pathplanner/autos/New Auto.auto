@@ -5,15 +5,34 @@
     "data": {
       "commands": [
         {
-          "type": "path",
+          "type": "deadline",
           "data": {
-            "pathName": "New New Path"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "New New Path"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeOn"
+                }
+              }
+            ]
           }
         },
         {
           "type": "path",
           "data": {
             "pathName": "New Path"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootFixed"
           }
         }
       ]

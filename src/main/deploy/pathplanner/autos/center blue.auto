@@ -11,15 +11,40 @@
           }
         },
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": "center blue drive to intake"
+            "name": "ShootFixed"
+          }
+        },
+        {
+          "type": "deadline",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "center blue drive to intake"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeOn"
+                }
+              }
+            ]
           }
         },
         {
           "type": "path",
           "data": {
             "pathName": "center blue drive to shoot "
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootFixed"
           }
         },
         {

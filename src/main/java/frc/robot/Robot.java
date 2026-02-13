@@ -9,14 +9,30 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import swervelib.simulation.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
 
+import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+import org.littletonrobotics.urcl.URCL;
 
-public class Robot extends TimedRobot {
+import com.revrobotics.util.StatusLogger;
+
+public class Robot extends LoggedRobot {
   private Command m_autonomousCommand;
 
   private final RobotContainer m_robotContainer;
 
   public Robot() {
+    // Running on a real robot, log to a USB stick ("/U/logs")
+    Logger.addDataReceiver(new WPILOGWriter());
+    Logger.addDataReceiver(new NT4Publisher());
+
+    // Initialize URCL
+    Logger.registerURCL(URCL.startExternal());
+    StatusLogger.disableAutoLogging(); // Disable REVLib's built-in logging
+
+    // Start AdvantageKit logger
+    Logger.start();
     m_robotContainer = new RobotContainer();
   }
 

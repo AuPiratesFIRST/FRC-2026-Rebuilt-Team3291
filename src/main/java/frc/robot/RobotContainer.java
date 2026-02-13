@@ -108,10 +108,10 @@ public class RobotContainer {
                                                 hood.setAngle(Degrees.of(75))));
                 NamedCommands.registerCommand(
                                 "ShootFixed",
-                                Commands.parallel(
-                                                shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(75)),
-                                                turret.shootCommand()));
+                                Commands.deadline(
+                                                turret.shootCommand().withTimeout(1.5),
+                                                shooter.setRPM(1200),
+                                                hood.setAngle(Degrees.of(65))));
                 NamedCommands.registerCommand(
                                 "AimFromVision",
                                 new AimShooterFromVision(shooter, hood, vision));
@@ -186,6 +186,12 @@ public class RobotContainer {
                 // driver.a().onTrue(
                 // Commands.runOnce(drivebase::zeroGyro));
 
+                driver.x()
+                                .onTrue(
+                                                new AutoScoreCommand(drivebase, vision)
+                                                                .withInterruptBehavior(
+                                                                                Command.InterruptionBehavior.kCancelSelf));
+
                 // ================= TURRET =================
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
@@ -233,10 +239,10 @@ public class RobotContainer {
                 // shooter.setRPM(3000),
                 // hood.setAngle(Degrees.of(35))));
 
-                driver.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
+                operator.x().whileTrue( // Operator 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
-                                                shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(75)),
+                                                shooter.setRPM(1350),
+                                                hood.setAngle(Degrees.of(65)),
                                                 turret.shootCommand())); // Use turret::shoot
 
         }
