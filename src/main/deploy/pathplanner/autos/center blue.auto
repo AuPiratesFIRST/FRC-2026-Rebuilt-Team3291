@@ -1,0 +1,37 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "center blue drive to shoot perload"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "center blue drive to intake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "center blue drive to shoot "
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "center blue drive to climb"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

@@ -1,0 +1,37 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left bule align to shoot preload "
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left blue drive and align to intake "
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left blue drive and align to shoot "
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

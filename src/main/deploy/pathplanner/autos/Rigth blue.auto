@@ -1,0 +1,31 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Rigth bule align to shoot preload "
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": " Rigth blue drive and align to intake "
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Rigth blue drive and align to shoot "
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

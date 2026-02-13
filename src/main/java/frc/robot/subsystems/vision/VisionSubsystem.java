@@ -16,11 +16,9 @@ import org.photonvision.simulation.*;
 import org.photonvision.targeting.*;
 
 /**
- * Vision Subsystem - Detects AprilTags using PhotonVision for pose estimation
- * and targeting.
+ * Vision Subsystem - Detects AprilTags using PhotonVision for pose estimation and targeting.
  * 
- * This subsystem manages the robot's camera and processes AprilTag detections
- * to:
+ * This subsystem manages the robot's camera and processes AprilTag detections to:
  * 1. Estimate the robot's global position on the field (pose estimation)
  * 2. Measure distance and angle to specific tags for shooter aiming
  * 3. Provide realistic simulation data for testing
@@ -43,14 +41,12 @@ public class VisionSubsystem extends SubsystemBase {
     // AprilTag field layout contains the 3D positions of all tags on the field
     // This is loaded from WPILib's built-in field layouts (updated yearly)
     private final AprilTagFieldLayout fieldLayout;
-
+    
     // PhotonPoseEstimator uses detected tags + field layout to estimate robot pose
-    // Uses MULTI_TAG_PNP_ON_COPROCESSOR strategy for best accuracy with multiple
-    // tags
+    // Uses MULTI_TAG_PNP_ON_COPROCESSOR strategy for best accuracy with multiple tags
     private final PhotonPoseEstimator poseEstimator;
-
-    // NetworkTables publisher to share vision pose with other programs
-    // (AdvantageScope, etc.)
+    
+    // NetworkTables publisher to share vision pose with other programs (AdvantageScope, etc.)
     private final StructPublisher<Pose2d> visionPosePub;
 
     // ============================================================
@@ -67,8 +63,7 @@ public class VisionSubsystem extends SubsystemBase {
 
     /**
      * Creates a new VisionSubsystem.
-     * Initializes camera connection, loads field layout, and sets up simulation if
-     * needed.
+     * Initializes camera connection, loads field layout, and sets up simulation if needed.
      */
     public VisionSubsystem() {
 
