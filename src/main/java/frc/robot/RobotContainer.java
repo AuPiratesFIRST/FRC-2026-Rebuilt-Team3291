@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.AimShooterFromVision;
 import frc.robot.commands.DriveCommands;
+import frc.robot.commands.ShooterDockAtDistanceCommand;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.TankDrive.Drive;
@@ -205,6 +206,29 @@ public class RobotContainer {
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
                                                 hood.setAngle(Degrees.of(75))));
+                NamedCommands.registerCommand(
+                                "ShootFixed",
+                                Commands.parallel(
+                                                shooter.setRPM(1300),
+                                                hood.setAngle(Degrees.of(75)),
+                                                turret.shootCommand()));
+                NamedCommands.registerCommand(
+                                "AimFromVision",
+                                new AimShooterFromVision(shooter, hood, vision));
+                NamedCommands.registerCommand(
+                                "DockAtShotDistance",
+                                new ShooterDockAtDistanceCommand(
+                                                vision,
+                                                drive,
+                                                3.0 // your desired shot distance meters
+                                ));
+                NamedCommands.registerCommand(
+                                "IntakeOn",
+                                intakeRollerSubsystem.in(1.0));
+
+                NamedCommands.registerCommand(
+                                "IntakeOff",
+                                intakeRollerSubsystem.stop());
 
                 // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
@@ -337,7 +361,7 @@ public class RobotContainer {
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
                                                 hood.setAngle(Degrees.of(75)),
-                                                Commands.run(turret::shoot, turret))); // Use turret::shoot
+                                                turret.shootCommand())); // Use turret::shoot
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.

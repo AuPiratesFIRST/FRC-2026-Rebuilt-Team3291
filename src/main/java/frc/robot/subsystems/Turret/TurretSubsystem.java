@@ -5,6 +5,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
@@ -190,6 +191,10 @@ public class TurretSubsystem extends SubsystemBase {
 
         public int getFuelStored() {
                 return fuelStored;
+        }
+
+        public Command shootCommand() {
+                return run(this::shoot);
         }
 
         public void resetFuelStored() {
