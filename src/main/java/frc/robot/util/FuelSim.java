@@ -1,3 +1,4 @@
+// https://github.com/hammerheads5000/FuelSim
 package frc.robot.util;
 
 import static edu.wpi.first.units.Units.Meters;
@@ -270,14 +271,14 @@ public class FuelSim {
 
     @SuppressWarnings("unchecked")
     protected final ArrayList<Fuel>[][] grid = new ArrayList[GRID_COLS][GRID_ROWS];
+    private final ArrayList<ArrayList<Fuel>> activeCells = new ArrayList<>();
 
     protected void handleFuelCollisions(ArrayList<Fuel> fuels) {
         // Clear grid
-        for (int i = 0; i < GRID_COLS; i++) {
-            for (int j = 0; j < GRID_ROWS; j++) {
-                grid[i][j].clear();
-            }
+        for (ArrayList<Fuel> cell : activeCells) {
+            cell.clear();
         }
+        activeCells.clear();
 
         // Populate grid
         for (Fuel fuel : fuels) {
@@ -286,6 +287,9 @@ public class FuelSim {
 
             if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
                 grid[col][row].add(fuel);
+                if (grid[col][row].size() == 1) {
+                    activeCells.add(grid[col][row]);
+                }
             }
         }
 
@@ -311,7 +315,7 @@ public class FuelSim {
         }
     }
 
-    protected ArrayList<Fuel> fuels = new ArrayList<Fuel>();
+    protected ArrayList<Fuel> fuels = new ArrayList<>();
     protected boolean running = false;
     protected boolean simulateAirResistance = false;
     protected Supplier<Pose2d> robotPoseSupplier = null;
@@ -449,6 +453,28 @@ public class FuelSim {
         this.robotWidth = width;
         this.robotLength = length;
         this.bumperHeight = bumperHeight;
+    }
+
+    /**
+     * Registers a robot with the fuel simulator
+     * 
+     * @param width               from left to right (y-axis)
+     * @param length              from front to back (x-axis)
+     * @param bumperHeight        from the ground
+     * @param poseSupplier
+     * @param fieldSpeedsSupplier field-relative `ChassisSpeeds` supplier
+     */
+    public void registerRobot(
+            Distance width,
+            Distance length,
+            Distance bumperHeight,
+            Supplier<Pose2d> poseSupplier,
+            Supplier<ChassisSpeeds> fieldSpeedsSupplier) {
+        this.robotPoseSupplier = poseSupplier;
+        this.robotFieldSpeedsSupplier = fieldSpeedsSupplier;
+        this.robotWidth = width.in(Meters);
+        this.robotLength = length.in(Meters);
+        this.bumperHeight = bumperHeight.in(Meters);
     }
 
     /**
@@ -694,6 +720,66 @@ public class FuelSim {
     public void registerIntake(double xMin, double xMax, double yMin, double yMax) {
         registerIntake(xMin, xMax, yMin, yMax, () -> true, () -> {
         });
+    }
+
+    /**
+     * Registers an intake with the fuel simulator. This intake will remove fuel
+     * from the field based on the `ableToIntake` parameter.
+     * 
+     * @param xMin           Minimum x position for the bounding box
+     * @param xMax           Maximum x position for the bounding box
+     * @param yMin           Minimum y position for the bounding box
+     * @param yMax           Maximum y position for the bounding box
+     * @param ableToIntake   Should a return a boolean whether the intake is active
+     * @param intakeCallback Function to call when a fuel is intaked
+     */
+    public void registerIntake(
+            Distance xMin, Distance xMax, Distance yMin, Distance yMax, BooleanSupplier ableToIntake,
+            Runnable intakeCallback) {
+        registerIntake(xMin.in(Meters), xMax.in(Meters), yMin.in(Meters), yMax.in(Meters), ableToIntake,
+                intakeCallback);
+    }
+
+    /**
+     * Registers an intake with the fuel simulator. This intake will remove fuel
+     * from the field based on the `ableToIntake` parameter.
+     * 
+     * @param xMin         Minimum x position for the bounding box
+     * @param xMax         Maximum x position for the bounding box
+     * @param yMin         Minimum y position for the bounding box
+     * @param yMax         Maximum y position for the bounding box
+     * @param ableToIntake Should a return a boolean whether the intake is active
+     */
+    public void registerIntake(Distance xMin, Distance xMax, Distance yMin, Distance yMax,
+            BooleanSupplier ableToIntake) {
+        registerIntake(xMin.in(Meters), xMax.in(Meters), yMin.in(Meters), yMax.in(Meters), ableToIntake);
+    }
+
+    /**
+     * Registers an intake with the fuel simulator. This intake will always remove
+     * fuel from the field.
+     * 
+     * @param xMin           Minimum x position for the bounding box
+     * @param xMax           Maximum x position for the bounding box
+     * @param yMin           Minimum y position for the bounding box
+     * @param yMax           Maximum y position for the bounding box
+     * @param intakeCallback Function to call when a fuel is intaked
+     */
+    public void registerIntake(Distance xMin, Distance xMax, Distance yMin, Distance yMax, Runnable intakeCallback) {
+        registerIntake(xMin.in(Meters), xMax.in(Meters), yMin.in(Meters), yMax.in(Meters), intakeCallback);
+    }
+
+    /**
+     * Registers an intake with the fuel simulator. This intake will always remove
+     * fuel from the field.
+     * 
+     * @param xMin Minimum x position for the bounding box
+     * @param xMax Maximum x position for the bounding box
+     * @param yMin Minimum y position for the bounding box
+     * @param yMax Maximum y position for the bounding box
+     */
+    public void registerIntake(Distance xMin, Distance xMax, Distance yMin, Distance yMax) {
+        registerIntake(xMin.in(Meters), xMax.in(Meters), yMin.in(Meters), yMax.in(Meters));
     }
 
     public static class Hub {

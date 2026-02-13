@@ -17,11 +17,21 @@ import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
+import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
+import frc.robot.util.FuelSim;
 import frc.robot.commands.ShooterDockAtDistanceCommand;
 import frc.robot.commands.ChaseTagCommand;
 
 import static edu.wpi.first.units.Units.*;
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.subsystems.Elevator.ElevatorSubsystem;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+import edu.wpi.first.wpilibj.RobotBase;
+import frc.robot.commands.AutoScoreCommand;
 
 /**
  * RobotContainer
@@ -37,13 +47,23 @@ public class RobotContainer {
         private final SwerveSubsystem drivebase = new SwerveSubsystem(
                         new File(Filesystem.getDeployDirectory(), "swerve"),
                         vision);
+        // Shooter mechanism subsystems
+        private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
+        private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
 
-        // private final HoodSubsystem hood = new HoodSubsystem();
-        // private final ShooterSubsystem shooter = new ShooterSubsystem();
+        private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
+        private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
+        public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new fuelSim of FuelSim
 
-        private final TurretSubsystem turret = new TurretSubsystem(
-                        vision,
-                        drivebase);
+        // Turret subsystem - calculates auto-aim heading (virtual turret, no physical
+        // rotation)
+        // Declared as temporary local variable first (will be initialized after
+        // drivebase)
+        private final TurretSubsystem turret = new TurretSubsystem(vision,
+                        drivebase,
+                        shooter,
+                        hood,
+                        fuelSim);
 
         // ---------------- CONTROLLERS ----------------
 
@@ -57,28 +77,65 @@ public class RobotContainer {
 
         public RobotContainer() {
 
-                configureBindings();
+                // Basic FuelSim initialization (before turret)
+                fuelSim.spawnStartingFuel();
+                fuelSim.start();
 
-                // // ---------------- DEFAULT COMMANDS ----------------
-                // hood.setDefaultCommand(hood.hold());
-                // shooter.setDefaultCommand(shooter.stop());
+                // NOW register robot and intake with FuelSim, as turret and drive are ready
+                registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
 
-                // // ---------------- PATHPLANNER ----------------
-                // NamedCommands.registerCommand(
-                // "StopShooter",
-                // shooter.stop());
+                /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
-                // NamedCommands.registerCommand(
-                // "EnableAutoAim",
-                // Commands.runOnce(turret::enableHubTracking, turret));
+                // Auto score: pathfind + vision dock
+                NamedCommands.registerCommand(
+                                "AutoScore", new AutoScoreCommand(drivebase, vision));
 
-                // NamedCommands.registerCommand(
-                // "DisableAutoAim",
-                // Commands.runOnce(turret::disableHubTracking, turret));
+                NamedCommands.registerCommand(
+                                "StopShooter",
+                                shooter.stop());
 
+                NamedCommands.registerCommand(
+                                "EnableAutoAim",
+                                Commands.runOnce(turret::enableHubTracking, turret));
+
+                NamedCommands.registerCommand(
+                                "DisableAutoAim",
+                                Commands.runOnce(turret::disableHubTracking, turret));
+                NamedCommands.registerCommand(
+                                "PrepShot",
+                                Commands.parallel(
+                                                shooter.setRPM(1300),
+                                                hood.setAngle(Degrees.of(75))));
+                NamedCommands.registerCommand(
+                                "ShootFixed",
+                                Commands.parallel(
+                                                shooter.setRPM(1300),
+                                                hood.setAngle(Degrees.of(75)),
+                                                turret.shootCommand()));
+                NamedCommands.registerCommand(
+                                "AimFromVision",
+                                new AimShooterFromVision(shooter, hood, vision));
+                NamedCommands.registerCommand(
+                                "DockAtShotDistance",
+                                new ShooterDockAtDistanceCommand(
+                                                vision,
+                                                drivebase,
+                                                3.0 // your desired shot distance meters
+                                ));
+                NamedCommands.registerCommand(
+                                "IntakeOn",
+                                intakeRollerSubsystem.in(1.0));
+
+                NamedCommands.registerCommand(
+                                "IntakeOff",
+                                intakeRollerSubsystem.stop());
+
+                // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
                 autoChooser.setDefaultOption("Do Nothing", Commands.none());
                 SmartDashboard.putData("Auto Chooser", autoChooser);
+
+                configureBindings();
         }
 
         // --------------------------------------------------
@@ -90,35 +147,60 @@ public class RobotContainer {
                 drivebase.setDefaultCommand(
                                 drivebase.driveCommand(
                                                 () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
+                                                // Corrected deadband for LeftX. Your original had 0.9, which is very
+                                                // high.
                                                 () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
                                                 () -> {
-                                                        double stick = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+                                                        double rightStickX = -MathUtil.applyDeadband(driver.getRightX(),
+                                                                        0.1);
 
-                                                        if (Math.abs(stick) > 0.05) {
-                                                                turret.disableHubTracking();
-                                                                turret.manualRotate(stick);
-                                                                return stick;
+                                                        if (Math.abs(rightStickX) > 0.05) {
+                                                                // Driver is actively rotating with the stick.
+                                                                // Call manualRotate with the stick value. This will
+                                                                // also handle
+                                                                // disabling hub tracking if it was previously enabled.
+                                                                turret.manualRotate(rightStickX);
+                                                                // Directly return the stick input for immediate
+                                                                // responsiveness.
+                                                                return rightStickX;
+                                                        } else {
+                                                                // Stick is in deadband (i.e., released).
+                                                                // If hub tracking is NOT currently active, explicitly
+                                                                // tell the turret
+                                                                // to stop manual rotation by setting manualOmega to
+                                                                // 0.0.
+                                                                if (!turret.isHubTrackingEnabled()) {
+                                                                        turret.manualRotate(0.0); // Explicitly stop
+                                                                                                  // manual rotation
+                                                                }
+                                                                // In either case (hub tracking enabled, or manual
+                                                                // rotation explicitly stopped),
+                                                                // get the desired angular velocity from the turret
+                                                                // subsystem.
+                                                                // If hub tracking is enabled, this will be PID output.
+                                                                // If hub tracking is disabled, this will be the (now
+                                                                // 0.0) manualOmega.
+                                                                return turret.getDesiredRobotOmega();
                                                         }
-
-                                                        return turret.getDesiredRobotOmega();
                                                 }));
-
-                driver.a().onTrue(
-                                Commands.runOnce(drivebase::zeroGyro));
+                // driver.a().onTrue(
+                // Commands.runOnce(drivebase::zeroGyro));
 
                 // ================= TURRET =================
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
 
-                driver.x().whileTrue(
-                                new ChaseTagCommand(
-                                                vision,
-                                                drivebase,
-                                                new int[] { 25 },
-                                                1));
+                // driver.x().whileTrue(
+                // new ChaseTagCommand(
+                // vision,
+                // drivebase,
+                // new int[] { 25 },
+                // 1));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
+
+                driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
 
                 // operator.povLeft().whileTrue(
                 // Commands.run(() -> turret.manualRotate(-0.4), turret));
@@ -151,11 +233,76 @@ public class RobotContainer {
                 // shooter.setRPM(3000),
                 // hood.setAngle(Degrees.of(35))));
 
+                driver.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
+                                Commands.parallel(
+                                                shooter.setRPM(1300),
+                                                hood.setAngle(Degrees.of(75)),
+                                                turret.shootCommand())); // Use turret::shoot
+
         }
 
         // ================= AUTO =================
         public Command getAutonomousCommand() {
                 return autoChooser.getSelected();
+        }
+
+        /**
+         * Register the robot and intake components with FuelSim.
+         * This method is called after all necessary subsystems (drivebase, turret,
+         * intake)
+         * are initialized.
+         * 
+         * @param drivebase       The Drive subsystem instance.
+         * @param turretSubsystem The TurretSubsystem instance.
+         * @param intakeSubsystem The IntakeRollerSubsystem instance.
+         */
+        private void registerFuelSimComponents(SwerveSubsystem drivebase, TurretSubsystem turretSubsystem,
+                        IntakeRollerSubsystem intakeSubsystem) {
+                FuelSim sim = fuelSim;
+
+                // Register robot with real dimensions
+                sim.registerRobot(
+                                0.724, // width in meters
+                                0.673, // length in meters
+                                0.5, // bumper height (unchanged)
+                                drivebase::getPose,
+                                drivebase::getRobotVelocity);
+
+                // Define the intake bounding box in robot-centric coordinates
+                double robotHalfWidth = 0.724 / 2.0;
+                double robotHalfLength = 0.673 / 2.0;
+
+                // Assuming a front-mounted intake, spanning robot width
+                // Adjust these values to match your robot's actual intake geometry
+                double intakeMinX = robotHalfLength - 0.1; // Extends slightly behind the front bumper
+                double intakeMaxX = robotHalfLength + 0.1; // Extends slightly in front of the front bumper
+                double intakeMinY = -robotHalfWidth;
+                double intakeMaxY = robotHalfWidth;
+
+                sim.registerIntake(
+                                intakeMinX,
+                                intakeMaxX,
+                                intakeMinY,
+                                intakeMaxY,
+                                // shouldIntakeSupplier: only active when intakeRollerSubsystem is running AND
+                                // turret has capacity
+                                () -> intakeSubsystem.isRunning()
+                                                && turretSubsystem.getFuelStored() < TurretSubsystem.FUEL_CAPACITY,
+                                () -> turretSubsystem.intakeFuel() // Callback to increment fuel count in
+                                                                   // TurretSubsystem
+                );
+
+                // SmartDashboard reset button (keep here as it's FuelSim related)
+                SmartDashboard.putData(Commands.runOnce(() -> {
+                        sim.clearFuel();
+                        sim.spawnStartingFuel();
+                        turretSubsystem.resetFuelStored(); // Also reset fuel count in TurretSubsystem
+                }).withName("Reset Fuel").ignoringDisable(true));
+        }
+
+        public void logFuelScores() {
+                Logger.recordOutput("Fuel/BlueScore", FuelSim.Hub.BLUE_HUB.getScore());
+                Logger.recordOutput("Fuel/RedScore", FuelSim.Hub.RED_HUB.getScore());
         }
 
         // ---------------- ACCESSORS ----------------
@@ -166,4 +313,5 @@ public class RobotContainer {
         public VisionSubsystem getVision() {
                 return vision;
         }
+
 }

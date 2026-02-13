@@ -21,6 +21,10 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.pathfinding.Pathfinding;
+import com.pathplanner.lib.util.PathPlannerLogging;
+import frc.robot.util.LocalADStarAK;
+import org.littletonrobotics.junction.Logger;
 
 public class SwerveSubsystem extends SubsystemBase {
   private final SwerveDrive swerveDrive;
@@ -99,6 +103,18 @@ public class SwerveSubsystem extends SubsystemBase {
             .map(a -> a == DriverStation.Alliance.Red)
             .orElse(false),
         this);
+
+    // Set up A* pathfinding algorithm for generating paths on-the-fly
+    // LocalADStarAK is a custom AdvantageKit-compatible version of the AD*
+    // algorithm
+    Pathfinding.setPathfinder(new LocalADStarAK());
+
+    // Hook up PathPlanner to AdvantageKit logging
+    // This logs the planned path trajectory so we can visualize it in
+    // AdvantageScope
+    PathPlannerLogging.setLogActivePathCallback(
+        path -> Logger.recordOutput(
+            "Odometry/Trajectory", path.toArray(new Pose2d[0])));
   }
 
   /* -------------------- REQUIRED HELPERS -------------------- */

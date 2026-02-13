@@ -17,8 +17,28 @@ import yams.mechanisms.positional.Arm;
 import yams.motorcontrollers.*;
 import yams.motorcontrollers.local.SparkWrapper;
 
+/**
+ * Hood Subsystem - Controls the adjustable angle hood on the shooter.
+ * 
+ * The hood changes the launch angle of game pieces. By adjusting the hood angle
+ * along with flywheel speed, we can shoot accurately at different distances.
+ * 
+ * Key Features:
+ * - Position control using NEO 550 motor with 3:4 gearing
+ * - Soft limits (5° to 100°) prevent mechanical damage
+ * - Hard limits (0° to 120°) as backup safety
+ * - ArmFeedforward accounts for gravity (hood weight matters at different
+ * angles)
+ * - Brake mode holds position when disabled
+ * 
+ * The hood uses a command factory pattern - call setAngle() to get a command
+ * that will move to a specific angle and hold it there.
+ */
 public class HoodSubsystem extends SubsystemBase {
 
+    // ========== HARDWARE ==========
+    // SparkMax controlling one NEO 550 motor (smaller than regular NEO)
+    // CAN ID 29 must match REV Hardware Client configuration
     private final SparkMax hoodMotor = new SparkMax(29, SparkLowLevel.MotorType.kBrushless);
 
     private final SmartMotorController hoodSMC = new SparkWrapper(
@@ -80,6 +100,10 @@ public class HoodSubsystem extends SubsystemBase {
     public void applyAngle(Angle angle) {
         lastTarget = angle;
         hood.setAngle(() -> angle).schedule();
+    }
+
+    public Angle getTargetAngle() {
+        return lastTarget;
     }
 
     // ------------------------------------------------
