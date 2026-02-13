@@ -13,7 +13,7 @@ import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
 import frc.robot.Constants.VisionConstants;
-import frc.robot.subsystems.TankDrive.Drive;
+import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
 import java.util.Set;
@@ -28,15 +28,17 @@ import java.util.Set;
  * 1. Pathfind to a scoring position near the hub (using PathPlanner)
  * 2. Use vision to fine-tune distance from hub (get to exact shooting distance)
  * 
- * The scoring position is defined in BLUE alliance coordinates and automatically
+ * The scoring position is defined in BLUE alliance coordinates and
+ * automatically
  * flipped for RED alliance using PathPlanner's field mirroring.
  * 
  * Alliance-safe: Works correctly regardless of which alliance we're on!
- * Tank-drive safe: Uses DeferredCommand to ensure alliance check happens when command runs
+ * Tank-drive safe: Uses DeferredCommand to ensure alliance check happens when
+ * command runs
  */
 public class AutoScoreCommand extends SequentialCommandGroup {
 
-        public AutoScoreCommand(Drive drive, VisionSubsystem vision) {
+        public AutoScoreCommand(SwerveSubsystem swerve, VisionSubsystem vision) {
 
                 Pose2d bluePose = new Pose2d(
                                 2.544,
@@ -66,13 +68,13 @@ public class AutoScoreCommand extends SequentialCommandGroup {
                                                         0.0);
                                 },
 
-                                Set.of(drive)
+                                Set.of(swerve)
 
                 );
 
                 Command visionAlign = new ShooterDockAtDistanceCommand(
                                 vision,
-                                drive,
+                                swerve,
                                 VisionConstants.SHOOTING_DISTANCE_METERS);
 
                 addCommands(pathfindToScore, visionAlign);

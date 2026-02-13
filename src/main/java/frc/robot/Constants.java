@@ -29,17 +29,13 @@ public class Constants {
 
         public static class VisionConstants {
 
-                // ---------- FRONT (POSE) CAMERA ----------
-                public static final String FRONT_CAMERA_NAME = "frontCamera";
-                public static final Transform3d ROBOT_TO_FRONT_CAMERA = new Transform3d(
-                                new Translation3d(0.3, 0.0, 0.2),
-                                new Rotation3d(0, 0, 0));
+                public static final double SHOOTING_DISTANCE_METERS = 3.25;
 
                 // ---------- SHOOTER (DISTANCE) CAMERA ----------
                 public static final String SHOOTER_CAMERA_NAME = "shooterCamera";
                 public static final Transform3d ROBOT_TO_SHOOTER_CAMERA = new Transform3d(
                                 new Translation3d(0.15, 0.0, 0.55), // above shooter
-                                new Rotation3d(0, Units.degreesToRadians(-20), 0) // pitched down
+                                new Rotation3d(0, Units.degreesToRadians(0), 0) // pitched down
                 );
 
                 // ---------- SHOOTER DOCKING ----------
