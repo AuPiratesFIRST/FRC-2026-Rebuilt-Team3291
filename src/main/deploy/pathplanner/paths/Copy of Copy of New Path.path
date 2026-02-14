@@ -3,53 +3,64 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.52151212553495,
-        "y": 5.878758915834522
+        "x": 7.830085592011411,
+        "y": 5.244764621968616
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.4857068866738636,
-        "y": 6.51497279420313
+        "x": 7.639023031095461,
+        "y": 5.463487461459847
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 3.52151212553495,
-        "y": 7.366704707560627
+        "x": 4.724807417974322,
+        "y": 7.625477888730385
       },
       "prevControl": {
-        "x": 2.9789605232173964,
-        "y": 7.040007872572713
+        "x": 5.061324292938146,
+        "y": 7.582785329837442
       },
       "nextControl": {
-        "x": 4.310600395373403,
-        "y": 7.841853318644125
+        "x": 4.029371039807726,
+        "y": 7.713705138951832
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.843024251069899,
-        "y": 5.878758915834522
+        "x": 2.7840085592011405,
+        "y": 7.004422253922967
       },
       "prevControl": {
-        "x": 6.846747503566331,
-        "y": 6.732710413694721
+        "x": 2.9516071630444833,
+        "y": 7.189923488392612
+      },
+      "nextControl": {
+        "x": 2.3403646440569488,
+        "y": 6.513388963448078
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 1.839486447931526,
+        "y": 3.912082738944366
+      },
+      "prevControl": {
+        "x": 2.259542785890814,
+        "y": 4.814952811414608
       },
       "nextControl": null,
       "isLocked": false,
       "linkedName": null
     }
   ],
-  "rotationTargets": [
-    {
-      "waypointRelativePos": 1.894736842105262,
-      "rotationDegrees": -29.999999999999996
-    }
-  ],
+  "rotationTargets": [],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [
@@ -61,7 +72,7 @@
     },
     {
       "name": "",
-      "waypointRelativePos": 0,
+      "waypointRelativePos": 2.7,
       "endWaypointRelativePos": null,
       "command": null
     }

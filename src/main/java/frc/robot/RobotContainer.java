@@ -109,7 +109,7 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "ShootFixed",
                                 Commands.deadline(
-                                                turret.shootCommand().withTimeout(1.5),
+                                                turret.shootCommand().withTimeout(0.8), // Shoot for 0.8 seconds
                                                 shooter.setRPM(1200),
                                                 hood.setAngle(Degrees.of(65))));
                 NamedCommands.registerCommand(
@@ -183,8 +183,8 @@ public class RobotContainer {
                                                                 return turret.getDesiredRobotOmega();
                                                         }
                                                 }));
-                // driver.a().onTrue(
-                // Commands.runOnce(drivebase::zeroGyro));
+                driver.a().onTrue(
+                                Commands.runOnce(drivebase::zeroGyro));
 
                 driver.x()
                                 .onTrue(
@@ -206,7 +206,8 @@ public class RobotContainer {
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
+                // driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates
+                // intake
 
                 // operator.povLeft().whileTrue(
                 // Commands.run(() -> turret.manualRotate(-0.4), turret));

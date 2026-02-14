@@ -34,6 +34,37 @@
           "data": {
             "name": "ShootFixed"
           }
+        },
+        {
+          "type": "deadline",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Copy of New Path"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeOn"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Copy of Copy of New Path"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootFixed"
+          }
         }
       ]
     }
