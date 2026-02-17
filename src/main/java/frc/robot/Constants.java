@@ -29,6 +29,11 @@ public class Constants {
 
         public static class VisionConstants {
 
+                // How far forward the camera is from the center of the robot (meters)
+                public static final double kCameraXOffset = 0.25;
+                // How far left/right the camera is (0 if centered)
+                public static final double kCameraYOffset = 0.0;
+
                 public static final double SHOOTING_DISTANCE_METERS = 3.25;
 
                 // ---------- SHOOTER (DISTANCE) CAMERA ----------

@@ -7,6 +7,7 @@ import com.pathplanner.lib.auto.NamedCommands;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -22,12 +23,15 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.ShooterDockAtDistanceCommand;
 import frc.robot.commands.ChaseTagCommand;
+import frc.robot.commands.PathfindThroughBalls;
 
 import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.Elevator.ElevatorSubsystem;
+import frc.robot.subsystems.vision.ObjectDetection;
+
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -50,6 +54,8 @@ public class RobotContainer {
         // Shooter mechanism subsystems
         private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
         private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
+        private final Field2d m_field = new Field2d();
+        private final ObjectDetection m_ballTracker = new ObjectDetection(m_field, drivebase);
 
         private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
         private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
@@ -186,11 +192,13 @@ public class RobotContainer {
                 driver.a().onTrue(
                                 Commands.runOnce(drivebase::zeroGyro));
 
-                driver.x()
-                                .onTrue(
-                                                new AutoScoreCommand(drivebase, vision)
-                                                                .withInterruptBehavior(
-                                                                                Command.InterruptionBehavior.kCancelSelf));
+                // Hold 'X' to automatically collect all balls in view
+                driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
+                // driver.x()
+                // .onTrue(
+                // new AutoScoreCommand(drivebase, vision)
+                // .withInterruptBehavior(
+                // Command.InterruptionBehavior.kCancelSelf));
 
                 // ================= TURRET =================
                 driver.y().onTrue(
