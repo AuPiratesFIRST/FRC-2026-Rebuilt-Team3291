@@ -10,6 +10,7 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Distance;
 import static edu.wpi.first.units.Units.*;
+import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
 public class Constants {
 
@@ -44,17 +45,21 @@ public class Constants {
                 );
 
                 // ---------- SHOOTER DOCKING ----------
-                public static final double SHOOTER_YAW_KP = 3.0;
-                public static final double SHOOTER_YAW_KD = 0.25;
+                public static final double SHOOTER_YAW_KP = 1.2;
+                public static final double SHOOTER_YAW_KD = 0;
 
-                public static final double SHOOTER_DISTANCE_KP = 2.0;
+                public static final double SHOOTER_Strafe_KP = 1.5;
+                public static final double SHOOTER_Strafe_KD = 0;
+                public static final double SHOOTER_STRAFE_TOLERANCE_M = 0.05; // 5 cm
+
+                public static final double SHOOTER_DISTANCE_KP = 1.9;
                 public static final double SHOOTER_DISTANCE_KD = 0.0;
 
-                public static final double SHOOTER_YAW_TOLERANCE_RAD = Units.degreesToRadians(1.0);
+                public static final double SHOOTER_YAW_TOLERANCE_RAD = Units.degreesToRadians(0.5);
 
                 public static final double SHOOTER_DISTANCE_TOLERANCE_M = 0.05; // 5 cm
 
-                public static final double SHOOTER_MAX_TRANSLATION_SPEED = 0.5; // m/s
+                public static final double SHOOTER_MAX_TRANSLATION_SPEED = 3; // m/s
                 public static final double SHOOTER_MAX_ANGULAR_SPEED = Math.PI; // rad/s
 
                 // ---------- VISION UNCERTAINTY ----------
@@ -64,6 +69,7 @@ public class Constants {
                 // ---------- HUB TAGS ----------
                 public static final int[] RED_HUB_TAGS = { 2, 3, 4, 5, 8, 9, 10, 11 };
                 public static final int[] BLUE_HUB_TAGS = { 18, 19, 20, 21, 24, 25, 26, 27 };
+
         }
 
 }

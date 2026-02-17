@@ -204,12 +204,12 @@ public class RobotContainer {
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
 
-                // driver.x().whileTrue(
-                // new ChaseTagCommand(
-                // vision,
-                // drivebase,
-                // new int[] { 25 },
-                // 1));
+                driver.leftBumper().whileTrue(
+                                new ChaseTagCommand(
+                                                vision,
+                                                drivebase,
+                                                new int[] { 25 },
+                                                1.7));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
