@@ -41,25 +41,25 @@ public class Constants {
                 public static final String SHOOTER_CAMERA_NAME = "shooterCamera";
                 public static final Transform3d ROBOT_TO_SHOOTER_CAMERA = new Transform3d(
                                 new Translation3d(0.15, 0.0, 0.55), // above shooter
-                                new Rotation3d(0, Units.degreesToRadians(0), 0) // pitched down
+                                new Rotation3d(0, Units.degreesToRadians(-20), 0) // pitched down
                 );
 
                 // ---------- SHOOTER DOCKING ----------
-                public static final double SHOOTER_YAW_KP = 1.2;
+                public static final double SHOOTER_YAW_KP = 0.039;
                 public static final double SHOOTER_YAW_KD = 0;
 
-                public static final double SHOOTER_Strafe_KP = 1.5;
+                public static final double SHOOTER_Strafe_KP = 0.8;
                 public static final double SHOOTER_Strafe_KD = 0;
-                public static final double SHOOTER_STRAFE_TOLERANCE_M = 0.05; // 5 cm
+                public static final double SHOOTER_STRAFE_TOLERANCE_M = 1; // 5 cm
 
-                public static final double SHOOTER_DISTANCE_KP = 1.9;
-                public static final double SHOOTER_DISTANCE_KD = 0.0;
+                public static final double SHOOTER_DISTANCE_KP = 2;
+                public static final double SHOOTER_DISTANCE_KD = 0.04;
 
-                public static final double SHOOTER_YAW_TOLERANCE_RAD = Units.degreesToRadians(0.5);
+                public static final double SHOOTER_YAW_TOLERANCE_RAD = Units.degreesToRadians(3.5);
 
-                public static final double SHOOTER_DISTANCE_TOLERANCE_M = 0.05; // 5 cm
+                public static final double SHOOTER_DISTANCE_TOLERANCE_M = 0.5; // 5 cm
 
-                public static final double SHOOTER_MAX_TRANSLATION_SPEED = 3; // m/s
+                public static final double SHOOTER_MAX_TRANSLATION_SPEED = 3.5; // m/s
                 public static final double SHOOTER_MAX_ANGULAR_SPEED = Math.PI; // rad/s
 
                 // ---------- VISION UNCERTAINTY ----------

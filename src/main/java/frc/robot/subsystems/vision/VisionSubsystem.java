@@ -166,6 +166,25 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     // ============================================================
+    // TAG ROTATION RELATIVE TO CAMERA (FOR TILT COMPENSATION)
+    // ============================================================
+    public Optional<Double> getTagRotationRelativeRad(int[] validTags) {
+        PhotonPipelineResult result = camera.getLatestResult();
+        if (!result.hasTargets())
+            return Optional.empty();
+
+        for (PhotonTrackedTarget target : result.getTargets()) {
+            for (int id : validTags) {
+                if (target.getFiducialId() == id) {
+                    // This is the 3D tilt of the tag relative to your camera lens
+                    return Optional.of(target.getBestCameraToTarget().getRotation().getZ());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    // ============================================================
     // LATERAL OFFSET TO TAG (FOR STRAFING)
     // ============================================================
     public Optional<Double> getTargetLateralOffsetMeters(int[] validTags) {
@@ -205,6 +224,36 @@ public class VisionSubsystem extends SubsystemBase {
                     // Photon yaw is degrees, CCW+
                     return Optional.of(
                             Units.degreesToRadians(target.getYaw()));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+    // ============================================================
+    // ROBOT POSE IN TARGET SPACE (FOR CHASING TAGS)
+
+    public Optional<Pose2d> getRobotPoseInTargetSpace(int[] validTags) {
+        var result = camera.getLatestResult();
+        if (!result.hasTargets())
+            return Optional.empty();
+
+        for (var target : result.getTargets()) {
+            for (int id : validTags) {
+                if (target.getFiducialId() == id) {
+                    // This is the transform from the Camera Lens to the Tag center
+                    Transform3d camToTarget = target.getBestCameraToTarget();
+
+                    // We invert it to get the "Robot's position relative to the Tag"
+                    // In Target Space:
+                    // X = Distance from tag face (Depth)
+                    // Y = Lateral offset from tag center (Side-to-side)
+                    // Rotation = Heading relative to tag face (Squaring up)
+                    Transform3d targetToCam = camToTarget.inverse();
+
+                    return Optional.of(new Pose2d(
+                            targetToCam.getX(),
+                            targetToCam.getY(),
+                            new Rotation2d(targetToCam.getRotation().getZ())));
                 }
             }
         }

@@ -209,7 +209,7 @@ public class RobotContainer {
                                                 vision,
                                                 drivebase,
                                                 new int[] { 25 },
-                                                1.7));
+                                                1.5));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
