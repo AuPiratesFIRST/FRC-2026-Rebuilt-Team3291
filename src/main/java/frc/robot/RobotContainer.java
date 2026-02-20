@@ -203,12 +203,12 @@ public class RobotContainer {
                                 "PrepShot",
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(75))));
+                                                hood.setAngle(Degrees.of(65))));
                 NamedCommands.registerCommand(
                                 "ShootFixed",
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(75)),
+                                                hood.setAngle(Degrees.of(65)),
                                                 turret.shootCommand()));
                 NamedCommands.registerCommand(
                                 "AimFromVision",
@@ -354,11 +354,11 @@ public class RobotContainer {
 
                 // // A button: Manual shooter test at fixed settings
                 // // Useful for testing shooter mechanics without vision
-                // // 1300 RPM and 75° hood angle = medium-range shot
+                // // 1300 RPM and 65° hood angle = medium-range shot
                 driver.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(75)),
+                                                hood.setAngle(Degrees.of(65)),
                                                 turret.shootCommand())); // Use turret::shoot
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,

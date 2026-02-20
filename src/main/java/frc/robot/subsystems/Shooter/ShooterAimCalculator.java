@@ -23,6 +23,9 @@ public final class ShooterAimCalculator {
 
     public static final double MAX_RPM = 5000.0;
 
+    // FIXED HOOD: No motor control, constant angle
+    public static final Angle FIXED_HOOD_ANGLE = Degrees.of(65.0);
+
     // UPDATED: Min distance is 1.2m because of robot size + hub base
     private static final double MIN_DISTANCE = 1.2;
     private static final double MAX_DISTANCE = 4.5;
@@ -35,12 +38,12 @@ public final class ShooterAimCalculator {
     // ============================================================
 
     private static final InterpolatingDoubleTreeMap rpmMap = new InterpolatingDoubleTreeMap();
-    private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
 
     static {
         /**
          * Distance (m) -> Flywheel RPM
          * Based on Anchors: 1.5m @ 1150, 2.0m @ 1200
+         * Hood is FIXED at 65° - only RPM varies with distance
          */
         rpmMap.put(1.20, 1100.0); // Slightly less than 1.5m, but high angle needs speed
         rpmMap.put(1.50, 1150.0); // TESTED ANCHOR
@@ -48,17 +51,6 @@ public final class ShooterAimCalculator {
         rpmMap.put(2.50, 1350.0); // Curve starts to steepen here
         rpmMap.put(3.00, 1280.0); // REDUCED from 1550 to prevent overshot
         rpmMap.put(4.00, 1850.0); // REDUCED from 2100 to prevent overshot
-
-        /**
-         * Distance (m) -> Hood angle (deg)
-         * Based on Anchors: 1.5m @ 65°, 2.0m @ 59°
-         */
-        hoodAngleMap.put(1.20, 72.0); // Steeper for the close-in "drop"
-        hoodAngleMap.put(1.50, 65.0); // TESTED ANCHOR
-        hoodAngleMap.put(2.00, 59.0); // TESTED ANCHOR
-        hoodAngleMap.put(2.50, 53.0); // Scaling down the angle to reach
-        hoodAngleMap.put(3.00, 59.0); // RAISED from 48.0 (Steeper = loops into goal)
-        hoodAngleMap.put(4.00, 48.0); // RAISED from 40.0 (The physics "sweet spot")
     }
 
     // ============================================================
@@ -85,9 +77,9 @@ public final class ShooterAimCalculator {
         double compensatedVelocityMS = shotVec.getNorm();
 
         double compensatedRPM = (compensatedVelocityMS * 60.0) / (2 * Math.PI * WHEEL_RADIUS);
-        Angle hoodAngle = Degrees.of(hoodAngleMap.get(dist));
-
-        return new MovingShotSolution(compensatedHeading, compensatedRPM, hoodAngle, dist);
+        
+        // Hood is fixed at constant angle
+        return new MovingShotSolution(compensatedHeading, compensatedRPM, FIXED_HOOD_ANGLE, dist);
     }
 
     public record MovingShotSolution(Rotation2d heading, double rpm, Angle hoodAngle, double distanceMeters) {
@@ -99,17 +91,16 @@ public final class ShooterAimCalculator {
     public static ShooterSolution solve(double distanceMeters) {
 
         double clamped = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
-        Angle hoodAngle = Degrees.of(hoodAngleMap.get(clamped));
-
-        // FIX: Removed applyLogCurve. We use the raw value from the map.
+        
+        // Hood is fixed at constant angle
         double targetRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
 
-        return new ShooterSolution(hoodAngle, targetRPM, 0.0, clamped, true);
+        return new ShooterSolution(FIXED_HOOD_ANGLE, targetRPM, 0.0, clamped, true);
     }
 
     public static ShooterSolution fallback() {
-        // FIX: Replaced shapedRPM with raw 1150 value
-        return new ShooterSolution(Degrees.of(65), 1150.0, 0.0, 1.5, true);
+        // Fixed hood angle, fallback RPM
+        return new ShooterSolution(FIXED_HOOD_ANGLE, 1150.0, 0.0, 1.5, true);
     }
 
     // result container

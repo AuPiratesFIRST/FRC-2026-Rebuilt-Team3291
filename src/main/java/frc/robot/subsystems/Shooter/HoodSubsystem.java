@@ -2,43 +2,44 @@ package frc.robot.subsystems.Shooter;
 
 import static edu.wpi.first.units.Units.*;
 
-import com.revrobotics.spark.*;
-import edu.wpi.first.math.controller.ArmFeedforward;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.*;
 
 import org.littletonrobotics.junction.Logger;
 
-import yams.gearing.*;
-import yams.mechanisms.config.ArmConfig;
-import yams.mechanisms.positional.Arm;
-import yams.motorcontrollers.*;
-import yams.motorcontrollers.local.SparkWrapper;
+// Commented out unused imports (motor hardware not used)
+// import com.revrobotics.spark.*;
+// import edu.wpi.first.math.controller.ArmFeedforward;
+// import edu.wpi.first.math.system.plant.DCMotor;
+// import edu.wpi.first.wpilibj.DriverStation;
+// import yams.gearing.*;
+// import yams.mechanisms.config.ArmConfig;
+// import yams.mechanisms.positional.Arm;
+// import yams.motorcontrollers.*;
+// import yams.motorcontrollers.local.SparkWrapper;
 
 /**
- * Hood Subsystem - Controls the adjustable angle hood on the shooter.
+ * Hood Subsystem - Represents the FIXED hood on the shooter.
  * 
- * The hood changes the launch angle of game pieces. By adjusting the hood angle
- * along with flywheel speed, we can shoot accurately at different distances.
+ * NOTE: This robot does NOT have a motorized hood. The hood is physically
+ * fixed at 65°. This subsystem exists to maintain code compatibility and
+ * allow setAngle() calls to work without errors, but they are effectively no-ops.
  * 
- * Key Features:
- * - Position control using NEO 550 motor with 3:4 gearing
- * - Soft limits (5° to 100°) prevent mechanical damage
- * - Hard limits (0° to 120°) as backup safety
- * - ArmFeedforward accounts for gravity (hood weight matters at different
- * angles)
- * - Brake mode holds position when disabled
+ * The fixed angle (65°) is defined in ShooterAimCalculator.FIXED_HOOD_ANGLE.
+ * If you later add a motorized hood, you can re-enable the motor control code.
  * 
- * The hood uses a command factory pattern - call setAngle() to get a command
- * that will move to a specific angle and hold it there.
+ * Current Configuration:
+ * - Hood is mechanically fixed at 65°
+ * - setAngle() commands are accepted but do nothing (motor code disabled)
+ * - Maintains API compatibility with vision-based aiming commands
  */
 public class HoodSubsystem extends SubsystemBase {
 
-    // ========== HARDWARE ==========
-    // SparkMax controlling one NEO 550 motor (smaller than regular NEO)
-    // CAN ID 29 must match REV Hardware Client configuration
+    // ========== NO-OP IMPLEMENTATION (No Motor Hardware) ==========
+    // Hood is physically fixed at 65° - no motor control needed
+    // All motor code commented out to avoid CAN timeout errors
+    
+    /* ========== COMMENTED OUT MOTOR CODE ==========
     private final SparkMax hoodMotor = new SparkMax(29, SparkLowLevel.MotorType.kBrushless);
 
     private final SmartMotorController hoodSMC = new SparkWrapper(
@@ -67,66 +68,63 @@ public class HoodSubsystem extends SubsystemBase {
 
     private final Arm hood = new Arm(
             new ArmConfig(hoodSMC)
-                    .withStartingPosition(Degrees.of(20))
-                    .withSoftLimits(Degrees.of(5), Degrees.of(100))
-                    .withHardLimit(Degrees.of(0), Degrees.of(120))
+                    .withStartingPosition(Degrees.of(60))
+                    .withSoftLimits(Degrees.of(50), Degrees.of(68))
+                    .withHardLimit(Degrees.of(45), Degrees.of(70))
                     .withLength(Meters.of(0.30))
                     .withMass(Kilograms.of(2.0))
                     .withTelemetry("Hood",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));
+    ========== END COMMENTED OUT MOTOR CODE ========== */
 
-    private Angle lastTarget = Degrees.of(20);
-    private boolean zeroed = false;
+    // Fixed hood angle (matches ShooterAimCalculator.FIXED_HOOD_ANGLE)
+    private static final Angle FIXED_ANGLE = Degrees.of(65);
+    private Angle lastTarget = FIXED_ANGLE;
 
     // ------------------------------------------------
-    // COMMAND FACTORIES
+    // COMMAND FACTORIES (NO-OP IMPLEMENTATIONS)
     // ------------------------------------------------
 
     public Command setAngle(Angle angle) {
-        return hood.setAngle(() -> {
-            lastTarget = angle;
-            return angle;
-        });
+        // No-op: Hood is fixed, just track requested angle for logging
+        lastTarget = angle;
+        return Commands.none();
     }
 
     public Command hold() {
-        return hood.setAngle(this::getAngle);
+        // No-op: Hood is already held at fixed position
+        return Commands.none();
     }
 
     public Angle getAngle() {
-        return hood.getAngle();
+        // Always return fixed angle
+        return FIXED_ANGLE;
     }
 
     public void applyAngle(Angle angle) {
+        // No-op: Just track requested angle for logging
         lastTarget = angle;
-        hood.setAngle(() -> angle).schedule();
     }
 
     public Angle getTargetAngle() {
+        // Return the last requested angle (for telemetry)
         return lastTarget;
     }
 
     // ------------------------------------------------
-    // PERIODIC
+    // PERIODIC (MINIMAL LOGGING ONLY)
     // ------------------------------------------------
 
     @Override
     public void periodic() {
-
-        if (!zeroed && DriverStation.isEnabled()) {
-            hoodSMC.setPosition(Degrees.zero());
-            zeroed = true;
-        }
-
-        hood.updateTelemetry();
-
+        // Log the fixed angle and last requested target
         Logger.recordOutput("Hood/TargetDeg", lastTarget.in(Degrees));
-        Logger.recordOutput("Hood/ActualDeg",
-                hood.getAngle().in(Degrees));
+        Logger.recordOutput("Hood/ActualDeg", FIXED_ANGLE.in(Degrees));
+        Logger.recordOutput("Hood/IsFixed", true);
     }
 
     @Override
     public void simulationPeriodic() {
-        hood.simIterate();
+        // No-op: No simulation needed for fixed hood
     }
 }
