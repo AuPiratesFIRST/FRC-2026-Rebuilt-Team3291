@@ -1,123 +1,150 @@
 package frc.robot.commands;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
-import org.littletonrobotics.junction.Logger;
+import org.photonvision.targeting.PhotonTrackedTarget;
 
 public class ChaseTagCommand extends Command {
+
+        private static final TrapezoidProfile.Constraints X_CONSTRAINTS = new TrapezoidProfile.Constraints(3.0, 2.0);
+        private static final TrapezoidProfile.Constraints Y_CONSTRAINTS = new TrapezoidProfile.Constraints(3.0, 2.0);
+        private static final TrapezoidProfile.Constraints OMEGA_CONSTRAINTS = new TrapezoidProfile.Constraints(4.0,
+                        4.0);
+
         private final VisionSubsystem vision;
-        private final SwerveSubsystem drive;
-        private final double targetDistanceMeters;
+        private final SwerveSubsystem swerve;
         private final int[] tagIds;
+        private final Transform3d tagToGoal;
 
-        private final PIDController xController;
-        private final PIDController yController;
-        private final PIDController rotController;
+        private final ProfiledPIDController xController = new ProfiledPIDController(3.0, 0, 0.05, X_CONSTRAINTS);
+        private final ProfiledPIDController yController = new ProfiledPIDController(3.0, 0, 0.05, Y_CONSTRAINTS);
+        private final ProfiledPIDController omegaController = new ProfiledPIDController(2.0, 0, 0.05,
+                        OMEGA_CONSTRAINTS);
 
-        private boolean hasTarget = false;
+        private PhotonTrackedTarget lastTarget;
+        private Pose2d fieldGoalPose;
 
-        public ChaseTagCommand(VisionSubsystem vision, SwerveSubsystem drive, int[] tagIds,
+        public ChaseTagCommand(
+                        VisionSubsystem vision,
+                        SwerveSubsystem swerve,
+                        int[] tagIds,
                         double targetDistanceMeters) {
                 this.vision = vision;
-                this.drive = drive;
+                this.swerve = swerve;
                 this.tagIds = tagIds;
-                this.targetDistanceMeters = targetDistanceMeters;
 
-                // X: Forward/Back Gains
-                xController = new PIDController(VisionConstants.SHOOTER_DISTANCE_KP, 0,
-                                VisionConstants.SHOOTER_DISTANCE_KD);
+                // FIX: Change Rotation3d from 0.0 to Math.PI
+                // In this field-relative logic, Math.PI ensures the robot's internal "0"
+                // (front)
+                // faces away from the tag, meaning the REAR faces the tag.
+                this.tagToGoal = new Transform3d(
+                                new Translation3d(targetDistanceMeters, 0.0, 0.0),
+                                new Rotation3d(0.0, 0.0, Math.PI));
 
-                // Y: Strafe Gains (1.5)
-                yController = new PIDController(VisionConstants.SHOOTER_Strafe_KP, 0,
-                                VisionConstants.SHOOTER_Strafe_KD);
+                xController.setTolerance(0.05);
+                yController.setTolerance(0.05);
+                omegaController.setTolerance(Units.degreesToRadians(2));
+                omegaController.enableContinuousInput(-Math.PI, Math.PI);
 
-                // Rot: Rotation Gains (0.3)
-                rotController = new PIDController(VisionConstants.SHOOTER_YAW_KP, 0, VisionConstants.SHOOTER_YAW_KD);
-                rotController.enableContinuousInput(-Math.PI, Math.PI);
-
-                addRequirements(drive);
+                addRequirements(swerve);
         }
 
         @Override
         public void initialize() {
-                xController.reset();
-                yController.reset();
-                rotController.reset();
-                hasTarget = false;
+                lastTarget = null;
+                fieldGoalPose = null;
+                var robotPose = swerve.getPose();
+
+                xController.reset(robotPose.getX());
+                yController.reset(robotPose.getY());
+                omegaController.reset(robotPose.getRotation().getRadians());
         }
 
         @Override
         public void execute() {
-                // --- LIVE TUNING ---
-                xController.setPID(VisionConstants.SHOOTER_DISTANCE_KP, 0, VisionConstants.SHOOTER_DISTANCE_KD);
-                yController.setPID(VisionConstants.SHOOTER_Strafe_KP, 0, VisionConstants.SHOOTER_Strafe_KD);
-                rotController.setPID(VisionConstants.SHOOTER_YAW_KP, 0, VisionConstants.SHOOTER_YAW_KD);
+                var robotPose2d = swerve.getPose();
+                var robotPose3d = new Pose3d(robotPose2d);
 
-                // --- GET POSE IN TARGET SPACE ---
-                var botPoseTargetSpaceOpt = vision.getRobotPoseInTargetSpace(tagIds);
+                var photonRes = vision.getLatestResult();
 
-                if (botPoseTargetSpaceOpt.isEmpty()) {
-                        drive.drive(new ChassisSpeeds());
-                        hasTarget = false;
-                        SmartDashboard.putBoolean("ChaseTag/HasTarget", false);
-                        return;
+                if (photonRes.hasTargets()) {
+                        var targetOpt = photonRes.getTargets().stream()
+                                        .filter(t -> isIdValid(t.getFiducialId()))
+                                        .filter(t -> t.getPoseAmbiguity() <= .2 && t.getPoseAmbiguity() != -1)
+                                        .findFirst();
+
+                        if (targetOpt.isPresent()) {
+                                var target = targetOpt.get();
+                                lastTarget = target;
+
+                                // 1. Calculate camera position in field space
+                                var cameraPose = robotPose3d.transformBy(VisionConstants.ROBOT_TO_SHOOTER_CAMERA);
+                                // 2. Calculate target position in field space
+                                var targetPose = cameraPose.transformBy(target.getBestCameraToTarget());
+                                // 3. Calculate goal position (where robot center should be) in field space
+                                fieldGoalPose = targetPose.transformBy(tagToGoal).toPose2d();
+
+                                xController.setGoal(fieldGoalPose.getX());
+                                yController.setGoal(fieldGoalPose.getY());
+                                omegaController.setGoal(fieldGoalPose.getRotation().getRadians());
+                        }
                 }
 
-                hasTarget = true;
-                Pose2d botPose = botPoseTargetSpaceOpt.get();
+                if (lastTarget == null || fieldGoalPose == null) {
+                        swerve.drive(new ChassisSpeeds());
+                } else {
+                        // Calculate field-relative speeds
+                        var xSpeed = xController.calculate(robotPose2d.getX());
+                        var ySpeed = yController.calculate(robotPose2d.getY());
+                        var omegaSpeed = omegaController.calculate(robotPose2d.getRotation().getRadians());
 
-                // --- TARGET SPACE LOGIC ---
-                // Goal X = distance we want to be from the tag
-                // Goal Y = 0 (perfectly centered)
-                // Goal Rot = 0 (perfectly square/parallel to tag)
+                        if (xController.atGoal())
+                                xSpeed = 0;
+                        if (yController.atGoal())
+                                ySpeed = 0;
+                        if (omegaController.atGoal())
+                                omegaSpeed = 0;
 
-                // calculate(Actual, Setpoint)
-                double rawX = xController.calculate(botPose.getX(), targetDistanceMeters);
-                double rawY = yController.calculate(botPose.getY(), 0.0);
-                double rawOmega = rotController.calculate(botPose.getRotation().getRadians(), 0.0);
+                        // Convert Field-Relative to Robot-Relative
+                        swerve.drive(
+                                        ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, omegaSpeed,
+                                                        robotPose2d.getRotation()));
 
-                // --- REAR CAMERA INVERSION ---
-                // Because the camera is on the back, the robot needs to move
-                // in the -X direction to close the distance.
-                double finalX = -rawX;
-                double finalY = -rawY;
-                double finalOmega = -rawOmega;
+                        SmartDashboard.putNumber("ChaseTag/GoalX", fieldGoalPose.getX());
+                        SmartDashboard.putNumber("ChaseTag/GoalY", fieldGoalPose.getY());
+                        SmartDashboard.putNumber("ChaseTag/GoalDeg", fieldGoalPose.getRotation().getDegrees());
+                }
+        }
 
-                // --- DRIVE ---
-                drive.drive(new ChassisSpeeds(
-                                MathUtil.clamp(finalX, -VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED,
-                                                VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED),
-                                MathUtil.clamp(finalY, -VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED,
-                                                VisionConstants.SHOOTER_MAX_TRANSLATION_SPEED),
-                                MathUtil.clamp(finalOmega, -VisionConstants.SHOOTER_MAX_ANGULAR_SPEED,
-                                                VisionConstants.SHOOTER_MAX_ANGULAR_SPEED)));
-
-                // --- ALL TELEMETRY (Kept for you) ---
-                SmartDashboard.putBoolean("ChaseTag/HasTarget", true);
-                SmartDashboard.putNumber("ChaseTag/DistanceM", botPose.getX());
-                SmartDashboard.putNumber("ChaseTag/LateralM", botPose.getY());
-                SmartDashboard.putNumber("ChaseTag/RotationDeg", botPose.getRotation().getDegrees());
-                SmartDashboard.putNumber("ChaseTag/XSpeedCmd", finalX);
-                SmartDashboard.putNumber("ChaseTag/YSpeedCmd", finalY);
-                SmartDashboard.putNumber("ChaseTag/OmegaCmd", finalOmega);
-
-                Logger.recordOutput("ChaseTag/BotPoseTargetSpace", botPose);
+        private boolean isIdValid(int id) {
+                for (int validId : tagIds) {
+                        if (id == validId)
+                                return true;
+                }
+                return false;
         }
 
         @Override
         public void end(boolean interrupted) {
-                drive.drive(new ChassisSpeeds());
+                swerve.drive(new ChassisSpeeds());
         }
 
         @Override
         public boolean isFinished() {
-                return hasTarget && xController.atSetpoint() && yController.atSetpoint() && rotController.atSetpoint();
+                return fieldGoalPose != null && xController.atGoal() && yController.atGoal()
+                                && omegaController.atGoal();
         }
 }

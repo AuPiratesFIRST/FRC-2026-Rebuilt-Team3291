@@ -208,7 +208,7 @@ public class RobotContainer {
                                 new ChaseTagCommand(
                                                 vision,
                                                 drivebase,
-                                                new int[] { 25 },
+                                                new int[] { 1 },
                                                 1.5));
 
                 driver.b().onTrue(
