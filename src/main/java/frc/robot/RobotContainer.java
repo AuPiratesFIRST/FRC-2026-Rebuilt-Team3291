@@ -198,7 +198,7 @@ public class RobotContainer {
                                 Commands.runOnce(drivebase::zeroGyro));
 
                 // Hold 'X' to automatically collect all balls in view
-                driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
+                // driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
                 // driver.x()
                 // .onTrue(
                 // new AutoScoreCommand(drivebase, vision)
@@ -209,18 +209,17 @@ public class RobotContainer {
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
 
-                driver.leftBumper().whileTrue(
+                driver.povDown().whileTrue(
                                 new ChaseTagCommand(
                                                 vision,
                                                 drivebase,
                                                 new int[] { 25 },
-                                                1.5));
+                                                3.0));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                // driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates
-                // intake
+                driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
 
                 // operator.povLeft().whileTrue(
                 // Commands.run(() -> turret.manualRotate(-0.4), turret));
@@ -244,8 +243,9 @@ public class RobotContainer {
                 // hood.getAngle().minus(Degrees.of(2))));
 
                 // // ================= SHOOTER =================
-                // operator.rightTrigger(0.2).whileTrue(
-                // new AimShooterFromVision(shooter, hood, vision));
+                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                                new AimShooterFromVision(shooter, hood, vision),
+                                turret.shootCommand()));
                 // // Manual shooter test (no vision)
 
                 // operator.a().whileTrue(
@@ -253,9 +253,9 @@ public class RobotContainer {
                 // shooter.setRPM(3000),
                 // hood.setAngle(Degrees.of(35))));
 
-                operator.x().whileTrue( // Operator 'X' now triggers the shoot command, which checks fuel
+                driver.x().whileTrue( // Operator 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
-                                                shooter.setRPM(1350),
+                                                shooter.setRPM(1150),
                                                 hood.setAngle(Degrees.of(65)),
                                                 turret.shootCommand())); // Use turret::shoot
 

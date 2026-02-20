@@ -3,206 +3,120 @@ package frc.robot.subsystems.Shooter;
 import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.Angle;
-import org.photonvision.targeting.PhotonTrackedTarget;
 
-/**
- * ShooterAimCalculator
- * ------------------------------------------------------------
- * Centralized math + tuning logic for vision-based shooting.
- *
- * RESPONSIBILITIES:
- * - Convert distance (meters) -> hood angle
- * - Convert distance (meters) -> flywheel RPM
- * - Shape RPM using logarithmic acceleration
- *
- * DOES NOT:
- * - Control motors
- * - Schedule commands
- * - Use vision subsystems directly
- */
 public final class ShooterAimCalculator {
 
     // ============================================================
     // FIELD + MECHANISM CONSTANTS
     // ============================================================
 
-    /** Shooter exit height (meters) */
     public static final double SHOOTER_HEIGHT = 0.50;
-
-    /** Target scoring height (meters) */
-    public static final double TARGET_HEIGHT = 2.64;
-
-    /** Shooter wheel radius (meters) */
+    public static final double TARGET_HEIGHT = 1.83; // MATCHED TO GAME MANUAL PAGE 23
     public static final double WHEEL_RADIUS = Inches.of(4).in(Meters);
-
-    /** Gravity (m/s^2) */
     private static final double GRAVITY = 9.81;
 
-    /** Absolute RPM safety clamp */
-    public static final double MAX_RPM = 550.0;
+    public static final double MAX_RPM = 5000.0;
 
-    /** Valid shooting distance bounds */
-    private static final double MIN_DISTANCE = 0.1;
-    private static final double MAX_DISTANCE = 3.5;
+    // UPDATED: Min distance is 1.2m because of robot size + hub base
+    private static final double MIN_DISTANCE = 1.2;
+    private static final double MAX_DISTANCE = 4.5;
 
-    // ============================================================
-    // LOGARITHMIC RPM SHAPING
-    // ============================================================
-
-    /** Log curve aggressiveness (higher = steeper rise) */
-    private static final double LOG_K = 6.0;
+    // Latency: Time for ball to leave the robot
+    private static final double SYSTEM_LATENCY_SEC = 0.15;
 
     // ============================================================
-    // TUNING MAPS (PRIMARY CONTROL SOURCE)
+    // TUNING MAPS
     // ============================================================
 
     private static final InterpolatingDoubleTreeMap rpmMap = new InterpolatingDoubleTreeMap();
-
     private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
 
     static {
-        // Distance (m) -> Flywheel RPM (RAW, BEFORE log shaping)
-        rpmMap.put(0.10, 100.0);
-        rpmMap.put(0.20, 200.0);
-        rpmMap.put(0.25, 300.0);
-        rpmMap.put(0.27, 400.0);
-        rpmMap.put(0.30, 500.0);
+        /**
+         * Distance (m) -> Flywheel RPM
+         * Based on Anchors: 1.5m @ 1150, 2.0m @ 1200
+         */
+        rpmMap.put(1.20, 1100.0); // Slightly less than 1.5m, but high angle needs speed
+        rpmMap.put(1.50, 1150.0); // TESTED ANCHOR
+        rpmMap.put(2.00, 1200.0); // TESTED ANCHOR
+        rpmMap.put(2.50, 1350.0); // Curve starts to steepen here
+        rpmMap.put(3.00, 1280.0); // REDUCED from 1550 to prevent overshot
+        rpmMap.put(4.00, 1850.0); // REDUCED from 2100 to prevent overshot
 
-        // Distance (m) -> Hood angle (deg)
-        hoodAngleMap.put(0.10, 25.0);
-        hoodAngleMap.put(0.20, 30.0);
-        hoodAngleMap.put(0.25, 35.0);
-        hoodAngleMap.put(0.27, 40.0);
-        hoodAngleMap.put(0.30, 45.0);
+        /**
+         * Distance (m) -> Hood angle (deg)
+         * Based on Anchors: 1.5m @ 65°, 2.0m @ 59°
+         */
+        hoodAngleMap.put(1.20, 72.0); // Steeper for the close-in "drop"
+        hoodAngleMap.put(1.50, 65.0); // TESTED ANCHOR
+        hoodAngleMap.put(2.00, 59.0); // TESTED ANCHOR
+        hoodAngleMap.put(2.50, 53.0); // Scaling down the angle to reach
+        hoodAngleMap.put(3.00, 59.0); // RAISED from 48.0 (Steeper = loops into goal)
+        hoodAngleMap.put(4.00, 48.0); // RAISED from 40.0 (The physics "sweet spot")
     }
 
     // ============================================================
-    // PUBLIC SOLVER
+    // PUBLIC SOLVER (MOVING)
     // ============================================================
+    public static MovingShotSolution solveMoving(
+            Pose2d robotPose,
+            ChassisSpeeds fieldSpeeds,
+            Translation2d goalLocation) {
 
-    /**
-     * Computes a complete shooter solution from distance alone.
-     */
+        Translation2d robotVelocity = new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
+        Translation2d predictedRobotPos = robotPose.getTranslation().plus(robotVelocity.times(SYSTEM_LATENCY_SEC));
+
+        Translation2d targetVec = goalLocation.minus(predictedRobotPos);
+        double dist = targetVec.getNorm();
+
+        double idealStationaryRPM = rpmMap.get(MathUtil.clamp(dist, MIN_DISTANCE, MAX_DISTANCE));
+
+        // Physics conversion
+        double tangentialVelocity = (idealStationaryRPM / 60.0) * (2 * Math.PI * WHEEL_RADIUS);
+        Translation2d shotVec = targetVec.div(dist).times(tangentialVelocity).minus(robotVelocity);
+
+        Rotation2d compensatedHeading = shotVec.getAngle();
+        double compensatedVelocityMS = shotVec.getNorm();
+
+        double compensatedRPM = (compensatedVelocityMS * 60.0) / (2 * Math.PI * WHEEL_RADIUS);
+        Angle hoodAngle = Degrees.of(hoodAngleMap.get(dist));
+
+        return new MovingShotSolution(compensatedHeading, compensatedRPM, hoodAngle, dist);
+    }
+
+    public record MovingShotSolution(Rotation2d heading, double rpm, Angle hoodAngle, double distanceMeters) {
+    }
+
+    // ============================================================
+    // PUBLIC SOLVER (STATIONARY)
+    // ============================================================
     public static ShooterSolution solve(double distanceMeters) {
 
-        if (distanceMeters < MIN_DISTANCE || distanceMeters > MAX_DISTANCE) {
-            return ShooterSolution.invalid(distanceMeters);
-        }
-
         double clamped = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
-
         Angle hoodAngle = Degrees.of(hoodAngleMap.get(clamped));
 
-        // RAW RPM from table (you control this)
-        double rawRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
+        // FIX: Removed applyLogCurve. We use the raw value from the map.
+        double targetRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
 
-        // 🔥 Logarithmic shaping
-        double shapedRPM = applyLogCurve(rawRPM);
-
-        double physicsRPM = calculatePhysicsRPM(clamped, hoodAngle);
-
-        return new ShooterSolution(
-                hoodAngle,
-                shapedRPM,
-                physicsRPM,
-                clamped,
-                true);
+        return new ShooterSolution(hoodAngle, targetRPM, 0.0, clamped, true);
     }
 
-    /**
-     * Fallback solution (YOU set the RPM here)
-     */
     public static ShooterSolution fallback() {
-
-        double rawRPM = 500.0;
-        double shapedRPM = applyLogCurve(rawRPM);
-
-        return new ShooterSolution(
-                Degrees.of(35),
-                shapedRPM,
-                0.0,
-                0.0,
-                true);
+        // FIX: Replaced shapedRPM with raw 1150 value
+        return new ShooterSolution(Degrees.of(65), 1150.0, 0.0, 1.5, true);
     }
 
-    // ============================================================
-    // LOGARITHMIC CURVE (CORE LOGIC)
-    // ============================================================
-
-    private static double applyLogCurve(double rpm) {
-
-        double normalized = MathUtil.clamp(rpm / MAX_RPM, 0.0, 1.0);
-
-        double curved = Math.log(1.0 + LOG_K * normalized) /
-                Math.log(1.0 + LOG_K);
-
-        return MAX_RPM * curved;
-    }
-
-    // ============================================================
-    // PHYSICS MODEL (VALIDATION ONLY)
-    // ============================================================
-
-    private static double calculatePhysicsRPM(
-            double distanceMeters,
-            Angle hoodAngle) {
-
-        double theta = hoodAngle.in(Radians);
-        double d = distanceMeters;
-        double h = TARGET_HEIGHT - SHOOTER_HEIGHT;
-
-        double cos = Math.cos(theta);
-        double tan = Math.tan(theta);
-
-        double denom = 2.0 * cos * cos * (h - d * tan);
-
-        if (denom >= 0.0) {
-            return 0.0;
-        }
-
-        double v = Math.sqrt((GRAVITY * d * d) / (-denom));
-
-        double rpm = (v / WHEEL_RADIUS) * 60.0 / (2.0 * Math.PI);
-
-        return Math.min(rpm, MAX_RPM);
-    }
-
-    // ============================================================
-    // PHOTONVISION UTILITY
-    // ============================================================
-
-    public static double extractPlanarDistance(
-            PhotonTrackedTarget target) {
-
-        Transform3d camToTarget = target.getBestCameraToTarget();
-
-        double x = camToTarget.getTranslation().getX();
-        double y = camToTarget.getTranslation().getY();
-
-        return Math.hypot(x, y);
-    }
-
-    // ============================================================
-    // RESULT CONTAINER
-    // ============================================================
-
-    public record ShooterSolution(
-            Angle hoodAngle,
-            double rpm,
-            double physicsRPM,
-            double distanceMeters,
+    // result container
+    public record ShooterSolution(Angle hoodAngle, double rpm, double physicsRPM, double distanceMeters,
             boolean valid) {
-
         public static ShooterSolution invalid(double distance) {
-            return new ShooterSolution(
-                    Degrees.zero(),
-                    0.0,
-                    0.0,
-                    distance,
-                    false);
+            return new ShooterSolution(Degrees.zero(), 0.0, 0.0, distance, false);
         }
     }
 
