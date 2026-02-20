@@ -22,12 +22,11 @@ import frc.robot.subsystems.TankDrive.DriveIOSim;
 import frc.robot.subsystems.TankDrive.DriveIOSpark;
 import frc.robot.subsystems.TankDrive.DriveIOTalonFX;
 import frc.robot.subsystems.TankDrive.DriveConstants;
-import frc.robot.subsystems.imu.GyroIOPigeon2;
+import frc.robot.subsystems.imu.GyroIONavX;
 import frc.robot.subsystems.imu.GyroIOSim;
 import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
-import frc.robot.subsystems.Elevator.ElevatorSubsystem;
 import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 
 import org.littletonrobotics.junction.Logger;
@@ -82,7 +81,6 @@ public class RobotContainer {
         private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
         private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
 
-        private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
         private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
         public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new fuelSim of FuelSim
 
@@ -135,7 +133,7 @@ public class RobotContainer {
                 // Create IMU subsystem with appropriate IO implementation
                 imu = new ImuSubsystem(
                                 RobotBase.isReal()
-                                                ? new GyroIOPigeon2(DriveConstants.pigeonCanId, "rio")
+                                                ? new GyroIONavX()
                                                 : gyroSim);
 
                 // Create Drive subsystem with mode-appropriate IO implementation

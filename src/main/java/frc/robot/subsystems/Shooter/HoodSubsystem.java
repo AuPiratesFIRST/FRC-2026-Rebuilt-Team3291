@@ -27,7 +27,8 @@ import yams.motorcontrollers.local.SparkWrapper;
  * - Position control using NEO 550 motor with 3:4 gearing
  * - Soft limits (5° to 100°) prevent mechanical damage
  * - Hard limits (0° to 120°) as backup safety
- * - ArmFeedforward accounts for gravity (hood weight matters at different angles)
+ * - ArmFeedforward accounts for gravity (hood weight matters at different
+ * angles)
  * - Brake mode holds position when disabled
  * 
  * The hood uses a command factory pattern - call setAngle() to get a command
