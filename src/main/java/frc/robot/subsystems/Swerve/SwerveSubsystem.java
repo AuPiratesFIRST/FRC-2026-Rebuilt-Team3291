@@ -10,6 +10,7 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 
 import java.io.File;
 import java.util.function.DoubleSupplier;
+import java.util.function.Supplier; // Added for the new driveCommand
 
 import swervelib.SwerveDrive;
 import swervelib.parser.SwerveParser;
@@ -59,6 +60,14 @@ public class SwerveSubsystem extends SubsystemBase {
 
   /* -------------------- TELEOP DRIVE -------------------- */
 
+  /**
+   * New driveCommand that accepts a Supplier of ChassisSpeeds.
+   * This allows SwerveInputStream to be passed directly.
+   */
+  public Command driveCommand(Supplier<ChassisSpeeds> speedSupplier) {
+    return run(() -> swerveDrive.drive(speedSupplier.get()));
+  }
+
   public Command driveCommand(
       DoubleSupplier vX,
       DoubleSupplier vY,
@@ -104,14 +113,8 @@ public class SwerveSubsystem extends SubsystemBase {
             .orElse(false),
         this);
 
-    // Set up A* pathfinding algorithm for generating paths on-the-fly
-    // LocalADStarAK is a custom AdvantageKit-compatible version of the AD*
-    // algorithm
     Pathfinding.setPathfinder(new LocalADStarAK());
 
-    // Hook up PathPlanner to AdvantageKit logging
-    // This logs the planned path trajectory so we can visualize it in
-    // AdvantageScope
     PathPlannerLogging.setLogActivePathCallback(
         path -> Logger.recordOutput(
             "Odometry/Trajectory", path.toArray(new Pose2d[0])));
@@ -152,16 +155,22 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    // Tell simulated cameras where the robot is in 3D
     vision.updateSimPose(swerveDrive.getPose());
   }
 
-  /* -------------------- ROBOT-RELATIVE DRIVE -------------------- */
   public void drive(ChassisSpeeds speeds) {
     swerveDrive.setChassisSpeeds(speeds);
   }
 
   /* -------------------- ACCESSORS -------------------- */
+
+  /**
+   * Getter for the SwerveDrive object.
+   * Required for RobotContainer to initialize SwerveInputStream.
+   */
+  public SwerveDrive getSwerveDrive() {
+    return swerveDrive;
+  }
 
   public Pose2d getPose() {
     return swerveDrive.getPose();

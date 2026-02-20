@@ -37,6 +37,9 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.commands.AutoScoreCommand;
 
+// Import the YAGSL SwerveInputStream
+import swervelib.SwerveInputStream;
+
 /**
  * RobotContainer
  * -----------------------------
@@ -150,45 +153,47 @@ public class RobotContainer {
         private void configureBindings() {
 
                 // ================= DRIVE =================
-                drivebase.setDefaultCommand(
-                                drivebase.driveCommand(
-                                                () -> -MathUtil.applyDeadband(driver.getLeftY(), 0.1),
-                                                // Corrected deadband for LeftX. Your original had 0.9, which is very
-                                                // high.
-                                                () -> -MathUtil.applyDeadband(driver.getLeftX(), 0.1),
-                                                () -> {
-                                                        double rightStickX = -MathUtil.applyDeadband(driver.getRightX(),
-                                                                        0.1);
 
-                                                        if (Math.abs(rightStickX) > 0.05) {
-                                                                // Driver is actively rotating with the stick.
-                                                                // Call manualRotate with the stick value. This will
-                                                                // also handle
-                                                                // disabling hub tracking if it was previously enabled.
-                                                                turret.manualRotate(rightStickX);
-                                                                // Directly return the stick input for immediate
-                                                                // responsiveness.
-                                                                return rightStickX;
-                                                        } else {
-                                                                // Stick is in deadband (i.e., released).
-                                                                // If hub tracking is NOT currently active, explicitly
-                                                                // tell the turret
-                                                                // to stop manual rotation by setting manualOmega to
-                                                                // 0.0.
-                                                                if (!turret.isHubTrackingEnabled()) {
-                                                                        turret.manualRotate(0.0); // Explicitly stop
-                                                                                                  // manual rotation
-                                                                }
-                                                                // In either case (hub tracking enabled, or manual
-                                                                // rotation explicitly stopped),
-                                                                // get the desired angular velocity from the turret
-                                                                // subsystem.
-                                                                // If hub tracking is enabled, this will be PID output.
-                                                                // If hub tracking is disabled, this will be the (now
-                                                                // 0.0) manualOmega.
-                                                                return turret.getDesiredRobotOmega();
-                                                        }
-                                                }));
+                /**
+                 * SwerveInputStream is a builder-style helper for YAGSL.
+                 * It simplifies the process of:
+                 * 1. Converting Controller inputs (Raw Axis) to ChassisSpeeds.
+                 * 2. Applying Deadbands and Scaling in one place.
+                 * 3. Handling Alliance-relative controls (field-oriented) automatically.
+                 */
+                SwerveInputStream driveStream = SwerveInputStream.of(drivebase.getSwerveDrive(),
+                                () -> -driver.getLeftY(), // Forward/Backward
+                                () -> -driver.getLeftX()) // Left/Right strafe
+                                .deadband(0.1) // Apply 10% deadband to all translation axes
+                                .scaleTranslation(0.8) // Reduce max speed to 80% for better control
+                                .allianceRelativeControl(true) // Ensure "Forward" is always away from your alliance
+                                                               // wall
+                                .withControllerRotationAxis(() -> {
+                                        // Custom logic to bridge the Driver's Right Stick and the Turret Auto-Aim
+                                        double rightStickX = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+
+                                        if (Math.abs(rightStickX) > 0.05) {
+                                                // Driver is actively rotating with the stick.
+                                                // Call manualRotate with the stick value. This will also handle
+                                                // disabling hub tracking if it was previously enabled.
+                                                turret.manualRotate(rightStickX);
+                                                // Directly return the stick input for immediate responsiveness.
+                                                return rightStickX;
+                                        } else {
+                                                // Stick is in deadband (i.e., released).
+                                                // If hub tracking is NOT currently active, explicitly tell the turret
+                                                // to stop manual rotation by setting manualOmega to 0.0.
+                                                if (!turret.isHubTrackingEnabled()) {
+                                                        turret.manualRotate(0.0);
+                                                }
+                                                // Return the auto-aim PID output or 0.0 if disabled.
+                                                return turret.getDesiredRobotOmega();
+                                        }
+                                });
+
+                // Set the SwerveInputStream as the supplier for the drive command
+                drivebase.setDefaultCommand(drivebase.driveCommand(driveStream));
+
                 driver.a().onTrue(
                                 Commands.runOnce(drivebase::zeroGyro));
 
@@ -208,7 +213,7 @@ public class RobotContainer {
                                 new ChaseTagCommand(
                                                 vision,
                                                 drivebase,
-                                                new int[] { 1 },
+                                                new int[] { 25 },
                                                 1.5));
 
                 driver.b().onTrue(
