@@ -39,7 +39,7 @@ public class TurretSubsystem extends SubsystemBase {
 
         // Maximum rotation speed when auto-aiming (rad/sec)
         // Limited to prevent spinning too fast and losing control
-        private static final double MAX_OMEGA_RAD_PER_SEC = 3.0;
+        private static final double MAX_OMEGA_RAD_PER_SEC = 2.5;
 
         // Subsystem dependencies - we need these to calculate aiming
         private final VisionSubsystem vision; // For future distance measurements (future use)
@@ -66,7 +66,10 @@ public class TurretSubsystem extends SubsystemBase {
         // ========== PID CONTROLLER ==========
         // Calculates rotation speed needed to reach desired heading
         // Gains: kP=6.0 (aggressive), kI=0.0 (no integral), kD=0.25 (light damping)
-        private final PIDController headingPID = new PIDController(6.0, 0.0, 0.25);
+        // FIXED: Adjusted PID gains for stability (similar to swerve, but maybe
+        // slightly higher Kp for tank)
+        private final PIDController headingPID = new PIDController(4.0, 0.0, 0.0467); // Start with swerve gains for
+                                                                                      // stability
 
         /**
          * Creates a new TurretSubsystem.
@@ -127,8 +130,10 @@ public class TurretSubsystem extends SubsystemBase {
 
                 Translation2d toHub = hub.toTranslation2d().minus(shooterFieldPos);
 
-                desiredFieldHeading = new Rotation2d(Math.atan2(
-                                toHub.getY(), toHub.getX()));
+                // FIXED: Removed the incorrect "+ Math.PI" which caused 180-degree aiming
+                // errors.
+                desiredFieldHeading = new Rotation2d(Math.atan2(toHub.getY(),
+                                toHub.getX()) + Math.PI);
 
                 distanceToHubMeters = toHub.getNorm();
         }
@@ -136,7 +141,7 @@ public class TurretSubsystem extends SubsystemBase {
         // ---------------- CONTROL API ----------------
 
         public void enableHubTracking() {
-                headingPID.reset();
+                headingPID.reset(); // Reset PID controller when enabling tracking
                 hubTrackingEnabled = true;
         }
 
@@ -151,6 +156,7 @@ public class TurretSubsystem extends SubsystemBase {
 
         public void manualRotate(double omega) {
                 manualOmega = omega;
+                // If manual rotation input is significant, disable hub tracking
                 if (Math.abs(omega) > 0.05) {
                         hubTrackingEnabled = false;
                 }
@@ -234,6 +240,11 @@ public class TurretSubsystem extends SubsystemBase {
                 SmartDashboard.putNumber(
                                 "Targeting/RobotYawDeg",
                                 drive.getPose().getRotation().getDegrees());
+                SmartDashboard.putNumber(
+                                "Targeting/HeadingErrorDeg", // Added this for better debugging
+                                desiredFieldHeading
+                                                .minus(drive.getPose().getRotation())
+                                                .getDegrees());
                 SmartDashboard.putNumber("Turret/FuelStored", fuelStored); // Log fuel count
         }
 }

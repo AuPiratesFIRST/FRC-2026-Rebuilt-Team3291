@@ -305,7 +305,7 @@ public class RobotContainer {
                 // 1. Pathfind to scoring position near hub
                 // 2. Vision align to exact distance
                 // kCancelSelf = can be interrupted by driver taking manual control
-                operator.x()
+                driver.x()
                                 .onTrue(
                                                 new AutoScoreCommand(drive, vision)
                                                                 .withInterruptBehavior(
@@ -355,7 +355,7 @@ public class RobotContainer {
                 // // A button: Manual shooter test at fixed settings
                 // // Useful for testing shooter mechanics without vision
                 // // 1300 RPM and 65° hood angle = medium-range shot
-                driver.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
+                operator.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
                                                 shooter.setRPM(1300),
                                                 hood.setAngle(Degrees.of(65)),
