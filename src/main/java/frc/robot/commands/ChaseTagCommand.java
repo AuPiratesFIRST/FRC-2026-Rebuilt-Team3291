@@ -52,7 +52,7 @@ public class ChaseTagCommand extends Command {
                 // faces away from the tag, meaning the REAR faces the tag.
                 this.tagToGoal = new Transform3d(
                                 new Translation3d(targetDistanceMeters, 0.0, 0.0),
-                                new Rotation3d(0.0, 0.0, Math.PI));
+                                new Rotation3d(0.0, 0.0, 0.0));
 
                 xController.setTolerance(0.05);
                 yController.setTolerance(0.05);

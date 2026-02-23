@@ -78,7 +78,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withStatorCurrentLimit(Amps.of(40))
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
-                            SmartMotorControllerConfig.TelemetryVerbosity.MID));
+                            SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
     private final FlyWheel flywheel = new FlyWheel(
             new FlyWheelConfig(shooterSMC)

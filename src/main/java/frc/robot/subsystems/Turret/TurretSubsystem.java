@@ -2,12 +2,14 @@ package frc.robot.subsystems.Turret;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.*;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
+import frc.robot.subsystems.Shooter.ShooterAimCalculator;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -20,42 +22,39 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
         // CONSTANTS
         // ------------------------------------------------
+        // NEGATIVE offset because the shooter is on the BACK of the robot
+        private static final Translation2d SHOOTER_OFFSET = new Translation2d(-0.35, 0.0);
 
-        private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35,
-                        0.0);
-
-        // ========== FUEL STORAGE ==========
         private int fuelStored = 5;
-        public static final int FUEL_CAPACITY = 200; // Example capacity for fuel
+        public static final int FUEL_CAPACITY = 200;
 
         // ------------------------------------------------
         // DEPENDENCIES
         // ------------------------------------------------
-
         private final VisionSubsystem vision;
         private final SwerveSubsystem swerve;
-        private final ShooterSubsystem shooter; // For visualization
-        private final HoodSubsystem hood; // For visualization
+        private final ShooterSubsystem shooter;
+        private final HoodSubsystem hood;
         private final FuelSim fuelSim;
-        // ADDED
         private final TurretVisualizer visualizer;
 
         // ------------------------------------------------
         // STATE
         // ------------------------------------------------
-
         private boolean hubTrackingEnabled = false;
         private double manualOmega = 0.0;
 
         private Rotation2d desiredFieldHeading = new Rotation2d();
         private double distanceToHubMeters = 0.0;
 
+        private double calculatedRPM = 0.0;
+        private double calculatedHoodAngleDeg = 0.0;
+
         // ------------------------------------------------
         // CONTROLLERS
         // ------------------------------------------------
 
-        private final PIDController headingPID = new PIDController(2.0, 0.0, 0.25);
-
+        private final PIDController headingPID = new PIDController(5.0, 0.0, 0.25); // P=4.0 for fast snapping
         // ------------------------------------------------
         // CONSTRUCTOR
         // ------------------------------------------------
@@ -71,22 +70,17 @@ public class TurretSubsystem extends SubsystemBase {
                 this.swerve = swerve;
                 this.shooter = shooter;
                 this.hood = hood;
-                this.fuelSim = fuelSim; // Assign the passed FuelSi
+                this.fuelSim = fuelSim;
 
                 headingPID.enableContinuousInput(-Math.PI, Math.PI);
 
-                // ADDED
                 visualizer = new TurretVisualizer(
                                 fuelSim,
                                 () -> new Pose3d(
-
                                                 swerve.getPose().getTranslation().getX(),
                                                 swerve.getPose().getTranslation().getY(),
                                                 0.0,
-                                                new Rotation3d(
-                                                                0,
-                                                                0,
-                                                                swerve.getPose().getRotation().getRadians())),
+                                                new Rotation3d(0, 0, swerve.getPose().getRotation().getRadians())),
                                 swerve::getFieldVelocity,
                                 () -> DriverStation.getAlliance()
                                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue);
@@ -95,24 +89,14 @@ public class TurretSubsystem extends SubsystemBase {
         // ------------------------------------------------
         // PERIODIC
         // ------------------------------------------------
-
         @Override
         public void periodic() {
                 updateTargeting();
                 logToAdvantageScope();
-
-                // FIX: correct shooter velocity getter
-                visualizer.update(
-                                shooter.getTargetRPM(),
-                                hood.getTargetAngle());
+                visualizer.update(shooter.getTargetRPM(), hood.getTargetAngle());
         }
 
-        // ------------------------------------------------
-        // TARGETING MATH
-        // ------------------------------------------------
-
         private void updateTargeting() {
-
                 Translation3d hub = DriverStation.getAlliance()
                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue
                                                 ? Constants.FieldConstants.HUB_BLUE
@@ -120,16 +104,33 @@ public class TurretSubsystem extends SubsystemBase {
 
                 Pose2d robotPose = swerve.getPose();
                 Rotation2d robotYaw = robotPose.getRotation();
+                ChassisSpeeds speeds = swerve.getFieldVelocity();
 
-                Translation2d shooterFieldPos = robotPose.getTranslation()
-                                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
+                // 1. Calculate where the shooter is physically located
+                Translation2d shooterFieldPos = robotPose.getTranslation().plus(SHOOTER_OFFSET.rotateBy(robotYaw));
 
-                Translation2d toHub = hub.toTranslation2d().minus(shooterFieldPos);
+                // 2. Simple Latency Compensation (Predict where shooter will be in 0.15
+                // seconds)
+                Translation2d robotVelocity = new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
+                Translation2d futureShooterPos = shooterFieldPos.plus(robotVelocity.times(0.15));
 
-                desiredFieldHeading = new Rotation2d(
-                                Math.atan2(toHub.getY(), toHub.getX()));
-
+                // 3. Vector to the hub
+                Translation2d toHub = hub.toTranslation2d().minus(futureShooterPos);
                 distanceToHubMeters = toHub.getNorm();
+
+                // 4. Calculate Heading (YOUR original tracking math + Math.PI to face backward)
+                desiredFieldHeading = new Rotation2d(Math.atan2(toHub.getY(), toHub.getX()) + Math.PI);
+
+                // 5. Calculate RPM and Hood using our clean Calculator
+                var solution = ShooterAimCalculator.solve(distanceToHubMeters);
+                calculatedRPM = solution.rpm();
+                calculatedHoodAngleDeg = solution.hoodAngle().in(edu.wpi.first.units.Units.Degrees);
+
+                // 6. Apply to hardware if tracking is enabled
+                if (hubTrackingEnabled) {
+                        shooter.applyRPM(calculatedRPM);
+                        hood.applyAngle(solution.hoodAngle());
+                }
         }
 
         // ------------------------------------------------
@@ -148,7 +149,6 @@ public class TurretSubsystem extends SubsystemBase {
         public void manualRotate(double omega) {
                 hubTrackingEnabled = false;
                 manualOmega = omega;
-
                 if (Math.abs(omega) > 0.05) {
                         hubTrackingEnabled = false;
                 }
@@ -171,19 +171,20 @@ public class TurretSubsystem extends SubsystemBase {
                 return distanceToHubMeters;
         }
 
-        // ------------------------------------------------
-        // ACCESSORS
-        // ------------------------------------------------
         public boolean isHubTrackingEnabled() {
                 return hubTrackingEnabled;
         }
 
-        // Fuel storage and shooting methods
+        public SwerveSubsystem getSwerve() {
+                return swerve;
+        }
+
+        // ------------------------------------------------
+        // FUEL LOGIC
+        // ------------------------------------------------
         public void intakeFuel() {
-                if (fuelStored < FUEL_CAPACITY) {
+                if (fuelStored < FUEL_CAPACITY)
                         fuelStored++;
-                        System.out.println("Fuel intaken! Total: " + fuelStored); // For debugging
-                }
         }
 
         public boolean canShoot() {
@@ -200,51 +201,25 @@ public class TurretSubsystem extends SubsystemBase {
 
         public void resetFuelStored() {
                 fuelStored = 0;
-                System.out.println("Fuel stored reset to 0.");
         }
 
         public void shoot() {
-                if (!edu.wpi.first.wpilibj.RobotBase.isSimulation()) {
+                if (!edu.wpi.first.wpilibj.RobotBase.isSimulation())
                         return;
-                }
-
-                if (canShoot()) { // Check if we have fuel
-                        fuelStored--; // Decrement fuel count
-                        System.out.println("Shooting fuel! Remaining: " + fuelStored); // For debugging
-                        visualizer.fire(
-                                        shooter.getTargetRPM(),
-                                        hood.getTargetAngle());
-                } else {
-                        System.out.println("Cannot shoot: No fuel stored."); // For debugging
+                if (canShoot()) {
+                        fuelStored--;
+                        visualizer.fire(shooter.getTargetRPM(), hood.getTargetAngle());
                 }
         }
 
-        // ------------------------------------------------
-        // LOGGING (ADVANTAGESCOPE)
-        // ------------------------------------------------
-
         private void logToAdvantageScope() {
-
-                SmartDashboard.putBoolean(
-                                "Turret/HubTrackingEnabled",
-                                hubTrackingEnabled);
-
-                SmartDashboard.putNumber(
-                                "Targeting/DistanceMeters",
-                                distanceToHubMeters);
-
-                SmartDashboard.putNumber(
-                                "Targeting/DesiredHeadingDeg",
-                                desiredFieldHeading.getDegrees());
-
-                SmartDashboard.putNumber(
-                                "Targeting/RobotYawDeg",
-                                swerve.getPose().getRotation().getDegrees());
-
-                SmartDashboard.putNumber(
-                                "Targeting/HeadingErrorDeg",
-                                desiredFieldHeading
-                                                .minus(swerve.getPose().getRotation())
-                                                .getDegrees());
+                SmartDashboard.putBoolean("Turret/HubTrackingEnabled", hubTrackingEnabled);
+                SmartDashboard.putNumber("Targeting/DistanceMeters", distanceToHubMeters);
+                SmartDashboard.putNumber("Targeting/DesiredHeadingDeg", desiredFieldHeading.getDegrees());
+                SmartDashboard.putNumber("Targeting/RobotYawDeg", swerve.getPose().getRotation().getDegrees());
+                SmartDashboard.putNumber("Targeting/HeadingErrorDeg",
+                                desiredFieldHeading.minus(swerve.getPose().getRotation()).getDegrees());
+                SmartDashboard.putNumber("Targeting/CalculatedRPM", calculatedRPM);
+                SmartDashboard.putNumber("Targeting/CalculatedHoodDeg", calculatedHoodAngleDeg);
         }
 }

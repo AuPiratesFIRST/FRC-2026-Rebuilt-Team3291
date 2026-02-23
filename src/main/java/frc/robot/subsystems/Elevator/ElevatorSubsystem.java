@@ -31,7 +31,7 @@ public class ElevatorSubsystem extends SubsystemBase {
                     MetersPerSecond.of(1),
                     MetersPerSecondPerSecond.of(2))
             .withFeedforward(new ElevatorFeedforward(0, 0, 0))
-            .withTelemetry("ElevatorMotor", TelemetryVerbosity.HIGH)
+            .withTelemetry("ElevatorMotor", TelemetryVerbosity.LOW)
             .withGearing(12)
             .withMotorInverted(false)
             .withStatorCurrentLimit(Amps.of(40))
@@ -49,7 +49,7 @@ public class ElevatorSubsystem extends SubsystemBase {
             .withStartingHeight(Meters.of(0))
             .withHardLimits(Meters.of(0), Meters.of(1.5))
             .withMass(Kilograms.of(5))
-            .withTelemetry("Elevator", TelemetryVerbosity.HIGH);
+            .withTelemetry("Elevator", TelemetryVerbosity.LOW);
 
     private final Elevator elevator = new Elevator(elevatorConfig);
 
