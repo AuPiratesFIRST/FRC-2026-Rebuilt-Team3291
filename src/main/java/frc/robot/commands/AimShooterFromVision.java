@@ -63,7 +63,7 @@ public class AimShooterFromVision extends Command {
     @Override
     public void end(boolean interrupted) {
         // Let default commands take over
-        shooter.stop().schedule();
+        shooter.stop();
     }
 
     @Override
