@@ -46,7 +46,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
     // CAN ID 28 must match what's configured in REV Hardware Client
-    private final SparkMax shooterMotor = new SparkMax(28, MotorType.kBrushless);
+    private final SparkMax shooterMotor = new SparkMax(23, MotorType.kBrushless);
 
     // ========== YAMS SMART MOTOR CONTROLLER ==========
     // YAMS wraps the SparkMax and adds features like automatic logging,

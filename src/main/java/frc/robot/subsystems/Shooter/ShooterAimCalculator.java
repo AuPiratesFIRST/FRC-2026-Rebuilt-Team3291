@@ -49,8 +49,8 @@ public final class ShooterAimCalculator {
         rpmMap.put(1.50, 1150.0); // TESTED ANCHOR
         rpmMap.put(2.00, 1200.0); // TESTED ANCHOR
         rpmMap.put(2.50, 1350.0); // Curve starts to steepen here
-        rpmMap.put(3.00, 1280.0); // REDUCED from 1550 to prevent overshot
-        rpmMap.put(4.00, 1850.0); // REDUCED from 2100 to prevent overshot
+        rpmMap.put(3.00, 1380.0); // REDUCED from 1550 to prevent overshot
+        rpmMap.put(4.00, 1650.0); // REDUCED from 2100 to prevent overshot
     }
 
     // ============================================================
@@ -77,7 +77,7 @@ public final class ShooterAimCalculator {
         double compensatedVelocityMS = shotVec.getNorm();
 
         double compensatedRPM = (compensatedVelocityMS * 60.0) / (2 * Math.PI * WHEEL_RADIUS);
-        
+
         // Hood is fixed at constant angle
         return new MovingShotSolution(compensatedHeading, compensatedRPM, FIXED_HOOD_ANGLE, dist);
     }
@@ -91,7 +91,7 @@ public final class ShooterAimCalculator {
     public static ShooterSolution solve(double distanceMeters) {
 
         double clamped = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
-        
+
         // Hood is fixed at constant angle
         double targetRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
 

@@ -35,6 +35,7 @@ import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.AutoScoreCommand;
+import frc.robot.commands.ChaseTagCommand;
 
 /**
  * RobotContainer - The heart of the robot's organization and control structure.
@@ -184,10 +185,6 @@ public class RobotContainer {
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
-                // Auto score: pathfind + vision dock
-                NamedCommands.registerCommand(
-                                "AutoScore", new AutoScoreCommand(drive, vision));
-
                 NamedCommands.registerCommand(
                                 "StopShooter",
                                 shooter.stop());
@@ -213,6 +210,11 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "AimFromVision",
                                 new AimShooterFromVision(shooter, hood, vision));
+                NamedCommands.registerCommand(
+                                "AimShoot",
+                                Commands.parallel(
+                                                new AimShooterFromVision(shooter, hood, vision),
+                                                turret.shootCommand()));
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(
@@ -287,6 +289,13 @@ public class RobotContainer {
                 // driver.a().onTrue(
                 // Commands.runOnce(imu::zeroYaw));
 
+                driver.povDown().whileTrue(
+                                new ChaseTagCommand(
+                                                vision,
+                                                drive,
+                                                new int[] { 25 },
+                                                3.0));
+
                 // ================= TURRET AUTO-AIM =================
                 // These buttons enable/disable "heading lock" mode
                 // When enabled, robot automatically rotates to face hub
@@ -349,8 +358,13 @@ public class RobotContainer {
                 // // Right trigger: Vision-based automatic aiming
                 // // Continuously adjusts shooter RPM and hood angle based on distance
                 // // Deadband of 0.2 prevents accidental activation
-                operator.rightTrigger(0.2).whileTrue(
-                                new AimShooterFromVision(shooter, hood, vision));
+                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                                new AimShooterFromVision(shooter, hood, vision),
+                                turret.shootCommand()));
+
+                operator.rightTrigger(0.2).whileTrue(Commands.parallel(
+                                new AimShooterFromVision(shooter, hood, vision),
+                                turret.shootCommand()));
 
                 // // A button: Manual shooter test at fixed settings
                 // // Useful for testing shooter mechanics without vision
