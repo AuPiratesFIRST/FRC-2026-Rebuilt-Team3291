@@ -123,7 +123,14 @@ public class RobotContainer {
                                                 hood.setAngle(Degrees.of(65))));
                 NamedCommands.registerCommand(
                                 "AimFromVision",
-                                new AimShooterFromVision(shooter, hood, vision));
+                                Commands.deadline(
+                                                // The Leader: Guaranteed to end at 0.8s
+                                                Commands.waitSeconds(0.8),
+
+                                                // Follower 1: Keeps the shooter wheels and hood moving based on vision
+                                                new AimShooterFromVision(shooter, hood, vision),
+
+                                                turret.shootCommand()));
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(

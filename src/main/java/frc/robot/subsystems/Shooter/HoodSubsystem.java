@@ -99,7 +99,7 @@ public class HoodSubsystem extends SubsystemBase {
 
     public void applyAngle(Angle angle) {
         lastTarget = angle;
-        hood.setAngle(() -> angle).schedule();
+        hood.setAngle(() -> angle);
     }
 
     public Angle getTargetAngle() {
