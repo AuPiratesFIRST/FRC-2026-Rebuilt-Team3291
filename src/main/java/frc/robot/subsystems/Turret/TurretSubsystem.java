@@ -2,6 +2,7 @@ package frc.robot.subsystems.Turret;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.*;
+import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -103,36 +104,31 @@ public class TurretSubsystem extends SubsystemBase {
                                                 : Constants.FieldConstants.HUB_RED;
 
                 Pose2d robotPose = swerve.getPose();
-                Rotation2d robotYaw = robotPose.getRotation();
                 ChassisSpeeds speeds = swerve.getFieldVelocity();
 
-                // 1. Calculate where the shooter is physically located on the field
-                Translation2d shooterFieldPos = robotPose.getTranslation().plus(SHOOTER_OFFSET.rotateBy(robotYaw));
+                // 1. Calculate the field-relative position of the shooter mechanism
+                Translation2d shooterFieldPos = robotPose.getTranslation()
+                                .plus(SHOOTER_OFFSET.rotateBy(robotPose.getRotation()));
+                Pose2d shooterPose = new Pose2d(shooterFieldPos, robotPose.getRotation());
 
-                // We create a "mock" Pose2d representing just the shooter to feed into our math
-                Pose2d shooterPose = new Pose2d(shooterFieldPos, robotYaw);
-
-                // ==========================================================
-                // 2. CALL THE "SHOOT ON THE MOVE" MATH
-                // This automatically handles Latency, Vector Drift, and RPMs
-                // ==========================================================
+                // 2. Calculate Aiming Parameters
                 var solution = ShooterAimCalculator.solveMoving(
                                 shooterPose,
                                 speeds,
                                 hub.toTranslation2d());
 
-                // 3. Extract the calculated data
+                // 3. Store results for logging/PID
                 distanceToHubMeters = solution.distanceMeters();
                 calculatedRPM = solution.rpm();
-                calculatedHoodAngleDeg = solution.hoodAngle().in(edu.wpi.first.units.Units.Degrees);
+                calculatedHoodAngleDeg = solution.hoodAngle().in(Degrees);
 
-                // 4. APPLY THE 180-DEGREE FLIP!
-                // solution.heading() is the direction the BALL needs to fly.
-                // Because our shooter is on the back, the robot chassis must face 180 degrees
-                // away.
-                desiredFieldHeading = solution.heading().plus(new Rotation2d(Math.PI));
+                // 4. THE 180-DEGREE FLIP
+                // The calculator returns where the BALL should go.
+                // Since the shooter is on the back, the robot's front must point away from the
+                // target.
+                desiredFieldHeading = solution.heading().plus(Rotation2d.fromDegrees(180));
 
-                // 5. Apply to hardware if tracking is enabled
+                // 5. Apply to hardware
                 if (hubTrackingEnabled) {
                         shooter.applyRPM(calculatedRPM);
                         hood.applyAngle(solution.hoodAngle());

@@ -65,29 +65,37 @@ public final class ShooterAimCalculator {
     // PUBLIC SOLVER (MOVING)
     // ============================================================
     public static MovingShotSolution solveMoving(
-            Pose2d robotPose,
+            Pose2d shooterPose,
             ChassisSpeeds fieldSpeeds,
             Translation2d goalLocation) {
 
         Translation2d robotVelocity = new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
-        Translation2d predictedRobotPos = robotPose.getTranslation().plus(robotVelocity.times(SYSTEM_LATENCY_SEC));
 
-        Translation2d targetVec = goalLocation.minus(predictedRobotPos);
-        double dist = targetVec.getNorm();
+        // 1. Predict robot position when the ball actually leaves the shooter
+        Translation2d predictedShooterPos = shooterPose.getTranslation().plus(robotVelocity.times(SYSTEM_LATENCY_SEC));
 
-        double idealStationaryRPM = rpmMap.get(MathUtil.clamp(dist, MIN_DISTANCE, MAX_DISTANCE));
+        // 2. Calculate distance and base requirements from the LUT
+        Translation2d targetVec = goalLocation.minus(predictedShooterPos);
+        double dist = MathUtil.clamp(targetVec.getNorm(), MIN_DISTANCE, MAX_DISTANCE);
 
-        // Physics conversion
-        double tangentialVelocity = (idealStationaryRPM / 60.0) * (2 * Math.PI * WHEEL_RADIUS);
-        Translation2d shotVec = targetVec.div(dist).times(tangentialVelocity).minus(robotVelocity);
-
-        Rotation2d compensatedHeading = shotVec.getAngle();
-        double compensatedVelocityMS = shotVec.getNorm();
-
-        double compensatedRPM = (compensatedVelocityMS * 60.0) / (2 * Math.PI * WHEEL_RADIUS);
+        double idealStationaryRPM = rpmMap.get(dist);
         Angle hoodAngle = Degrees.of(hoodAngleMap.get(dist));
 
-        return new MovingShotSolution(compensatedHeading, compensatedRPM, hoodAngle, dist);
+        // 3. Vector Compensation: Subtract robot velocity from the required exit
+        // velocity vector
+        double tangentialVelocityMS = (idealStationaryRPM / 60.0) * (2 * Math.PI * WHEEL_RADIUS);
+        Translation2d exitVelocityVec = targetVec.div(targetVec.getNorm()).times(tangentialVelocityMS);
+        Translation2d compensatedVec = exitVelocityVec.minus(robotVelocity);
+
+        // 4. Convert back to RPM and Heading
+        Rotation2d compensatedHeading = compensatedVec.getAngle();
+        double compensatedRPM = (compensatedVec.getNorm() * 60.0) / (2 * Math.PI * WHEEL_RADIUS);
+
+        return new MovingShotSolution(
+                compensatedHeading,
+                MathUtil.clamp(compensatedRPM, 0, MAX_RPM),
+                hoodAngle,
+                dist);
     }
 
     public record MovingShotSolution(Rotation2d heading, double rpm, Angle hoodAngle, double distanceMeters) {

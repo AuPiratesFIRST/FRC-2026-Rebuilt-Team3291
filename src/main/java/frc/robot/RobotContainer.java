@@ -250,18 +250,18 @@ public class RobotContainer {
                 // hood.getAngle().minus(Degrees.of(2))));
 
                 // // // ================= SHOOTER =================
-                // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                // new AimShooterFromVision(shooter, hood, vision),
-                // turret.shootCommand()));
+                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                                new AimShooterFromVision(shooter, hood, vision),
+                                turret.shootCommand()));
 
                 // Alternative "Smoother" Trigger Binding
-                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                                // Use the already-calculated solution from the turret periodic loop
-                                Commands.run(() -> {
-                                        shooter.applyRPM(turret.getCalculatedRPM());
-                                        hood.applyAngle(Degrees.of(turret.getCalculatedHoodAngleDeg()));
-                                }, shooter, hood),
-                                turret.shootCommand()));
+                // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                // // Use the already-calculated solution from the turret periodic loop
+                // Commands.run(() -> {
+                // shooter.applyRPM(turret.getCalculatedRPM());
+                // hood.applyAngle(Degrees.of(turret.getCalculatedHoodAngleDeg()));
+                // }, shooter, hood),
+                // turret.shootCommand()));
                 // // Manual shooter test (no vision)
 
                 // operator.a().whileTrue(
