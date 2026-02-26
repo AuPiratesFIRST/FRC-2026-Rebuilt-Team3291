@@ -50,7 +50,7 @@ public final class ShooterAimCalculator {
         rpmMap.put(2.00, 1200.0); // TESTED ANCHOR
         rpmMap.put(2.50, 1350.0); // Curve starts to steepen here
         rpmMap.put(3.00, 1380.0); // REDUCED from 1550 to prevent overshot
-        rpmMap.put(4.00, 1650.0); // REDUCED from 2100 to prevent overshot
+        rpmMap.put(4.00, 1655.0); // REDUCED from 2100 to prevent overshot
     }
 
     // ============================================================
@@ -100,14 +100,14 @@ public final class ShooterAimCalculator {
 
     public static ShooterSolution fallback() {
         // Fixed hood angle, fallback RPM
-        return new ShooterSolution(FIXED_HOOD_ANGLE, 1150.0, 0.0, 1.5, true);
+        return new ShooterSolution(FIXED_HOOD_ANGLE, 1123.0, 0.0, 1.5, true);
     }
 
     // result container
     public record ShooterSolution(Angle hoodAngle, double rpm, double physicsRPM, double distanceMeters,
             boolean valid) {
         public static ShooterSolution invalid(double distance) {
-            return new ShooterSolution(Degrees.zero(), 0.0, 0.0, distance, false);
+            return new ShooterSolution(Degrees.zero(), 11.0, 0.0, distance, false);
         }
     }
 

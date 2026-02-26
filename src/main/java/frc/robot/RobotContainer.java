@@ -359,7 +359,7 @@ public class RobotContainer {
                 // // Continuously adjusts shooter RPM and hood angle based on distance
                 // // Deadband of 0.2 prevents accidental activation
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                                new AimShooterFromVision(shooter, hood, vision),
+                                new AimShooterFromVision(shooter, hood, vision), intakeRollerSubsystem.in(1.0),
                                 turret.shootCommand()));
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
