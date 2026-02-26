@@ -28,7 +28,7 @@ public final class ShooterAimCalculator {
     private static final double MAX_DISTANCE = 4.5;
 
     // Latency: Time for ball to leave the robot
-    private static final double SYSTEM_LATENCY_SEC = 0.15;
+    private static final double SYSTEM_LATENCY_SEC = 0.25;
 
     // ============================================================
     // TUNING MAPS

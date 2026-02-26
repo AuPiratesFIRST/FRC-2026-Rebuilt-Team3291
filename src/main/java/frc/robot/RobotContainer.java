@@ -249,9 +249,18 @@ public class RobotContainer {
                 // hood.setAngle(
                 // hood.getAngle().minus(Degrees.of(2))));
 
-                // // ================= SHOOTER =================
+                // // // ================= SHOOTER =================
+                // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                // new AimShooterFromVision(shooter, hood, vision),
+                // turret.shootCommand()));
+
+                // Alternative "Smoother" Trigger Binding
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                                new AimShooterFromVision(shooter, hood, vision),
+                                // Use the already-calculated solution from the turret periodic loop
+                                Commands.run(() -> {
+                                        shooter.applyRPM(turret.getCalculatedRPM());
+                                        hood.applyAngle(Degrees.of(turret.getCalculatedHoodAngleDeg()));
+                                }, shooter, hood),
                                 turret.shootCommand()));
                 // // Manual shooter test (no vision)
 
@@ -260,11 +269,15 @@ public class RobotContainer {
                 // shooter.setRPM(3000),
                 // hood.setAngle(Degrees.of(35))));
 
-                driver.x().whileTrue( // Operator 'X' now triggers the shoot command, which checks fuel
-                                Commands.parallel(
-                                                shooter.setRPM(1150),
-                                                hood.setAngle(Degrees.of(65)),
-                                                turret.shootCommand())); // Use turret::shoot
+                // Hold 'X' to Auto-Aim on the move. It will automatically calculate
+                // the shot, compensate for drifting, and fire when locked in!
+
+                // driver.x().whileTrue( // Operator 'X' now triggers the shoot command, which
+                // checks fuel
+                // Commands.parallel(
+                // shooter.setRPM(1150),
+                // hood.setAngle(Degrees.of(65)),
+                // turret.shootCommand())); // Use turret::shoot
 
         }
 
