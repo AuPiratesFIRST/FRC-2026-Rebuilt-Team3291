@@ -122,7 +122,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     public void applyRPM(double rpm) {
         lastTargetRPM = rpm;
-        flywheel.setSpeed(RPM.of(rpm));
+        flywheel.setMechanismVelocitySetpoint(RPM.of(rpm));
     }
 
     public double getTargetRPM() {

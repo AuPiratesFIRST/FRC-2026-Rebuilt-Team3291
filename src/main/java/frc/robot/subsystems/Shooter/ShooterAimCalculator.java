@@ -42,10 +42,10 @@ public final class ShooterAimCalculator {
          * Distance (m) -> Flywheel RPM
          * Based on Anchors: 1.5m @ 1150, 2.0m @ 1200
          */
-        rpmMap.put(1.20, 1100.0); // Slightly less than 1.5m, but high angle needs speed
+        rpmMap.put(1.20, 1075.0); // Slightly less than 1.5m, but high angle needs speed
         rpmMap.put(1.50, 1150.0); // TESTED ANCHOR
         rpmMap.put(2.00, 1200.0); // TESTED ANCHOR
-        rpmMap.put(2.50, 1350.0); // Curve starts to steepen here
+        rpmMap.put(2.50, 1348.0); // Curve starts to steepen here
         rpmMap.put(3.00, 1280.0); // REDUCED from 1550 to prevent overshot
         rpmMap.put(4.00, 1850.0); // REDUCED from 2100 to prevent overshot
 

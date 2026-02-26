@@ -124,13 +124,13 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "AimFromVision",
                                 Commands.deadline(
-                                                // The Leader: Guaranteed to end at 0.8s
+                                                // The Leader: This command is guaranteed to finish in 0.8s.
                                                 Commands.waitSeconds(0.8),
 
-                                                // Follower 1: Keeps the shooter wheels and hood moving based on vision
+                                                // The Followers: These run until the leader (0.8s) is done.
                                                 new AimShooterFromVision(shooter, hood, vision),
-
-                                                turret.shootCommand()));
+                                                turret.shootCommand() // Add this so it actually fires!
+                                ));
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(

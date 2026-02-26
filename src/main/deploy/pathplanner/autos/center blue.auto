@@ -13,7 +13,7 @@
         {
           "type": "named",
           "data": {
-            "name": "ShootFixed"
+            "name": "AimFromVision"
           }
         },
         {
@@ -44,7 +44,13 @@
         {
           "type": "named",
           "data": {
-            "name": "ShootFixed"
+            "name": "AimFromVision"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.0
           }
         },
         {
