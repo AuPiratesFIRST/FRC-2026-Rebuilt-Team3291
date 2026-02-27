@@ -10,6 +10,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.FlyWheelConfig;
@@ -148,23 +149,6 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     public Command stop() {
         return set(0);
-    }
-
-    /**
-     * Auto-feed command for shooter sequence.
-     * Feeds intake at full speed when shooter is at target RPM,
-     * or reverses slightly to prevent jamming while waiting for flywheel.
-     * 
-     * This is the correct YAMS pattern: subsystem contains the command logic.
-     */
-    public Command autoFeed(frc.robot.subsystems.Shooter.ShooterSubsystem shooter) {
-        return run(() -> {
-            if (shooter.atTargetRPM()) {
-                set(1.0).schedule();
-            } else {
-                set(-0.09).schedule();
-            }
-        }).withName("IntakeAutoFeed");
     }
 
     /*

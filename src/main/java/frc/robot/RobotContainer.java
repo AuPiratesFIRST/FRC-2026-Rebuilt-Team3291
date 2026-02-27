@@ -35,6 +35,7 @@ import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.AutoScoreCommand;
+import frc.robot.commands.AutoShootCommand;
 import frc.robot.commands.ChaseTagCommand;
 
 /**
@@ -358,12 +359,9 @@ public class RobotContainer {
                 // // Right trigger: Vision-based automatic aiming
                 // // Continuously adjusts shooter RPM and hood angle based on distance
                 // // Deadband of 0.2 prevents accidental activation
-                // Right trigger: Vision-based automatic aiming with auto-feed
-                // Composer pattern: subsystem commands + vision control in parallel
-                // The intake.autoFeed() method owns the YAMS scheduling logic
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
-                                intakeRollerSubsystem.autoFeed(shooter)));
+                                new AutoShootCommand(shooter, intakeRollerSubsystem)));
                 driver.leftTrigger(0.2).whileTrue(shooter.intakeMode());
                 driver.leftBumper().whileTrue(shooter.outtakeMode());
 
