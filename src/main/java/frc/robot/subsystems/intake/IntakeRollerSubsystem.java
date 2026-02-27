@@ -150,6 +150,23 @@ public class IntakeRollerSubsystem extends SubsystemBase {
         return set(0);
     }
 
+    /**
+     * Auto-feed command for shooter sequence.
+     * Feeds intake at full speed when shooter is at target RPM,
+     * or reverses slightly to prevent jamming while waiting for flywheel.
+     * 
+     * This is the correct YAMS pattern: subsystem contains the command logic.
+     */
+    public Command autoFeed(frc.robot.subsystems.Shooter.ShooterSubsystem shooter) {
+        return run(() -> {
+            if (shooter.atTargetRPM()) {
+                set(1.0).schedule();
+            } else {
+                set(-0.09).schedule();
+            }
+        }).withName("IntakeAutoFeed");
+    }
+
     /*
      * =========================
      * State API
