@@ -42,6 +42,12 @@ public class ShooterSubsystem extends SubsystemBase {
     // Maximum safe RPM for the flywheel (limited by motor and mechanical
     // constraints)
     private static final double MAX_RPM = 6000.0;
+    // A good starting point for KitBot intake speed is 1000-1500 RPM
+    private static final double INTAKE_RPM = 1200.0;
+    private static final double OUTTAKE_RPM = -1200.0;
+
+    // Default idle to keep belts moving and overcome static friction
+    private static final double IDLE_RPM = 100.0;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
@@ -60,13 +66,13 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.05, 0.0, 0.002,
+                            0.015, 0.0002, 0,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(2000))
+                            RotationsPerSecondPerSecond.of(600))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.25, 0.121, 0.015))
+                                    0.20, 0.12, 0.05))
 
                     .withGearing(
                             new MechanismGearing(
@@ -75,7 +81,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withMotorInverted(true)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                     // Limit current to 40A to prevent brownouts
-                    .withStatorCurrentLimit(Amps.of(40))
+                    .withStatorCurrentLimit(Amps.of(60))
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
                             SmartMotorControllerConfig.TelemetryVerbosity.MID));
@@ -85,6 +91,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withDiameter(Inches.of(4))
                     .withMass(Pounds.of(1))
                     .withUpperSoftLimit(RPM.of(MAX_RPM))
+                    .withLowerSoftLimit(RPM.of(0))
                     .withTelemetry("ShooterMech",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
@@ -102,7 +109,12 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     public Command stop() {
-        return setRPM(0);
+        return flywheel.set(0.0)
+                .beforeStarting(() -> lastTargetRPM = 0.0);
+    }
+
+    public Command idle() {
+        return setRPM(IDLE_RPM).withName("ShooterIdle");
     }
 
     // ------------------------------------------------
@@ -131,6 +143,26 @@ public class ShooterSubsystem extends SubsystemBase {
 
     public double getActualRPM() {
         return flywheel.getSpeed().in(RPM);
+    }
+
+    public boolean atTargetRPM() {
+        return Math.abs(getActualRPM() - getTargetRPM()) < 100; // tolerance
+    }
+
+    /**
+     * Command to run the motor at a safe speed for intaking.
+     * This moves the belts enough to pull balls in, but doesn't launch them.
+     */
+    public Command intakeMode() {
+        return setRPM(INTAKE_RPM).withName("ShooterIntakeMode");
+    }
+
+    /**
+     * Command to run the motor at a safe speed for outtaking.
+     * This moves the belts enough to eject balls, but doesn't launch them.
+     */
+    public Command outtakeMode() {
+        return setRPM(OUTTAKE_RPM).withName("ShooterOuttakeMode");
     }
 
     // ------------------------------------------------

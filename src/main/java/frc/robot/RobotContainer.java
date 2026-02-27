@@ -35,6 +35,7 @@ import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.AutoScoreCommand;
+import frc.robot.commands.AutoShootCommand;
 import frc.robot.commands.ChaseTagCommand;
 
 /**
@@ -360,7 +361,9 @@ public class RobotContainer {
                 // // Deadband of 0.2 prevents accidental activation
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
-                                turret.shootCommand()));
+                                new AutoShootCommand(shooter, intakeRollerSubsystem)));
+                driver.leftTrigger(0.2).whileTrue(shooter.intakeMode());
+                driver.leftBumper().whileTrue(shooter.outtakeMode());
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
