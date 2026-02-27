@@ -11,6 +11,12 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "AimShoot"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "center blue drive to intake"

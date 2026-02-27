@@ -125,15 +125,23 @@ public class Drive extends SubsystemBase {
     this.io = io;
     this.imu = imu;
     this.vision = vision;
+    // 1. Start with a default pose (0,0,0)
+    Pose2d initialPose = new Pose2d(4, 4, new Rotation2d(Math.toRadians(180))); // Example: center of field facing away
+                                                                                // from driver station
 
-    // Initialize the pose estimator at the origin (0, 0, 0 degrees)
-    // This will be updated to the actual starting position before the match
+    // 2. Check if vision sees AprilTags immediately on startup
+    var visionEstimate = vision.getEstimatedGlobalPose();
+    if (visionEstimate.isPresent()) {
+      initialPose = visionEstimate.get().estimatedPose.toPose2d();
+    }
+
+    // 3. Initialize the pose estimator with the vision-derived pose
     poseEstimator = new DifferentialDrivePoseEstimator(
-        kinematics, // Our kinematics model
-        imu.getRotation2d(), // Initial heading from gyro
-        4.0, // Initial left wheel position
-        4.0, // Initial right wheel position
-        Pose2d.kZero); // Starting pose (origin)
+        kinematics,
+        imu.getRotation2d(),
+        0.0, // Initial left wheel position (assumed 0 on boot)
+        0.0, // Initial right wheel position (assumed 0 on boot)
+        initialPose);
 
     /* ---------------- PATHPLANNER CONFIGURATION ---------------- */
     // PathPlanner is our autonomous path following library
