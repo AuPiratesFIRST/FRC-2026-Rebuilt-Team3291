@@ -43,13 +43,17 @@ import org.littletonrobotics.junction.Logger;
 /**
  * Drive Subsystem - Controls the robot's tank drivetrain.
  * 
- * This subsystem manages both left and right motor groups, tracks the robot's position
- * on the field using odometry (wheel encoders + gyro + vision), and provides methods
+ * This subsystem manages both left and right motor groups, tracks the robot's
+ * position
+ * on the field using odometry (wheel encoders + gyro + vision), and provides
+ * methods
  * for both driver control and autonomous path following.
  * 
  * Key Features:
- * - Hardware abstraction through DriveIO interface (works with real robot, sim, and replay)
- * - Pose estimation using wheel encoders, IMU heading, and vision AprilTag corrections
+ * - Hardware abstraction through DriveIO interface (works with real robot, sim,
+ * and replay)
+ * - Pose estimation using wheel encoders, IMU heading, and vision AprilTag
+ * corrections
  * - PathPlanner integration for autonomous navigation
  * - AdvantageKit logging for all sensor data
  * - SysId support for characterizing motor feedforward constants
@@ -60,16 +64,20 @@ public class Drive extends SubsystemBase {
   // HARDWARE INTERFACES
   // ========================================
   // DriveIO is the hardware abstraction layer - it talks to motors and encoders.
-  // This allows the same code to work with real hardware, simulation, or log replay.
+  // This allows the same code to work with real hardware, simulation, or log
+  // replay.
   private final DriveIO io;
-  
-  // DriveIOInputs stores all sensor readings (encoder positions, velocities, currents, etc.)
-  // These are updated every loop cycle (50Hz) and automatically logged by AdvantageKit
+
+  // DriveIOInputs stores all sensor readings (encoder positions, velocities,
+  // currents, etc.)
+  // These are updated every loop cycle (50Hz) and automatically logged by
+  // AdvantageKit
   private final DriveIOInputs inputs = new DriveIOInputs();
-  
-  // IMU (gyroscope) provides the robot's heading angle - critical for knowing which way we're facing
+
+  // IMU (gyroscope) provides the robot's heading angle - critical for knowing
+  // which way we're facing
   private final ImuSubsystem imu;
-  
+
   // Vision subsystem detects AprilTags to correct accumulated odometry drift
   private final VisionSubsystem vision;
 
@@ -81,7 +89,8 @@ public class Drive extends SubsystemBase {
   // - Individual wheel speeds (left wheel speed + right wheel speed)
   private final DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(trackWidth);
 
-  // Pose Estimator is the "brain" that fuses multiple data sources to estimate where we are:
+  // Pose Estimator is the "brain" that fuses multiple data sources to estimate
+  // where we are:
   // 1. Wheel encoder odometry (primary, runs every loop)
   // 2. Gyro heading (corrects rotation drift)
   // 3. Vision measurements (corrects XY position drift when we see AprilTags)
@@ -93,7 +102,8 @@ public class Drive extends SubsystemBase {
   // These constants characterize how the motors respond to voltage
   // kS = Static friction (voltage needed to overcome friction and start moving)
   // kV = Velocity gain (additional voltage needed per unit of velocity)
-  // We use different values for sim vs real robot because physics simulation isn't perfect
+  // We use different values for sim vs real robot because physics simulation
+  // isn't perfect
   private final double kS = Constants.currentMode == Mode.SIM ? simKs : realKs;
   private final double kV = Constants.currentMode == Mode.SIM ? simKv : realKv;
 
@@ -107,8 +117,8 @@ public class Drive extends SubsystemBase {
   /**
    * Creates a new Drive subsystem.
    * 
-   * @param io The hardware interface (real motors, simulation, or replay)
-   * @param imu The gyroscope subsystem for heading measurements
+   * @param io     The hardware interface (real motors, simulation, or replay)
+   * @param imu    The gyroscope subsystem for heading measurements
    * @param vision The vision subsystem for AprilTag pose corrections
    */
   public Drive(DriveIO io, ImuSubsystem imu, VisionSubsystem vision) {
@@ -119,36 +129,38 @@ public class Drive extends SubsystemBase {
     // Initialize the pose estimator at the origin (0, 0, 0 degrees)
     // This will be updated to the actual starting position before the match
     poseEstimator = new DifferentialDrivePoseEstimator(
-        kinematics,           // Our kinematics model
-        imu.getRotation2d(),  // Initial heading from gyro
-        0.0,                  // Initial left wheel position
-        0.0,                  // Initial right wheel position
-        Pose2d.kZero);        // Starting pose (origin)
+        kinematics, // Our kinematics model
+        imu.getRotation2d(), // Initial heading from gyro
+        4.0, // Initial left wheel position
+        4.0, // Initial right wheel position
+        Pose2d.kZero); // Starting pose (origin)
 
     /* ---------------- PATHPLANNER CONFIGURATION ---------------- */
     // PathPlanner is our autonomous path following library
     // AutoBuilder.configure() tells PathPlanner how to control our robot
     AutoBuilder.configure(
-        this::getPose,              // How to get current position
-        this::setPose,              // How to reset position
-        this::getChassisSpeeds,     // How to get current velocity
+        this::getPose, // How to get current position
+        this::setPose, // How to reset position
+        this::getChassisSpeeds, // How to get current velocity
         // How to drive the robot (the actual control method)
         // Note: PathPlanner passes feedforwards but we calculate our own internally
         (speeds, feedforwards) -> runClosedLoop(speeds),
         // Controller: PPLTVController = "Linear Time-Varying" controller
         // 0.02 = update period (20ms), maxSpeedMetersPerSec = speed limit
         new PPLTVController(0.02, maxSpeedMetersPerSec),
-        ppConfig,                   // Robot config (track width, max speeds, etc.)
+        ppConfig, // Robot config (track width, max speeds, etc.)
         // Should we flip paths? (Red alliance mirrors Blue alliance)
         () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
-        this);                      // This subsystem
+        this); // This subsystem
 
     // Set up A* pathfinding algorithm for generating paths on-the-fly
-    // LocalADStarAK is a custom AdvantageKit-compatible version of the AD* algorithm
+    // LocalADStarAK is a custom AdvantageKit-compatible version of the AD*
+    // algorithm
     Pathfinding.setPathfinder(new LocalADStarAK());
 
     // Hook up PathPlanner to AdvantageKit logging
-    // This logs the planned path trajectory so we can visualize it in AdvantageScope
+    // This logs the planned path trajectory so we can visualize it in
+    // AdvantageScope
     PathPlannerLogging.setLogActivePathCallback(
         path -> Logger.recordOutput(
             "Odometry/Trajectory", path.toArray(new Pose2d[0])));
@@ -164,17 +176,17 @@ public class Drive extends SubsystemBase {
         // Config: use defaults for ramp rate, step voltage, and timeout
         // We only customize the logging callback
         new SysIdRoutine.Config(
-            null,  // Use default ramp rate
-            null,  // Use default step voltage
-            null,  // Use default timeout
+            null, // Use default ramp rate
+            null, // Use default step voltage
+            null, // Use default timeout
             state -> Logger.recordOutput("Drive/SysIdState", state.toString())),
         // Mechanism: defines how to apply voltage and what to measure
         new SysIdRoutine.Mechanism(
             // How to drive motors at a specific voltage
             volts -> runOpenLoop(
-                volts.in(Volts),  // Apply same voltage to both sides
+                volts.in(Volts), // Apply same voltage to both sides
                 volts.in(Volts)),
-            null,  // No special log consumer
+            null, // No special log consumer
             this));
   }
 
@@ -187,7 +199,7 @@ public class Drive extends SubsystemBase {
     // STEP 1: Read fresh sensor data from hardware
     // This updates encoder positions, velocities, motor currents, etc.
     io.updateInputs(inputs);
-    
+
     // STEP 2: Send all sensor data to AdvantageKit for logging
     // This creates timestamped logs we can replay later or view in AdvantageScope
     Logger.processInputs("Drive", inputs);
@@ -196,9 +208,9 @@ public class Drive extends SubsystemBase {
     // This is the PRIMARY pose update that runs every loop (50 Hz)
     // It tracks how far the wheels have turned since last loop
     poseEstimator.update(
-        imu.getRotation2d(),          // Current heading from gyro
-        getLeftPositionMeters(),      // Left wheel distance traveled
-        getRightPositionMeters());    // Right wheel distance traveled
+        imu.getRotation2d(), // Current heading from gyro
+        getLeftPositionMeters(), // Left wheel distance traveled
+        getRightPositionMeters()); // Right wheel distance traveled
 
     // STEP 4: Fuse vision measurements when available
     // Vision corrects accumulated drift from wheel slippage
@@ -207,19 +219,20 @@ public class Drive extends SubsystemBase {
       // Choose standard deviations based on number of tags seen:
       // - Multi-tag (2+): More accurate, so we trust it more (smaller std dev)
       // - Single-tag: Less accurate, trust it less (larger std dev)
-      // Standard deviation tells the pose estimator how much to trust this measurement
+      // Standard deviation tells the pose estimator how much to trust this
+      // measurement
       var stdDevs = est.targetsUsed.size() > 1
-          ? VisionConstants.MULTI_TAG_STD_DEVS   // [0.5, 0.5, 0.9] (example values)
+          ? VisionConstants.MULTI_TAG_STD_DEVS // [0.5, 0.5, 0.9] (example values)
           : VisionConstants.SINGLE_TAG_STD_DEVS; // [1.0, 1.0, 2.0] (example values)
 
       // Add vision measurement with its timestamp
       // Using timestamp (not current time) accounts for camera processing latency
       poseEstimator.addVisionMeasurement(
-          est.estimatedPose.toPose2d(),  // 2D pose from vision
-          est.timestampSeconds,           // When image was captured
+          est.estimatedPose.toPose2d(), // 2D pose from vision
+          est.timestampSeconds, // When image was captured
           VecBuilder.fill(
-              stdDevs.get(0, 0),  // X position std dev (meters)
-              stdDevs.get(1, 0),  // Y position std dev (meters)
+              stdDevs.get(0, 0), // X position std dev (meters)
+              stdDevs.get(1, 0), // Y position std dev (meters)
               stdDevs.get(2, 0))); // Rotation std dev (radians)
     });
   }
@@ -260,7 +273,7 @@ public class Drive extends SubsystemBase {
    * Open-loop voltage control (used by SysId characterization).
    * Directly applies voltages to motors without any velocity feedback control.
    * 
-   * @param leftVolts Voltage for left motors (-12 to +12)
+   * @param leftVolts  Voltage for left motors (-12 to +12)
    * @param rightVolts Voltage for right motors (-12 to +12)
    */
   public void runOpenLoop(double leftVolts, double rightVolts) {
@@ -276,10 +289,12 @@ public class Drive extends SubsystemBase {
 
   /* ---------------- SYSID CHARACTERIZATION COMMANDS ---------------- */
   // These commands run automated tests to measure kS and kV
-  // To use: Select these commands in the auto chooser, enable, and watch the console
+  // To use: Select these commands in the auto chooser, enable, and watch the
+  // console
 
   /**
-   * Quasistatic test - slowly ramps voltage up and measures steady-state velocity.
+   * Quasistatic test - slowly ramps voltage up and measures steady-state
+   * velocity.
    * This helps identify kV (the voltage-to-velocity ratio).
    */
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
@@ -325,14 +340,15 @@ public class Drive extends SubsystemBase {
    * CAUTION: Only call this when you're CERTAIN of the robot's position!
    * Incorrect resets will mess up autonomous navigation.
    * 
-   * @param pose The pose to reset to (typically from PathPlanner or alliance station)
+   * @param pose The pose to reset to (typically from PathPlanner or alliance
+   *             station)
    */
   public void setPose(Pose2d pose) {
     poseEstimator.resetPosition(
-        imu.getRotation2d(),          // Current gyro heading
-        getLeftPositionMeters(),      // Current left encoder reading
-        getRightPositionMeters(),     // Current right encoder reading
-        pose);                        // New pose we're claiming to be at
+        imu.getRotation2d(), // Current gyro heading
+        getLeftPositionMeters(), // Current left encoder reading
+        getRightPositionMeters(), // Current right encoder reading
+        pose); // New pose we're claiming to be at
   }
 
   /**
@@ -352,7 +368,8 @@ public class Drive extends SubsystemBase {
   }
 
   /* ---------------- ENCODER ACCESSORS ---------------- */
-  // These methods convert raw encoder readings (radians) to linear measurements (meters)
+  // These methods convert raw encoder readings (radians) to linear measurements
+  // (meters)
 
   /**
    * Returns total distance the left wheels have traveled.

@@ -301,9 +301,9 @@ public class RobotContainer {
                 // When enabled, robot automatically rotates to face hub
                 // Driver still controls forward/backward movement
 
-                // Y button: Enable hub tracking (turn on auto-aim)
-                driver.y().onTrue(
-                                Commands.runOnce(turret::enableHubTracking));
+                //// Y button: Enable hub tracking (turn on auto-aim)
+                // driver.y().onTrue(
+                // Commands.runOnce(turret::enableHubTracking));
 
                 // B button: Disable hub tracking (back to manual rotation)
                 driver.b().onTrue(
@@ -359,7 +359,7 @@ public class RobotContainer {
                 // // Continuously adjusts shooter RPM and hood angle based on distance
                 // // Deadband of 0.2 prevents accidental activation
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                                new AimShooterFromVision(shooter, hood, vision), intakeRollerSubsystem.in(1.0),
+                                new AimShooterFromVision(shooter, hood, vision),
                                 turret.shootCommand()));
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
@@ -380,7 +380,7 @@ public class RobotContainer {
                 // operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
                 // operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
                 driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
-                // driver.y().whileTrue(intakeRollerSubsystem.out(1.0));
+                driver.y().whileTrue(intakeRollerSubsystem.out(1.0));
                 // driver.b().whileTrue(intakeRollerSubsystem.stop());
 
         }

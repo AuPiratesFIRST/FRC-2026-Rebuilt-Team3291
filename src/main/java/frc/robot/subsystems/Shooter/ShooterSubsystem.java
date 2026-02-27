@@ -60,19 +60,19 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.02, 0.0, 0.0,
+                            0.05, 0.0, 0.002,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(400))
+                            RotationsPerSecondPerSecond.of(2000))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.15, 0.121, 0.0))
+                                    0.25, 0.121, 0.015))
 
-                    // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
                             new MechanismGearing(
                                     GearBox.fromReductionStages(1, 1)))
                     // Coast mode = motor freewheels when disabled (reduces heat)
+                    .withMotorInverted(true)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                     // Limit current to 40A to prevent brownouts
                     .withStatorCurrentLimit(Amps.of(40))
