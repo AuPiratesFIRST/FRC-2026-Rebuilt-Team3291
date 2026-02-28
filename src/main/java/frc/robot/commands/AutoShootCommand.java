@@ -24,7 +24,7 @@ public class AutoShootCommand extends Command {
     @Override
     public void initialize() {
         // Start with slight reverse to prevent jams
-        intake.out(0.2).schedule();
+        intake.in(0.5).schedule();
         feeding = false;
     }
 
@@ -35,13 +35,13 @@ public class AutoShootCommand extends Command {
 
         // Transition: NOT feeding -> feeding
         if (atSpeed && !feeding) {
-            intake.in(1.0);
+            intake.out(1.0);
             feeding = true;
         }
 
         // Transition: feeding -> waiting
         if (!atSpeed && feeding) {
-            intake.out(0.097);
+            intake.in(1);
             feeding = false;
         }
     }
