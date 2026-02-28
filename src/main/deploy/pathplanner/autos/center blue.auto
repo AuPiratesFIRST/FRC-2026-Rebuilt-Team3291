@@ -21,6 +21,12 @@
           "data": {
             "commands": [
               {
+                "type": "named",
+                "data": {
+                  "name": "IntakeOn"
+                }
+              },
+              {
                 "type": "path",
                 "data": {
                   "pathName": "center blue drive to intake"

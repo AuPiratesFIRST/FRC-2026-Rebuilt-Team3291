@@ -4,8 +4,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
-import edu.wpi.first.wpilibj.GenericHID;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -19,9 +17,7 @@ import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.TankDrive.Drive;
 import frc.robot.subsystems.TankDrive.DriveIO;
 import frc.robot.subsystems.TankDrive.DriveIOSim;
-import frc.robot.subsystems.TankDrive.DriveIOSpark;
 import frc.robot.subsystems.TankDrive.DriveIOTalonFX;
-import frc.robot.subsystems.TankDrive.DriveConstants;
 import frc.robot.subsystems.imu.GyroIOPigeon2;
 import frc.robot.subsystems.imu.GyroIOSim;
 import frc.robot.subsystems.imu.ImuSubsystem;
@@ -30,13 +26,11 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 
 import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.AutoScoreCommand;
 import frc.robot.commands.AutoShootCommand;
-import frc.robot.commands.ChaseTagCommand;
 
 /**
  * RobotContainer - The heart of the robot's organization and control structure.
@@ -275,24 +269,16 @@ public class RobotContainer {
                 // ================= IMU / FIELD ORIENTATION =================
                 // A button: Zero gyro heading (reset which way is "forward")
                 // Use this if gyro drifts or you need to reset field-relative orientation
-                // driver.a().onTrue(
-                // Commands.runOnce(imu::zeroYaw));
-
-                driver.povDown().whileTrue(
-                                new ChaseTagCommand(
-                                                vision,
-                                                drive,
-                                                new int[] { 25 },
-                                                3.0));
+                driver.a().onTrue(Commands.runOnce(imu::zeroYaw));
 
                 // ================= TURRET AUTO-AIM =================
                 // These buttons enable/disable "heading lock" mode
                 // When enabled, robot automatically rotates to face hub
                 // Driver still controls forward/backward movement
 
-                //// Y button: Enable hub tracking (turn on auto-aim)
-                // driver.y().onTrue(
-                // Commands.runOnce(turret::enableHubTracking));
+                // Y button: Enable hub tracking (turn on auto-aim)
+                driver.y().onTrue(
+                                Commands.runOnce(turret::enableHubTracking));
 
                 // B button: Disable hub tracking (back to manual rotation)
                 driver.b().onTrue(
@@ -313,20 +299,20 @@ public class RobotContainer {
                 // D-pad allows manual turret adjustment (overrides auto-aim)
                 // Useful for testing or if auto-aim isn't working
 
-                // // D-pad left: Rotate turret left (negative omega)
-                // operator.povLeft().whileTrue(
-                // Commands.run(() -> turret.manualRotate(-0.4), turret));
+                // D-pad left: Rotate turret left (negative omega)
+                operator.povLeft().whileTrue(
+                                Commands.run(() -> turret.manualRotate(-0.4), turret));
 
-                // // D-pad right: Rotate turret right (positive omega)
-                // operator.povRight().whileTrue(
-                // Commands.run(() -> turret.manualRotate(0.4), turret));
+                // D-pad right: Rotate turret right (positive omega)
+                operator.povRight().whileTrue(
+                                Commands.run(() -> turret.manualRotate(0.4), turret));
 
-                // // When button released, stop manual rotation
-                // operator.povLeft().onFalse(
-                // Commands.runOnce(() -> turret.manualRotate(0.0)));
+                // When button released, stop manual rotation
+                operator.povLeft().onFalse(
+                                Commands.runOnce(() -> turret.manualRotate(0.0)));
 
-                // operator.povRight().onFalse(
-                // Commands.runOnce(() -> turret.manualRotate(0.0)));
+                operator.povRight().onFalse(
+                                Commands.runOnce(() -> turret.manualRotate(0.0)));
 
                 // // ================= HOOD ANGLE ADJUSTMENT =================
                 // // D-pad up/down for fine-tuning hood angle
@@ -344,18 +330,12 @@ public class RobotContainer {
 
                 // // ================= SHOOTER CONTROLS =================
 
-                // // Right trigger: Vision-based automatic aiming
-                // // Continuously adjusts shooter RPM and hood angle based on distance
-                // // Deadband of 0.2 prevents accidental activation
-                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                                new AimShooterFromVision(shooter, hood, vision),
-                                new AutoShootCommand(shooter, intakeRollerSubsystem)));
-                // driver.leftTrigger(0.2).whileTrue(shooter.intakeMode());
-                // driver.leftBumper().whileTrue(shooter.outtakeMode());
+                driver.rightTrigger(0.2).whileTrue(intakeRollerSubsystem.in(1.0));
+                driver.leftTrigger(0.2).whileTrue(intakeRollerSubsystem.out(1.0));
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
-                                turret.shootCommand()));
+                                new AutoShootCommand(shooter, intakeRollerSubsystem)));
 
                 // // A button: Manual shooter test at fixed settings
                 // // Useful for testing shooter mechanics without vision
@@ -365,14 +345,6 @@ public class RobotContainer {
                                                 shooter.setRPM(1300),
                                                 hood.setAngle(Degrees.of(65)),
                                                 turret.shootCommand())); // Use turret::shoot
-
-                // Schedule `setHeight` when the Xbox controller's B button is pressed,
-                // cancelling on release.
-                // operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
-                // operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
-                driver.a().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
-                driver.y().whileTrue(intakeRollerSubsystem.out(1.0));
-                // driver.b().whileTrue(intakeRollerSubsystem.stop());
 
         }
 
