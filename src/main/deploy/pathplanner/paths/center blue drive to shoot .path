@@ -16,12 +16,12 @@
     },
     {
       "anchor": {
-        "x": 2.1797222222222223,
-        "y": 4.142188888888889
+        "x": 2.3570328102710407,
+        "y": 4.041469329529244
       },
       "prevControl": {
-        "x": 1.9472906672738317,
-        "y": 4.393425107308403
+        "x": 1.839486447931526,
+        "y": 4.041469329529244
       },
       "nextControl": null,
       "isLocked": false,
@@ -31,7 +31,14 @@
   "rotationTargets": [],
   "constraintZones": [],
   "pointTowardsZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "EnableAutoAim",
+      "waypointRelativePos": 1.0,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 3.0,
     "maxAcceleration": 3.0,

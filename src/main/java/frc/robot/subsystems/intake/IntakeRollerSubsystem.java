@@ -156,6 +156,10 @@ public class IntakeRollerSubsystem extends SubsystemBase {
      * State API
      * =========================
      */
+    public void setPowerDirect(double duty) {
+        intakeSMC.setDutyCycle(duty);
+        lastDuty = duty;
+    }
 
     /** Returns true if intake is currently spinning */
     public boolean isRunning() {
@@ -177,6 +181,26 @@ public class IntakeRollerSubsystem extends SubsystemBase {
         return lastDuty;
     }
 
+    /**
+     * A command that feeds ONLY when the shooter is ready.
+     * 
+     * @param readyCondition A "State Checker" (like shooter::isAtTarget)
+     */
+    public Command smartFeed(java.util.function.BooleanSupplier readyCondition) {
+        // this.run() creates a single command that stays alive
+        return this.run(() -> {
+            if (readyCondition.getAsBoolean()) {
+                // Talk to the motor directly
+                this.setPowerDirect(1.0);
+            } else {
+                // Small anti-jam kickback
+                this.setPowerDirect(-0.1);
+            }
+        })
+                .withName("SmartFeed")
+                // When the command ends (button released or timeout), stop the motor
+                .finallyDo((interrupted) -> this.setPowerDirect(0.0));
+    }
     /*
      * =========================
      * Required YAMS Hooks

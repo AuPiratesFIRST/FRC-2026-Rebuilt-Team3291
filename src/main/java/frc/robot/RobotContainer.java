@@ -29,6 +29,7 @@ import org.littletonrobotics.junction.Logger;
 import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.util.FuelSim;
+import frc.robot.commands.AutoIntakeCommand;
 import frc.robot.commands.AutoScoreCommand;
 import frc.robot.commands.AutoShootCommand;
 
@@ -177,6 +178,8 @@ public class RobotContainer {
 
                 // NOW register robot and intake with FuelSim, as turret and drive are ready
                 registerFuelSimComponents(drive, turret, intakeRollerSubsystem);
+                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
+                shooter.setDefaultCommand(shooter.idle());
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
@@ -191,15 +194,25 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "DisableAutoAim",
                                 Commands.runOnce(turret::disableHubTracking, turret));
+                NamedCommands.registerCommand("AimAndShoot",
+                                Commands.sequence(
+                                                Commands.runOnce(turret::enableHubTracking, turret),
+                                                Commands.waitSeconds(0.5), // Give it a moment to align
+                                                turret.shootCommand().withTimeout(1.0), // Shoot for 1 second
+                                                Commands.runOnce(turret::disableHubTracking, turret)));
 
                 NamedCommands.registerCommand(
                                 "AimFromVision",
                                 new AimShooterFromVision(shooter, hood, vision));
                 NamedCommands.registerCommand(
-                                "AimShoot",
-                                Commands.deadline(Commands.waitSeconds(2.3),
-                                                new AimShooterFromVision(shooter, hood, vision),
-                                                new AutoShootCommand(shooter, intakeRollerSubsystem)));
+                                "AimShoot", new AimShooterFromVision(shooter, hood, vision) // The "Aiming" Command
+                                                .alongWith(
+                                                                intakeRollerSubsystem.smartFeed(shooter::isAtTarget) // The
+                                                                                                                     // "State
+                                                                                                                     // Checker"
+                                                                                                                     // Logic
+                                                )
+                                                .withTimeout(3.0));// End after 3 seconds
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(
@@ -214,6 +227,16 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "IntakeOff",
                                 intakeRollerSubsystem.stop());
+
+                NamedCommands.registerCommand("AutoIntake",
+                                shooter.intakeMode() // Command to run shooter backward/intake
+                                                .alongWith(intakeRollerSubsystem.in(1.0)) // Command to run rollers at
+                                                                                          // 1.0 speed
+                                                .withTimeout(1.5) // Stop both after 1.5 seconds
+                                                .finallyDo(() -> { // Ensure everything stops when finished
+                                                        shooter.stop();
+                                                        intakeRollerSubsystem.stop();
+                                                }));
 
                 // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();
@@ -330,8 +353,8 @@ public class RobotContainer {
 
                 // // ================= SHOOTER CONTROLS =================
 
-                driver.rightTrigger(0.2).whileTrue(intakeRollerSubsystem.in(1.0));
-                driver.leftTrigger(0.2).whileTrue(intakeRollerSubsystem.out(1.0));
+                driver.rightTrigger(0.2).whileTrue(shooter.intakeMode().alongWith(intakeRollerSubsystem.out(1.0)));
+                driver.leftTrigger(0.2).whileTrue(shooter.outtakeMode().alongWith(intakeRollerSubsystem.in(1.0)));
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
