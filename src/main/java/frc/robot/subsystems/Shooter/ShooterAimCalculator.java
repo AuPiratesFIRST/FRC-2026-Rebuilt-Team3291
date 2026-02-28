@@ -100,7 +100,7 @@ public final class ShooterAimCalculator {
 
     public static ShooterSolution fallback() {
         // Fixed hood angle, fallback RPM
-        return new ShooterSolution(FIXED_HOOD_ANGLE, 200.0, 0.0, 1.5, true);
+        return new ShooterSolution(FIXED_HOOD_ANGLE, 3000.0, 0.0, 1.5, true);
     }
 
     // result container

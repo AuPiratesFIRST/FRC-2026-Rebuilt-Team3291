@@ -17,9 +17,16 @@
           }
         },
         {
-          "type": "path",
+          "type": "sequential",
           "data": {
-            "pathName": "center blue drive to intake"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "center blue drive to intake"
+                }
+              }
+            ]
           }
         },
         {

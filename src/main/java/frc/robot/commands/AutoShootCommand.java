@@ -19,8 +19,6 @@ public class AutoShootCommand extends Command {
         this.shooter = shooter;
         this.intake = intake;
 
-        // DO NOT addRequirements(intake)
-        // Intake commands themselves will own the subsystem
     }
 
     @Override
@@ -37,13 +35,13 @@ public class AutoShootCommand extends Command {
 
         // Transition: NOT feeding -> feeding
         if (atSpeed && !feeding) {
-            intake.in(1.0).schedule();
+            intake.in(1.0);
             feeding = true;
         }
 
         // Transition: feeding -> waiting
         if (!atSpeed && feeding) {
-            intake.out(0.09).schedule();
+            intake.out(0.097);
             feeding = false;
         }
     }

@@ -38,12 +38,14 @@ public class AimShooterFromVision extends Command {
     // Subsystem we read from (no exclusive access needed)
     private final VisionSubsystem vision;
 
+    private double lastValidRPM = 3000.0;
+
     /**
      * Creates a new AimShooterFromVision command.
      * 
      * @param shooter Flywheel subsystem to set RPM
-     * @param hood Angle adjustment subsystem
-     * @param vision Vision subsystem to read distance from
+     * @param hood    Angle adjustment subsystem
+     * @param vision  Vision subsystem to read distance from
      */
     public AimShooterFromVision(
             ShooterSubsystem shooter,
@@ -73,42 +75,33 @@ public class AimShooterFromVision extends Command {
         Alliance alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
         if (alliance == Alliance.Red) {
-            validTags = VisionConstants.RED_HUB_TAGS;  // Tag IDs for red hub
+            validTags = VisionConstants.RED_HUB_TAGS; // Tag IDs for red hub
         } else {
-            validTags = VisionConstants.BLUE_HUB_TAGS;  // Tag IDs for blue hub
+            validTags = VisionConstants.BLUE_HUB_TAGS; // Tag IDs for blue hub
         }
 
         // Ask vision subsystem: "How far away are we from any of these tags?"
         // Returns Optional - could be empty if no tags visible
         Optional<Double> distance = vision.getDistanceToTagMeters(validTags);
-
         ShooterAimCalculator.ShooterSolution solution;
 
-        // ---------------- FALLBACK LOGIC ----------------
-        // If vision can't see tags OR distance is invalid, use safe fallback
-        if (distance.isEmpty()) {
-            // No vision target found - use conservative default shot
-            solution = ShooterAimCalculator.fallback();
-        } else {
-            // Vision found target - calculate optimal aim for this distance
+        if (distance.isPresent()) {
             solution = ShooterAimCalculator.solve(distance.get());
+            if (solution.valid()) {
+                // Store the speed if it's a good vision hit
+                lastValidRPM = solution.rpm();
+            }
         }
 
-        // Double-check solution is valid (in case distance was out of range)
-        if (!solution.valid()) {
-            solution = ShooterAimCalculator.fallback();
-        }
-
-        // ---------------- APPLY OUTPUTS ----------------
-        // Send calculated settings to shooter and hood
-        hood.applyAngle(solution.hoodAngle());    // Set hood angle (degrees)
-        shooter.applyRPM(solution.rpm());         // Set flywheel speed (RPM)
+        // Apply the speed: Either the new vision speed, or the last one we knew
+        hood.applyAngle(ShooterAimCalculator.FIXED_HOOD_ANGLE);
+        shooter.applyRPM(lastValidRPM); // Set flywheel speed (RPM)
     }
 
     @Override
     public void end(boolean interrupted) {
         // Let default commands take over
-        shooter.stop().schedule();
+        shooter.stop();
     }
 
     @Override

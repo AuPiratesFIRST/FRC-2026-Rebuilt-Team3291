@@ -197,17 +197,7 @@ public class RobotContainer {
                 NamedCommands.registerCommand(
                                 "DisableAutoAim",
                                 Commands.runOnce(turret::disableHubTracking, turret));
-                NamedCommands.registerCommand(
-                                "PrepShot",
-                                Commands.parallel(
-                                                shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(65))));
-                NamedCommands.registerCommand(
-                                "ShootFixed",
-                                Commands.parallel(
-                                                shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(65)),
-                                                turret.shootCommand()));
+
                 NamedCommands.registerCommand(
                                 "AimFromVision",
                                 new AimShooterFromVision(shooter, hood, vision));
@@ -225,7 +215,7 @@ public class RobotContainer {
                                 ));
                 NamedCommands.registerCommand(
                                 "IntakeOn",
-                                intakeRollerSubsystem.in(1.0));
+                                intakeRollerSubsystem.out(1.0));
 
                 NamedCommands.registerCommand(
                                 "IntakeOff",
