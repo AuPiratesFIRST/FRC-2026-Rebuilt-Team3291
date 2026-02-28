@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center blue drive to shoot perload"
+            "pathName": "Left bule align to shoot preload "
           }
         },
         {
@@ -21,15 +21,15 @@
           "data": {
             "commands": [
               {
-                "type": "path",
-                "data": {
-                  "pathName": "center blue drive to intake"
-                }
-              },
-              {
                 "type": "named",
                 "data": {
                   "name": "AutoIntake"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Left blue drive and align to intake "
                 }
               }
             ]
@@ -38,13 +38,26 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center blue drive to shoot "
+            "pathName": "Left blue drive and align to shoot "
           }
         },
         {
           "type": "named",
           "data": {
             "name": "AimShoot"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake"
+                }
+              }
+            ]
           }
         }
       ]

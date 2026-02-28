@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center blue drive to shoot perload"
+            "pathName": "Rigth bule align to shoot preload "
           }
         },
         {
@@ -23,7 +23,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "center blue drive to intake"
+                  "pathName": " Rigth blue drive and align to intake "
                 }
               },
               {
@@ -38,7 +38,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center blue drive to shoot "
+            "pathName": "Rigth blue drive and align to shoot "
           }
         },
         {

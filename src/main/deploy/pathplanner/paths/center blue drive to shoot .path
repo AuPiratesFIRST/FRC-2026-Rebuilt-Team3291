@@ -52,7 +52,7 @@
     "rotation": 0.0
   },
   "reversed": true,
-  "folder": null,
+  "folder": "center blue",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 0.0

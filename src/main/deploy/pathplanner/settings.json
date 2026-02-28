@@ -3,6 +3,7 @@
   "robotLength": 0.9,
   "holonomicMode": false,
   "pathFolders": [
+    "center blue",
     "Rigth bule",
     "left blue"
   ],

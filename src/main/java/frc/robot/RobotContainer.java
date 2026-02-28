@@ -32,6 +32,7 @@ import frc.robot.util.FuelSim;
 import frc.robot.commands.AutoIntakeCommand;
 import frc.robot.commands.AutoScoreCommand;
 import frc.robot.commands.AutoShootCommand;
+import frc.robot.commands.ChaseTagCommand;
 
 /**
  * RobotContainer - The heart of the robot's organization and control structure.
@@ -317,6 +318,7 @@ public class RobotContainer {
                                                 new AutoScoreCommand(drive, vision)
                                                                 .withInterruptBehavior(
                                                                                 Command.InterruptionBehavior.kCancelSelf));
+                driver.povDown().onTrue(new ChaseTagCommand(vision, drive, new int[] { 25, 9 }, 2));
 
                 // ================= TURRET MANUAL ROTATION =================
                 // D-pad allows manual turret adjustment (overrides auto-aim)
@@ -365,9 +367,9 @@ public class RobotContainer {
                 // // 1300 RPM and 65° hood angle = medium-range shot
                 operator.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
-                                                shooter.setRPM(1300),
-                                                hood.setAngle(Degrees.of(65)),
-                                                turret.shootCommand())); // Use turret::shoot
+                                                shooter.setRPM(3300),
+                                                new AutoShootCommand(shooter, intakeRollerSubsystem))); // Use
+                                                                                                        // turret::shoot
 
         }
 

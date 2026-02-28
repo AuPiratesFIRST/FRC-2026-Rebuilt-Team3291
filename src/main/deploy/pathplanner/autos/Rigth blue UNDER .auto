@@ -5,31 +5,19 @@
     "data": {
       "commands": [
         {
-          "type": "path",
-          "data": {
-            "pathName": "center blue drive to shoot perload"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AimShoot"
-          }
-        },
-        {
           "type": "parallel",
           "data": {
             "commands": [
               {
-                "type": "path",
-                "data": {
-                  "pathName": "center blue drive to intake"
-                }
-              },
-              {
                 "type": "named",
                 "data": {
                   "name": "AutoIntake"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Right blue UNDER to intake"
                 }
               }
             ]
@@ -38,7 +26,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center blue drive to shoot "
+            "pathName": "Blue Right OVER Drive to shoot"
           }
         },
         {
