@@ -22,7 +22,7 @@ import frc.robot.subsystems.TankDrive.DriveIOSim;
 import frc.robot.subsystems.TankDrive.DriveIOSpark;
 import frc.robot.subsystems.TankDrive.DriveIOTalonFX;
 import frc.robot.subsystems.TankDrive.DriveConstants;
-import frc.robot.subsystems.imu.GyroIONavX;
+import frc.robot.subsystems.imu.GyroIOPigeon2;
 import frc.robot.subsystems.imu.GyroIOSim;
 import frc.robot.subsystems.imu.ImuSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
@@ -135,7 +135,7 @@ public class RobotContainer {
                 // Create IMU subsystem with appropriate IO implementation
                 imu = new ImuSubsystem(
                                 RobotBase.isReal()
-                                                ? new GyroIONavX()
+                                                ? new GyroIOPigeon2()
                                                 : gyroSim);
 
                 // Create Drive subsystem with mode-appropriate IO implementation
@@ -213,9 +213,9 @@ public class RobotContainer {
                                 new AimShooterFromVision(shooter, hood, vision));
                 NamedCommands.registerCommand(
                                 "AimShoot",
-                                Commands.parallel(
+                                Commands.deadline(Commands.waitSeconds(2.3),
                                                 new AimShooterFromVision(shooter, hood, vision),
-                                                turret.shootCommand()));
+                                                new AutoShootCommand(shooter, intakeRollerSubsystem)));
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(
@@ -252,8 +252,6 @@ public class RobotContainer {
 
                 // Configure the button bindings
                 configureButtonBindings();
-
-                shooter.setDefaultCommand(shooter.stop());
 
         }
 
@@ -362,8 +360,8 @@ public class RobotContainer {
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
                                 new AutoShootCommand(shooter, intakeRollerSubsystem)));
-                driver.leftTrigger(0.2).whileTrue(shooter.intakeMode());
-                driver.leftBumper().whileTrue(shooter.outtakeMode());
+                // driver.leftTrigger(0.2).whileTrue(shooter.intakeMode());
+                // driver.leftBumper().whileTrue(shooter.outtakeMode());
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),

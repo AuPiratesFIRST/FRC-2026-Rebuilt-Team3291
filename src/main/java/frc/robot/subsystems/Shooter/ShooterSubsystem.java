@@ -66,22 +66,23 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.015, 0.0002, 0,
+                            0.024, 0.00012, 0.1,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(600))
+                            RotationsPerSecondPerSecond.of(400))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.20, 0.12, 0.05))
+                                    0.17, 0.120, 0.015))
 
+                    // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
                             new MechanismGearing(
                                     GearBox.fromReductionStages(1, 1)))
                     // Coast mode = motor freewheels when disabled (reduces heat)
-                    .withMotorInverted(true)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                     // Limit current to 40A to prevent brownouts
-                    .withStatorCurrentLimit(Amps.of(60))
+                    .withStatorCurrentLimit(Amps.of(40))
+                    .withMotorInverted(true)
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
                             SmartMotorControllerConfig.TelemetryVerbosity.MID));
@@ -91,7 +92,6 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withDiameter(Inches.of(4))
                     .withMass(Pounds.of(1))
                     .withUpperSoftLimit(RPM.of(MAX_RPM))
-                    .withLowerSoftLimit(RPM.of(0))
                     .withTelemetry("ShooterMech",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
@@ -109,8 +109,7 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     public Command stop() {
-        return flywheel.set(0.0)
-                .beforeStarting(() -> lastTargetRPM = 0.0);
+        return setRPM(0);
     }
 
     public Command idle() {
@@ -143,10 +142,6 @@ public class ShooterSubsystem extends SubsystemBase {
 
     public double getActualRPM() {
         return flywheel.getSpeed().in(RPM);
-    }
-
-    public boolean atTargetRPM() {
-        return Math.abs(getActualRPM() - getTargetRPM()) < 100; // tolerance
     }
 
     /**

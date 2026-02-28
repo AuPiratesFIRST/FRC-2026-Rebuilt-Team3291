@@ -33,7 +33,7 @@ public class AutoShootCommand extends Command {
     @Override
     public void execute() {
 
-        boolean atSpeed = shooter.atTargetRPM();
+        boolean atSpeed = shooter.getActualRPM() >= shooter.getTargetRPM() * 0.95;
 
         // Transition: NOT feeding -> feeding
         if (atSpeed && !feeding) {

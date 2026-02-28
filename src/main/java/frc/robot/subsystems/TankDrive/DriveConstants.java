@@ -17,7 +17,7 @@ public class DriveConstants {
         public static final double trackWidth = Units.inchesToMeters(23.5);
 
         // Device CAN IDs
-        public static final int pigeonCanId = 9;
+        public static final int pigeonCanId = 17;
         public static final int leftLeaderCanId = 1;
         public static final int leftFollowerCanId = 2;
         public static final int rightLeaderCanId = 3;
