@@ -38,7 +38,7 @@ public class AimShooterFromVision extends Command {
     // Subsystem we read from (no exclusive access needed)
     private final VisionSubsystem vision;
 
-    private double lastValidRPM = 3000.0;
+    private double lastValidRPM = 4000.0;
 
     /**
      * Creates a new AimShooterFromVision command.

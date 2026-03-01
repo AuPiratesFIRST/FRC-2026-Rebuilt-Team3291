@@ -13,7 +13,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 
 public class DriveConstants {
-        public static final double maxSpeedMetersPerSec = 4.0;
+        public static final double maxSpeedMetersPerSec = 2.5;
         public static final double trackWidth = Units.inchesToMeters(23.5);
 
         // Device CAN IDs

@@ -179,7 +179,7 @@ public class RobotContainer {
 
                 // NOW register robot and intake with FuelSim, as turret and drive are ready
                 registerFuelSimComponents(drive, turret, intakeRollerSubsystem);
-                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
+                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.stop());
                 shooter.setDefaultCommand(shooter.idle());
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
@@ -213,7 +213,7 @@ public class RobotContainer {
                                                                                                                      // Checker"
                                                                                                                      // Logic
                                                 )
-                                                .withTimeout(3.0));// End after 3 seconds
+                                                .withTimeout(.0));// End after 3 seconds
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(
@@ -301,7 +301,7 @@ public class RobotContainer {
                 // Driver still controls forward/backward movement
 
                 // Y button: Enable hub tracking (turn on auto-aim)
-                driver.y().onTrue(
+                driver.y().whileTrue(
                                 Commands.runOnce(turret::enableHubTracking));
 
                 // B button: Disable hub tracking (back to manual rotation)
@@ -318,7 +318,7 @@ public class RobotContainer {
                                                 new AutoScoreCommand(drive, vision)
                                                                 .withInterruptBehavior(
                                                                                 Command.InterruptionBehavior.kCancelSelf));
-                driver.povDown().onTrue(new ChaseTagCommand(vision, drive, new int[] { 25, 9 }, 2));
+                driver.povDown().onTrue(new ChaseTagCommand(vision, drive, new int[] { 26, 9 }, 1));
 
                 // ================= TURRET MANUAL ROTATION =================
                 // D-pad allows manual turret adjustment (overrides auto-aim)
@@ -355,8 +355,8 @@ public class RobotContainer {
 
                 // // ================= SHOOTER CONTROLS =================
 
-                driver.rightTrigger(0.2).whileTrue(shooter.intakeMode().alongWith(intakeRollerSubsystem.out(1.0)));
-                driver.leftTrigger(0.2).whileTrue(shooter.outtakeMode().alongWith(intakeRollerSubsystem.in(1.0)));
+                operator.leftTrigger(0.2).whileTrue(shooter.intakeMode().alongWith(intakeRollerSubsystem.out(1.0)));
+                operator.a().whileTrue(shooter.outtakeMode().alongWith(intakeRollerSubsystem.in(1.0)));
 
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
@@ -367,7 +367,7 @@ public class RobotContainer {
                 // // 1300 RPM and 65° hood angle = medium-range shot
                 operator.x().whileTrue( // Driver 'X' now triggers the shoot command, which checks fuel
                                 Commands.parallel(
-                                                shooter.setRPM(3300),
+                                                shooter.setRPM(4300),
                                                 new AutoShootCommand(shooter, intakeRollerSubsystem))); // Use
                                                                                                         // turret::shoot
 

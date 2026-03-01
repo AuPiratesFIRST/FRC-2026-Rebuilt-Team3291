@@ -24,31 +24,33 @@ public class AutoShootCommand extends Command {
     @Override
     public void initialize() {
         // Start with slight reverse to prevent jams
-        intake.in(0.5).schedule();
+        intake.in(1);
         feeding = false;
     }
 
     @Override
     public void execute() {
 
-        boolean atSpeed = shooter.getActualRPM() >= shooter.getTargetRPM() * 0.95;
+        boolean atSpeed = shooter.getActualRPM() >= shooter.getTargetRPM() * 1;
 
         // Transition: NOT feeding -> feeding
         if (atSpeed && !feeding) {
-            intake.out(1.0);
+            intake.in(1.0).schedule();
+            ;
             feeding = true;
         }
 
         // Transition: feeding -> waiting
         if (!atSpeed && feeding) {
-            intake.in(1);
+            intake.out(1).schedule();
+            ;
             feeding = false;
         }
     }
 
     @Override
     public void end(boolean interrupted) {
-        intake.stop().schedule();
+        intake.stop();
     }
 
     @Override

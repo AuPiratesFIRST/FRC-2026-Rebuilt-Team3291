@@ -22,7 +22,8 @@ import org.photonvision.targeting.PhotonTrackedTarget;
  * ChaseTagCommand - Automatically drives to a position relative to an AprilTag.
  * 
  * This command uses vision to locate an AprilTag, then drives the robot to a
- * specified distance and orientation relative to that tag. Designed for tank drive.
+ * specified distance and orientation relative to that tag. Designed for tank
+ * drive.
  * 
  * How it works:
  * 1. Vision detects AprilTag and reports its position relative to camera
@@ -54,10 +55,10 @@ public class ChaseTagCommand extends Command {
     private final Transform3d tagToGoal;
 
     // X controller drives forward/backward to reach goal position
-    private final ProfiledPIDController xController = new ProfiledPIDController(3.0, 0, 0.05, X_CONSTRAINTS);
-    
+    private final ProfiledPIDController xController = new ProfiledPIDController(0.2, 0, 0.05, X_CONSTRAINTS);
+
     // Omega controller rotates to face the correct heading
-    private final ProfiledPIDController omegaController = new ProfiledPIDController(2.5, 0, 0.05,
+    private final ProfiledPIDController omegaController = new ProfiledPIDController(0.5, 0, 0.05,
             OMEGA_CONSTRAINTS);
 
     private PhotonTrackedTarget lastTarget;
@@ -66,9 +67,9 @@ public class ChaseTagCommand extends Command {
     /**
      * Creates a chase tag command for tank drive.
      * 
-     * @param vision Vision subsystem to detect tags
-     * @param drive Tank drive subsystem
-     * @param tagIds Array of valid AprilTag IDs to chase
+     * @param vision               Vision subsystem to detect tags
+     * @param drive                Tank drive subsystem
+     * @param tagIds               Array of valid AprilTag IDs to chase
      * @param targetDistanceMeters How far in front of tag to stop (meters)
      */
     public ChaseTagCommand(
@@ -100,7 +101,7 @@ public class ChaseTagCommand extends Command {
     public void initialize() {
         lastTarget = null;
         fieldGoalPose = null;
-        
+
         // Initialize controllers with current robot state
         var robotPose = drive.getPose();
         xController.reset(robotPose.getX());
@@ -131,10 +132,10 @@ public class ChaseTagCommand extends Command {
                 // Calculate field positions:
                 // 1. Where is camera in field coordinates?
                 var cameraPose = robotPose3d.transformBy(VisionConstants.ROBOT_TO_SHOOTER_CAMERA);
-                
+
                 // 2. Where is the AprilTag in field coordinates?
                 var targetPose = cameraPose.transformBy(target.getBestCameraToTarget());
-                
+
                 // 3. Where should robot center be to achieve desired offset from tag?
                 fieldGoalPose = targetPose.transformBy(tagToGoal).toPose2d();
 
@@ -143,11 +144,11 @@ public class ChaseTagCommand extends Command {
                 // and the heading to point at the goal
                 Translation2d toGoal = fieldGoalPose.getTranslation().minus(robotPose2d.getTranslation());
                 double distanceToGoal = toGoal.getNorm();
-                
+
                 // Set goal for forward controller (drive toward goal position)
                 // We track progress by measuring distance to goal
                 xController.setGoal(0); // Goal is to reach zero distance
-                
+
                 // Set goal for rotation controller (face the goal pose heading)
                 omegaController.setGoal(fieldGoalPose.getRotation().getRadians());
             }
@@ -163,22 +164,22 @@ public class ChaseTagCommand extends Command {
             // Calculate how to get to goal
             Translation2d toGoal = fieldGoalPose.getTranslation().minus(robotPose2d.getTranslation());
             double distanceToGoal = toGoal.getNorm();
-            
+
             // Calculate field-relative heading error
             Rotation2d headingToGoal = toGoal.getAngle();
             double headingError = headingToGoal.minus(robotPose2d.getRotation()).getRadians();
-            
+
             // Forward speed: proportional to distance, but adjusted by heading error
             // If we're not facing the goal, slow down forward speed
             double xSpeed = xController.calculate(distanceToGoal);
-            
+
             // Reduce forward speed when not aligned (cos of heading error)
             // When facing goal (error=0): cos(0)=1.0 (full speed)
             // When perpendicular (error=90°): cos(90°)=0.0 (stop)
             xSpeed *= Math.cos(headingError);
-            
+
             // Rotational speed: turn to face goal heading
-            double omegaSpeed = omegaController.calculate(robotPose2d.getRotation().getRadians());
+            double omegaSpeed = -omegaController.calculate(robotPose2d.getRotation().getRadians());
 
             // Stop if at goal
             if (xController.atGoal() && Math.abs(distanceToGoal) < 0.1) {
@@ -223,11 +224,11 @@ public class ChaseTagCommand extends Command {
         if (fieldGoalPose == null) {
             return false;
         }
-        
+
         // Check if we're close enough to goal position
         Translation2d toGoal = fieldGoalPose.getTranslation().minus(drive.getPose().getTranslation());
         double distanceToGoal = toGoal.getNorm();
-        
+
         // Finished when both position and heading are at setpoint
         return distanceToGoal < 0.15 && omegaController.atGoal();
     }

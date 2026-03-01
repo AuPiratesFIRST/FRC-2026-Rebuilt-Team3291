@@ -21,15 +21,15 @@
           "data": {
             "commands": [
               {
-                "type": "path",
-                "data": {
-                  "pathName": "center blue drive to intake"
-                }
-              },
-              {
                 "type": "named",
                 "data": {
                   "name": "AutoIntake"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "center blue drive to intake"
                 }
               }
             ]

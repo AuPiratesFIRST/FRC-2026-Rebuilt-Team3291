@@ -43,11 +43,11 @@ public class ShooterSubsystem extends SubsystemBase {
     // constraints)
     private static final double MAX_RPM = 6000.0;
     // A good starting point for KitBot intake speed is 1000-1500 RPM
-    private static final double INTAKE_RPM = 2900.0;
-    private static final double OUTTAKE_RPM = -2900.0;
+    private static final double INTAKE_RPM = 3900.0;
+    private static final double OUTTAKE_RPM = -3900.0;
 
     // Default idle to keep belts moving and overcome static friction
-    private static final double IDLE_RPM = 100.0;
+    private static final double IDLE_RPM = 260.0;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
@@ -66,13 +66,13 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.0005, 0, 0.,
+                            0.0044, 0, 0.,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(1500))
+                            RotationsPerSecondPerSecond.of(3700))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.18, 0.129, 0.04))
+                                    0.27, 0.1294, 0.8))
 
                     // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
@@ -85,7 +85,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withMotorInverted(true)
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
-                            SmartMotorControllerConfig.TelemetryVerbosity.MID));
+                            SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
     private final FlyWheel flywheel = new FlyWheel(
             new FlyWheelConfig(shooterSMC)
