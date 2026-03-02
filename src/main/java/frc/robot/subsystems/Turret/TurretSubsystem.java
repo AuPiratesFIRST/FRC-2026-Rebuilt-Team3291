@@ -24,7 +24,7 @@ public class TurretSubsystem extends SubsystemBase {
         // CONSTANTS
         // ------------------------------------------------
         // NEGATIVE offset because the shooter is on the BACK of the robot
-        private static final Translation2d SHOOTER_OFFSET = new Translation2d(-0.35, 0.0);
+        private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
 
         private int fuelStored = 5;
         public static final int FUEL_CAPACITY = 200;
