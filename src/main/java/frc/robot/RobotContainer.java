@@ -31,11 +31,13 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.Elevator.ElevatorSubsystem;
 import frc.robot.subsystems.vision.ObjectDetection;
+import frc.robot.subsystems.intake.KickerSubsystem;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.commands.AutoScoreCommand;
+import frc.robot.commands.AutoShootCommand;
 
 // Import the YAGSL SwerveInputStream
 import swervelib.SwerveInputStream;
@@ -62,6 +64,7 @@ public class RobotContainer {
 
         private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
         private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
+        private final KickerSubsystem kicker = new KickerSubsystem();
         public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new fuelSim of FuelSim
 
         // Turret subsystem - calculates auto-aim heading (virtual turret, no physical
@@ -92,6 +95,7 @@ public class RobotContainer {
 
                 // NOW register robot and intake with FuelSim, as turret and drive are ready
                 registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
+                shooter.setDefaultCommand(shooter.idle());
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
@@ -226,7 +230,10 @@ public class RobotContainer {
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0)); // Driver 'A' activates intake
+                driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0).alongWith(kicker.routeToHopper())); // Driver
+                                                                                                                 // 'A'
+                                                                                                                 // activates
+                                                                                                                 // intake
 
                 // operator.povLeft().whileTrue(
                 // Commands.run(() -> turret.manualRotate(-0.4), turret));
@@ -252,6 +259,7 @@ public class RobotContainer {
                 // // // ================= SHOOTER =================
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
+                                new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
                                 turret.shootCommand()));
 
                 // Alternative "Smoother" Trigger Binding
@@ -276,7 +284,7 @@ public class RobotContainer {
                 // checks fuel
                 // Commands.parallel(
                 // shooter.setRPM(1150),
-                // hood.setAngle(Degrees.of(65)),
+                // new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
                 // turret.shootCommand())); // Use turret::shoot
 
         }

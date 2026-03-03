@@ -53,12 +53,12 @@ public final class ShooterAimCalculator {
          * Distance (m) -> Hood angle (deg)
          * Based on Anchors: 1.5m @ 65°, 2.0m @ 59°
          */
-        hoodAngleMap.put(1.20, 72.0); // Steeper for the close-in "drop"
-        hoodAngleMap.put(1.50, 65.0); // TESTED ANCHOR
-        hoodAngleMap.put(2.00, 59.0); // TESTED ANCHOR
-        hoodAngleMap.put(2.50, 53.0); // Scaling down the angle to reach
-        hoodAngleMap.put(3.00, 59.0); // RAISED from 48.0 (Steeper = loops into goal)
-        hoodAngleMap.put(4.00, 48.0); // RAISED from 40.0 (The physics "sweet spot")
+        hoodAngleMap.put(1.20, 64.09);
+        hoodAngleMap.put(1.50, 64.09);
+        hoodAngleMap.put(2.00, 64.09);
+        hoodAngleMap.put(2.50, 64.09);
+        hoodAngleMap.put(3.00, 64.09);
+        hoodAngleMap.put(4.00, 64.09);
     }
 
     // ============================================================

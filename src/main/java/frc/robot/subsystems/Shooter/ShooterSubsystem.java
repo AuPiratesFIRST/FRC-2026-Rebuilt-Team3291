@@ -42,6 +42,8 @@ public class ShooterSubsystem extends SubsystemBase {
     // Maximum safe RPM for the flywheel (limited by motor and mechanical
     // constraints)
     private static final double MAX_RPM = 6000.0;
+    // Idle RPM to keep the flywheel spinning at a low speed (prevents stalling)
+    private static final double IDLE_RPM = 100.0;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
@@ -103,6 +105,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
     public Command stop() {
         return setRPM(0);
+    }
+
+    public Command idle() {
+        return setRPM(IDLE_RPM).withName("ShooterIdle");
     }
 
     // ------------------------------------------------
