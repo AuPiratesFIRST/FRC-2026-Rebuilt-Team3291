@@ -11,6 +11,12 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "SmartShoot"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Left blue drive and align to intake "
@@ -20,6 +26,12 @@
           "type": "path",
           "data": {
             "pathName": "Left blue drive and align to shoot "
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SmartShoot"
           }
         },
         {

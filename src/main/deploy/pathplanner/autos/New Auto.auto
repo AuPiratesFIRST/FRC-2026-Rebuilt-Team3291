@@ -5,7 +5,7 @@
     "data": {
       "commands": [
         {
-          "type": "deadline",
+          "type": "parallel",
           "data": {
             "commands": [
               {
@@ -17,7 +17,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "IntakeOn"
+                  "name": "AutoIntake"
                 }
               }
             ]
@@ -30,13 +30,19 @@
           }
         },
         {
-          "type": "named",
+          "type": "wait",
           "data": {
-            "name": "ShootFixed"
+            "waitTime": 0.0
           }
         },
         {
-          "type": "deadline",
+          "type": "named",
+          "data": {
+            "name": "SmartShoot"
+          }
+        },
+        {
+          "type": "parallel",
           "data": {
             "commands": [
               {
@@ -48,7 +54,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "IntakeOn"
+                  "name": "AutoIntake"
                 }
               }
             ]
@@ -63,7 +69,7 @@
         {
           "type": "named",
           "data": {
-            "name": "ShootFixed"
+            "name": "SmartShoot"
           }
         }
       ]

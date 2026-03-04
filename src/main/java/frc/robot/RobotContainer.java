@@ -125,16 +125,28 @@ public class RobotContainer {
                                                 turret.shootCommand().withTimeout(0.8), // Shoot for 0.8 seconds
                                                 shooter.setRPM(1200),
                                                 hood.setAngle(Degrees.of(65))));
-                NamedCommands.registerCommand(
-                                "AimFromVision",
-                                Commands.deadline(
-                                                // The Leader: This command is guaranteed to finish in 0.8s.
-                                                Commands.waitSeconds(0.8),
+                NamedCommands.registerCommand("SmartShoot",
+                                // 1. Aim the shooter (requires shooter/hood)
+                                new AimShooterFromVision(shooter, hood, vision)
 
-                                                // The Followers: These run until the leader (0.8s) is done.
-                                                new AimShooterFromVision(shooter, hood, vision),
-                                                turret.shootCommand() // Add this so it actually fires!
-                                ));
+                                                // 2. Feed the ball ONLY when the shooter is at speed
+                                                // This uses your intake AND your kicker subsystems simultaneously
+                                                .alongWith(new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
+                                                                turret.shootCommand())
+
+                                                // 3. Set a strict timeout so the robot doesn't get stuck waiting
+                                                .withTimeout(2.5));
+
+                NamedCommands.registerCommand("AutoIntake",
+                                kicker.routeToHopper() // Command to run shooter backward/intake
+                                                .alongWith(intakeRollerSubsystem.in(1.0)) // Command to run rollers at
+                                                                                          // 1.0 speed
+                                                .withTimeout(1.5) // Stop both after 1.5 seconds
+                                                .finallyDo(() -> { // Ensure everything stops when finished
+                                                        shooter.stop();
+                                                        intakeRollerSubsystem.stop();
+                                                }));
+
                 NamedCommands.registerCommand(
                                 "DockAtShotDistance",
                                 new ShooterDockAtDistanceCommand(

@@ -13,7 +13,7 @@
         {
           "type": "named",
           "data": {
-            "name": "AimFromVision"
+            "name": "SmartShoot"
           }
         },
         {
@@ -29,7 +29,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "IntakeOn"
+                  "name": "AutoIntake"
                 }
               }
             ]
@@ -44,7 +44,7 @@
         {
           "type": "named",
           "data": {
-            "name": "AimFromVision"
+            "name": "SmartShoot"
           }
         },
         {

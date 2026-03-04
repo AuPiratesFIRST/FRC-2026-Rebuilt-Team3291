@@ -139,6 +139,11 @@ public class ShooterSubsystem extends SubsystemBase {
         return flywheel.getSpeed().in(RPM);
     }
 
+    public boolean isAtTarget() {
+        // Standard 5% tolerance check
+        return Math.abs(getActualRPM() - getTargetRPM()) < (getTargetRPM() * 0.05);
+    }
+
     // ------------------------------------------------
     // PERIODIC
     // ------------------------------------------------

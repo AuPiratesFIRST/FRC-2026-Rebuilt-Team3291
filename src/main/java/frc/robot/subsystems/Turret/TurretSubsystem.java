@@ -26,7 +26,7 @@ public class TurretSubsystem extends SubsystemBase {
         // NEGATIVE offset because the shooter is on the BACK of the robot
         private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
 
-        private int fuelStored = 5;
+        private int fuelStored = 8;
         public static final int FUEL_CAPACITY = 200;
 
         // ------------------------------------------------
@@ -120,7 +120,6 @@ public class TurretSubsystem extends SubsystemBase {
                 // 3. Store results for logging/PID
                 distanceToHubMeters = solution.distanceMeters();
                 calculatedRPM = solution.rpm();
-                calculatedHoodAngleDeg = solution.hoodAngle().in(Degrees);
 
                 // 4. THE 180-DEGREE FLIP
                 // The calculator returns where the BALL should go.
@@ -131,7 +130,6 @@ public class TurretSubsystem extends SubsystemBase {
                 // 5. Apply to hardware
                 if (hubTrackingEnabled) {
                         shooter.applyRPM(calculatedRPM);
-                        hood.applyAngle(solution.hoodAngle());
                 }
         }
 

@@ -9,6 +9,7 @@ import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
 import java.io.File;
+import java.math.MathContext;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier; // Added for the new driveCommand
 
@@ -39,7 +40,7 @@ public class SwerveSubsystem extends SubsystemBase {
   public SwerveSubsystem(File directory, VisionSubsystem vision) {
     this.vision = vision;
 
-    Pose2d startingPose = new Pose2d(new Translation2d(4, 4), new Rotation2d());
+    Pose2d startingPose = new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(180));
 
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.POSE;
 
