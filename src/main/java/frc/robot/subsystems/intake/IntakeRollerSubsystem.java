@@ -31,7 +31,7 @@ public class IntakeRollerSubsystem extends SubsystemBase {
      */
 
     // SparkMax + NEO (built-in encoder automatically used by YAMS)
-    private final SparkMax spark = new SparkMax(14, MotorType.kBrushless);
+    private final SparkMax spark = new SparkMax(15, MotorType.kBrushless);
 
     /*
      * =========================
