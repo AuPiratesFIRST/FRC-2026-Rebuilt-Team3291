@@ -9,9 +9,7 @@ import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.vision.VisionSubsystem;
 
 import java.io.File;
-import java.math.MathContext;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier; // Added for the new driveCommand
+import java.util.function.Supplier;
 
 import swervelib.SwerveDrive;
 import swervelib.parser.SwerveParser;
@@ -34,14 +32,14 @@ public class SwerveSubsystem extends SubsystemBase {
 
   private static final double MAX_LINEAR_SPEED = 4.5; // m/s
   private static final double MAX_ANGULAR_SPEED = Math.PI * 2; // rad/s
-  private double lastVisionUpdate = 0.0;
-  private static final double VISION_PERIOD = 0.05; // 20 Hz
+
+  // Notice we removed VISION_PERIOD gating. Using `getAllUnreadResults` means
+  // we want to process camera frames exactly as fast as our main robot loop runs!
 
   public SwerveSubsystem(File directory, VisionSubsystem vision) {
     this.vision = vision;
 
     Pose2d startingPose = new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0));
-
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
 
     try {
@@ -136,23 +134,22 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    double now = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
 
-    if (now - lastVisionUpdate < VISION_PERIOD) {
-      return;
-    }
-    lastVisionUpdate = now;
+    // Loop through ALL available camera estimates from BOTH cameras and feed them
+    // to YAGSL
+    for (var est : vision.getEstimatedGlobalPoses()) {
 
-    vision.getEstimatedGlobalPose().ifPresent(est -> {
-      var trust = est.targetsUsed.size() > 1
+      // Dynamically choose standard deviations based on if the camera saw 1 tag or
+      // multiple tags
+      var trustMatrix = est.targetsUsed.size() > 1
           ? VisionConstants.MULTI_TAG_STD_DEVS
           : VisionConstants.SINGLE_TAG_STD_DEVS;
 
       swerveDrive.addVisionMeasurement(
           est.estimatedPose.toPose2d(),
           est.timestampSeconds,
-          trust);
-    });
+          trustMatrix);
+    }
   }
 
   @Override

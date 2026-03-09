@@ -55,7 +55,7 @@ public class TurretSubsystem extends SubsystemBase {
         // CONTROLLERS
         // ------------------------------------------------
 
-        private final PIDController headingPID = new PIDController(1.74, 0.0, 0.373); // P=1.74 for smooth snapping
+        private final PIDController headingPID = new PIDController(2, 0.0, 0); // P=1.74 for smooth snapping
         private double feedforwardOmega = 0.0;
         // ------------------------------------------------
         // CONSTRUCTOR
@@ -226,8 +226,18 @@ public class TurretSubsystem extends SubsystemBase {
                 return fuelStored;
         }
 
+        // Inside TurretSubsystem.java
+
         public Command shootCommand() {
-                return run(this::shoot);
+                return run(() -> {
+                        // Continue shooting logic
+                        shoot();
+                })
+                                .beforeStarting(this::enableHubTracking) // Turn on tracking
+                                .finallyDo(() -> {
+                                        disableHubTracking(); // Turn off tracking on end/cancel
+                                        shooter.stop(); // Optional: Stop wheels when done
+                                });
         }
 
         public void resetFuelStored() {
@@ -250,6 +260,7 @@ public class TurretSubsystem extends SubsystemBase {
                 SmartDashboard.putNumber("Targeting/RobotYawDeg", swerve.getPose().getRotation().getDegrees());
                 SmartDashboard.putNumber("Targeting/HeadingErrorDeg",
                                 desiredFieldHeading.minus(swerve.getPose().getRotation()).getDegrees());
+                SmartDashboard.putNumber("Targeting/FeedforwardOmega", feedforwardOmega);
                 SmartDashboard.putNumber("Targeting/CalculatedRPM", calculatedRPM);
                 SmartDashboard.putNumber("Targeting/CalculatedHoodDeg", calculatedHoodAngleDeg);
         }

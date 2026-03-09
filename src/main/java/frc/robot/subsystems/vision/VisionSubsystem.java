@@ -9,81 +9,55 @@ import edu.wpi.first.networktables.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.photonvision.*;
 import org.photonvision.simulation.*;
 import org.photonvision.targeting.*;
 
-/**
- * Vision Subsystem - Detects AprilTags using PhotonVision for pose estimation
- * and targeting.
- * 
- * This subsystem manages the robot's camera and processes AprilTag detections
- * to:
- * 1. Estimate the robot's global position on the field (pose estimation)
- * 2. Measure distance and angle to specific tags for shooter aiming
- * 3. Provide realistic simulation data for testing
- * 
- * PhotonVision runs on a coprocessor (like a Raspberry Pi) and sends results
- * to the roboRIO via NetworkTables. This subsystem reads those results.
- */
 public class VisionSubsystem extends SubsystemBase {
 
     // ============================================================
-    // CAMERA (SINGLE, MULTI-PURPOSE)
+    // CAMERAS
     // ============================================================
-    // PhotonCamera connects to PhotonVision instance running on coprocessor
-    // Camera name must match the name configured in the PhotonVision web interface
-    private final PhotonCamera camera;
+    private final PhotonCamera frontCamera;
+    private final PhotonCamera shooterCamera;
 
     // ============================================================
     // FIELD + POSE ESTIMATION
     // ============================================================
-    // AprilTag field layout contains the 3D positions of all tags on the field
-    // This is loaded from WPILib's built-in field layouts (updated yearly)
     private final AprilTagFieldLayout fieldLayout;
 
-    // PhotonPoseEstimator uses detected tags + field layout to estimate robot pose
-    // Uses MULTI_TAG_PNP_ON_COPROCESSOR strategy for best accuracy with multiple
-    // tags
-    private final PhotonPoseEstimator poseEstimator;
+    private final PhotonPoseEstimator frontPoseEstimator;
+    private final PhotonPoseEstimator shooterPoseEstimator;
 
-    // NetworkTables publisher to share vision pose with other programs
-    // (AdvantageScope, etc.)
     private final StructPublisher<Pose2d> visionPosePub;
 
     // ============================================================
     // SIMULATION
     // ============================================================
-    // These are only used in simulation to provide realistic camera behavior
-    // null on real robot
     private VisionSystemSim visionSim;
-    private PhotonCameraSim cameraSim;
+    private PhotonCameraSim frontCameraSim;
+    private PhotonCameraSim shooterCameraSim;
 
     // ============================================================
     // CONSTRUCTOR
     // ============================================================
 
-    /**
-     * Creates a new VisionSubsystem.
-     * Initializes camera connection, loads field layout, and sets up simulation if
-     * needed.
-     */
     public VisionSubsystem() {
 
-        // Connect to PhotonVision camera by name (must match PhotonVision config)
-        camera = new PhotonCamera(SHOOTER_CAMERA_NAME);
+        // Connect to PhotonVision cameras by name
+        frontCamera = new PhotonCamera(FRONT_CAMERA_NAME);
+        shooterCamera = new PhotonCamera(SHOOTER_CAMERA_NAME);
 
-        // Load the official 2026 Rebulit field AprilTag layout
-        // This contains the 3D position of every AprilTag on the field
-        fieldLayout = AprilTagFieldLayout.loadField(
-                AprilTagFields.k2026RebuiltWelded);
+        // Load Field Layout
+        fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
-        poseEstimator = new PhotonPoseEstimator(
-                fieldLayout,
-                PhotonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-                ROBOT_TO_SHOOTER_CAMERA);
+        // NEW PHOTONVISION API: Just FieldLayout + Transform3d in constructor
+        frontPoseEstimator = new PhotonPoseEstimator(fieldLayout, ROBOT_TO_FRONT_CAMERA);
+        shooterPoseEstimator = new PhotonPoseEstimator(fieldLayout, ROBOT_TO_SHOOTER_CAMERA);
 
         visionPosePub = NetworkTableInstance.getDefault()
                 .getStructTopic("Vision/EstimatedPose", Pose2d.struct)
@@ -99,9 +73,7 @@ public class VisionSubsystem extends SubsystemBase {
     // ============================================================
 
     private void setupSimulation() {
-
         visionSim = new VisionSystemSim("Vision");
-
         visionSim.addAprilTags(fieldLayout);
 
         SimCameraProperties props = new SimCameraProperties();
@@ -110,14 +82,13 @@ public class VisionSubsystem extends SubsystemBase {
         props.setAvgLatencyMs(35);
         props.setCalibError(0.25, 0.25);
 
-        cameraSim = new PhotonCameraSim(camera, props);
+        frontCameraSim = new PhotonCameraSim(frontCamera, props);
+        shooterCameraSim = new PhotonCameraSim(shooterCamera, props);
 
-        visionSim.addCamera(
-                cameraSim,
-                ROBOT_TO_SHOOTER_CAMERA);
+        visionSim.addCamera(frontCameraSim, ROBOT_TO_FRONT_CAMERA);
+        visionSim.addCamera(shooterCameraSim, ROBOT_TO_SHOOTER_CAMERA);
     }
 
-    /** MUST be called from DriveSubsystem.simulationPeriodic() */
     public void updateSimPose(Pose2d robotPose) {
         if (visionSim != null) {
             visionSim.update(robotPose);
@@ -125,40 +96,56 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     // ============================================================
-    // GLOBAL POSE ESTIMATION
+    // GLOBAL POSE ESTIMATION (DUAL CAMERA - NEW API)
     // ============================================================
 
-    public Optional<EstimatedRobotPose> getEstimatedGlobalPose() {
+    /**
+     * Loops through unread frames from BOTH cameras to generate a list of field
+     * poses.
+     */
+    public List<EstimatedRobotPose> getEstimatedGlobalPoses() {
+        List<EstimatedRobotPose> estimates = new ArrayList<>();
 
-        PhotonPipelineResult result = camera.getLatestResult();
+        // Process all unseen frames from the Front Camera
+        for (var result : frontCamera.getAllUnreadResults()) {
+            // Primary strategy: Multi-tag PNP
+            Optional<EstimatedRobotPose> pose = frontPoseEstimator.estimateCoprocMultiTagPose(result);
 
-        if (!result.hasTargets()) {
-            return Optional.empty();
+            // Fallback strategy: Lowest Ambiguity (Single Tag)
+            if (pose.isEmpty()) {
+                pose = frontPoseEstimator.estimateLowestAmbiguityPose(result);
+            }
+            pose.ifPresent(estimates::add);
         }
 
-        return poseEstimator.update(result);
+        // Process all unseen frames from the Shooter Camera
+        for (var result : shooterCamera.getAllUnreadResults()) {
+            // Primary strategy: Multi-tag PNP
+            Optional<EstimatedRobotPose> pose = shooterPoseEstimator.estimateCoprocMultiTagPose(result);
+
+            // Fallback strategy: Lowest Ambiguity (Single Tag)
+            if (pose.isEmpty()) {
+                pose = shooterPoseEstimator.estimateLowestAmbiguityPose(result);
+            }
+            pose.ifPresent(estimates::add);
+        }
+
+        return estimates;
     }
 
     // ============================================================
-    // DISTANCE TO TAG (PLANAR)
+    // DISTANCE TO TAG (PLANAR) - Uses Shooter Camera
     // ============================================================
 
     public Optional<Double> getDistanceToTagMeters(int[] validTags) {
-
-        PhotonPipelineResult result = camera.getLatestResult();
-
-        if (!result.hasTargets()) {
+        PhotonPipelineResult result = shooterCamera.getLatestResult();
+        if (!result.hasTargets())
             return Optional.empty();
-        }
 
         for (PhotonTrackedTarget target : result.getTargets()) {
             for (int id : validTags) {
                 if (target.getFiducialId() == id) {
-
-                    Transform3d camToTarget = target.getBestCameraToTarget();
-
-                    return Optional.of(
-                            camToTarget.getTranslation().getNorm());
+                    return Optional.of(target.getBestCameraToTarget().getTranslation().getNorm());
                 }
             }
         }
@@ -166,17 +153,16 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     // ============================================================
-    // TAG ROTATION RELATIVE TO CAMERA (FOR TILT COMPENSATION)
+    // TAG ROTATION RELATIVE TO CAMERA
     // ============================================================
     public Optional<Double> getTagRotationRelativeRad(int[] validTags) {
-        PhotonPipelineResult result = camera.getLatestResult();
+        PhotonPipelineResult result = shooterCamera.getLatestResult();
         if (!result.hasTargets())
             return Optional.empty();
 
         for (PhotonTrackedTarget target : result.getTargets()) {
             for (int id : validTags) {
                 if (target.getFiducialId() == id) {
-                    // This is the 3D tilt of the tag relative to your camera lens
                     return Optional.of(target.getBestCameraToTarget().getRotation().getZ());
                 }
             }
@@ -185,20 +171,17 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     // ============================================================
-    // LATERAL OFFSET TO TAG (FOR STRAFING)
+    // LATERAL OFFSET TO TAG
     // ============================================================
     public Optional<Double> getTargetLateralOffsetMeters(int[] validTags) {
-        PhotonPipelineResult result = camera.getLatestResult();
+        PhotonPipelineResult result = shooterCamera.getLatestResult();
         if (!result.hasTargets())
             return Optional.empty();
 
         for (PhotonTrackedTarget target : result.getTargets()) {
             for (int id : validTags) {
                 if (target.getFiducialId() == id) {
-                    // This gets the 3D transform from the camera to the tag
-                    Transform3d camToTarget = target.getBestCameraToTarget();
-                    // Return the Y value (how many meters the tag is to the LEFT of the camera)
-                    return Optional.of(camToTarget.getY());
+                    return Optional.of(target.getBestCameraToTarget().getY());
                 }
             }
         }
@@ -206,48 +189,36 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     // ============================================================
-    // YAW TO TARGET (FOR AIMING)
+    // YAW TO TARGET
     // ============================================================
 
     public Optional<Double> getTargetYawRad(int[] validTags) {
-
-        PhotonPipelineResult result = camera.getLatestResult();
-
-        if (!result.hasTargets()) {
+        PhotonPipelineResult result = shooterCamera.getLatestResult();
+        if (!result.hasTargets())
             return Optional.empty();
-        }
 
         for (PhotonTrackedTarget target : result.getTargets()) {
             for (int id : validTags) {
                 if (target.getFiducialId() == id) {
-
-                    // Photon yaw is degrees, CCW+
-                    return Optional.of(
-                            Units.degreesToRadians(target.getYaw()));
+                    return Optional.of(Units.degreesToRadians(target.getYaw()));
                 }
             }
         }
         return Optional.empty();
     }
-    // ============================================================
-    // ROBOT POSE IN TARGET SPACE (FOR CHASING TAGS)
 
+    // ============================================================
+    // ROBOT POSE IN TARGET SPACE
+    // ============================================================
     public Optional<Pose2d> getRobotPoseInTargetSpace(int[] validTags) {
-        var result = camera.getLatestResult();
+        var result = shooterCamera.getLatestResult();
         if (!result.hasTargets())
             return Optional.empty();
 
         for (var target : result.getTargets()) {
             for (int id : validTags) {
                 if (target.getFiducialId() == id) {
-                    // This is the transform from the Camera Lens to the Tag center
                     Transform3d camToTarget = target.getBestCameraToTarget();
-
-                    // We invert it to get the "Robot's position relative to the Tag"
-                    // In Target Space:
-                    // X = Distance from tag face (Depth)
-                    // Y = Lateral offset from tag center (Side-to-side)
-                    // Rotation = Heading relative to tag face (Squaring up)
                     Transform3d targetToCam = camToTarget.inverse();
 
                     return Optional.of(new Pose2d(
@@ -260,18 +231,19 @@ public class VisionSubsystem extends SubsystemBase {
         return Optional.empty();
     }
 
-    //
     public PhotonPipelineResult getLatestResult() {
-        return camera.getLatestResult();
+        return shooterCamera.getLatestResult();
     }
+
     // ============================================================
     // PERIODIC LOGGING
     // ============================================================
 
     @Override
     public void periodic() {
-
-        getEstimatedGlobalPose().ifPresent(pose -> visionPosePub.set(
-                pose.estimatedPose.toPose2d()));
+        for (EstimatedRobotPose est : getEstimatedGlobalPoses()) {
+            visionPosePub.set(est.estimatedPose.toPose2d());
+            break; // Just grab one to display an icon on AdvantageScope/Glass
+        }
     }
 }
