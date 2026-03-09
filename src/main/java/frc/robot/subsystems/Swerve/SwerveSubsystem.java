@@ -30,14 +30,15 @@ import org.littletonrobotics.junction.Logger;
 
 public class SwerveSubsystem extends SubsystemBase {
   private final SwerveDrive swerveDrive;
-  // private final VisionSubsystem vision;
+  private final VisionSubsystem vision;
 
   private static final double MAX_LINEAR_SPEED = 4.5; // m/s
   private static final double MAX_ANGULAR_SPEED = Math.PI * 2; // rad/s
   private double lastVisionUpdate = 0.0;
   private static final double VISION_PERIOD = 0.05; // 20 Hz
 
-  public SwerveSubsystem(File directory) {
+  public SwerveSubsystem(File directory, VisionSubsystem vision) {
+    this.vision = vision;
 
     Pose2d startingPose = new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0));
 
@@ -65,21 +66,22 @@ public class SwerveSubsystem extends SubsystemBase {
    * This allows SwerveInputStream to be passed directly.
    */
   public Command driveCommand(Supplier<ChassisSpeeds> speedSupplier) {
-    return run(() -> swerveDrive.drive(speedSupplier.get()));
+    // Changed .drive() to .driveFieldOriented()
+    return run(() -> swerveDrive.driveFieldOriented(speedSupplier.get()));
   }
 
-  public Command driveCommand(
-      DoubleSupplier vX,
-      DoubleSupplier vY,
-      DoubleSupplier vOmega) {
-    return run(() -> swerveDrive.drive(
-        new Translation2d(
-            vX.getAsDouble() * MAX_LINEAR_SPEED,
-            vY.getAsDouble() * MAX_LINEAR_SPEED),
-        vOmega.getAsDouble() * MAX_ANGULAR_SPEED,
-        false,
-        false));
-  }
+  // public Command driveCommand(
+  // DoubleSupplier vX,
+  // DoubleSupplier vY,
+  // DoubleSupplier vOmega) {
+  // return run(() -> swerveDrive.drive(
+  // new Translation2d(
+  // vX.getAsDouble() * MAX_LINEAR_SPEED,
+  // vY.getAsDouble() * MAX_LINEAR_SPEED),
+  // vOmega.getAsDouble() * MAX_ANGULAR_SPEED,
+  // false,
+  // false));
+  // }
 
   /* -------------------- PATHPLANNER SETUP -------------------- */
   private void setupPathPlanner() {
@@ -141,21 +143,21 @@ public class SwerveSubsystem extends SubsystemBase {
     }
     lastVisionUpdate = now;
 
-    // vision.getEstimatedGlobalPose().ifPresent(est -> {
-    // var trust = est.targetsUsed.size() > 1
-    // ? VisionConstants.MULTI_TAG_STD_DEVS
-    // : VisionConstants.SINGLE_TAG_STD_DEVS;
+    vision.getEstimatedGlobalPose().ifPresent(est -> {
+      var trust = est.targetsUsed.size() > 1
+          ? VisionConstants.MULTI_TAG_STD_DEVS
+          : VisionConstants.SINGLE_TAG_STD_DEVS;
 
-    // swerveDrive.addVisionMeasurement(
-    // est.estimatedPose.toPose2d(),
-    // est.timestampSeconds,
-    // trust);
-    // });
+      swerveDrive.addVisionMeasurement(
+          est.estimatedPose.toPose2d(),
+          est.timestampSeconds,
+          trust);
+    });
   }
 
   @Override
   public void simulationPeriodic() {
-    // vision.updateSimPose(swerveDrive.getPose());
+    vision.updateSimPose(swerveDrive.getPose());
   }
 
   public void drive(ChassisSpeeds speeds) {

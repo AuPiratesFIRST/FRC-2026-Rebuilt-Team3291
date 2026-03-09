@@ -11,7 +11,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "New New Path"
+                  "pathName": "Left drive to neutral zone "
                 }
               },
               {
@@ -26,7 +26,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "New Path"
+            "pathName": "Left Drive from neutral zone to shoot "
           }
         },
         {

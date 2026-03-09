@@ -32,7 +32,7 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     // SparkMax + NEO (built-in encoder automatically used by YAMS)
     private final SparkMax spark = new SparkMax(15, MotorType.kBrushless);
-
+    private static final double IDLE_SPEED = 0.05;
     /*
      * =========================
      * Smart Motor Config (YAMS)
@@ -145,6 +145,10 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     public Command out(double speed) {
         return set(-Math.abs(speed));
+    }
+
+    public Command idle() {
+        return set(IDLE_SPEED).withName("IntakeIdle");
     }
 
     public Command stop() {

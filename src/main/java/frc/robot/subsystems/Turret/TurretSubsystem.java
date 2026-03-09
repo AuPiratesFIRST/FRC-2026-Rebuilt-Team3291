@@ -55,7 +55,8 @@ public class TurretSubsystem extends SubsystemBase {
         // CONTROLLERS
         // ------------------------------------------------
 
-        private final PIDController headingPID = new PIDController(5.0, 0.0, 0.25); // P=4.0 for fast snapping
+        private final PIDController headingPID = new PIDController(1.74, 0.0, 0.373); // P=1.74 for smooth snapping
+        private double feedforwardOmega = 0.0;
         // ------------------------------------------------
         // CONSTRUCTOR
         // ------------------------------------------------
@@ -112,19 +113,37 @@ public class TurretSubsystem extends SubsystemBase {
                 Pose2d shooterPose = new Pose2d(shooterFieldPos, robotPose.getRotation());
 
                 // 2. Calculate Aiming Parameters
+                Translation2d hub2d = hub.toTranslation2d();
                 var solution = ShooterAimCalculator.solveMoving(
                                 shooterPose,
                                 speeds,
-                                hub.toTranslation2d());
+                                hub2d);
 
                 // 3. Store results for logging/PID
                 distanceToHubMeters = solution.distanceMeters();
                 calculatedRPM = solution.rpm();
 
+                // --- NEW KINEMATIC FEEDFORWARD MATH ---
+                // Calculate vector from robot to target
+                Translation2d robotToHub = hub2d.minus(robotPose.getTranslation());
+                double rX = robotToHub.getX();
+                double rY = robotToHub.getY();
+
+                // Get robot's field-relative velocity
+                double vX = speeds.vxMetersPerSecond;
+                double vY = speeds.vyMetersPerSecond;
+
+                // Calculate the angular velocity required to track the target while moving.
+                // Equation: Omega = (rY * vX - rX * vY) / (rX^2 + rY^2)
+                double distSq = (rX * rX) + (rY * rY);
+                if (distSq > 0.01) { // Prevent division by zero if sitting exactly on the hub
+                        feedforwardOmega = (rY * vX - rX * vY) / distSq;
+                } else {
+                        feedforwardOmega = 0.0;
+                }
+                // --------------------------------------
+
                 // 4. THE 180-DEGREE FLIP
-                // The calculator returns where the BALL should go.
-                // Since the shooter is on the back, the robot's front must point away from the
-                // target.
                 desiredFieldHeading = solution.heading().plus(Rotation2d.fromDegrees(180));
 
                 // 5. Apply to hardware
@@ -164,9 +183,13 @@ public class TurretSubsystem extends SubsystemBase {
 
         public double getDesiredRobotOmega() {
                 if (hubTrackingEnabled) {
-                        return headingPID.calculate(
+                        // The PID now only corrects for small drift/disturbances
+                        double pidOmega = headingPID.calculate(
                                         swerve.getPose().getRotation().getRadians(),
                                         desiredFieldHeading.getRadians());
+
+                        // Add the feedforward to actively drive the rotation
+                        return pidOmega + feedforwardOmega;
                 }
                 return manualOmega;
         }

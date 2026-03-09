@@ -27,8 +27,8 @@ public final class ShooterAimCalculator {
     private static final double MIN_DISTANCE = 1.2;
     private static final double MAX_DISTANCE = 4.5;
 
-    // Latency: Time for ball to leave the robot
-    private static final double SYSTEM_LATENCY_SEC = 0.25;
+    // Latency: Time for ball to leave the robot (Phase delay)
+    private static final double SYSTEM_LATENCY_SEC = 0.35;
 
     // ============================================================
     // TUNING MAPS
@@ -36,6 +36,9 @@ public final class ShooterAimCalculator {
 
     private static final InterpolatingDoubleTreeMap rpmMap = new InterpolatingDoubleTreeMap();
     private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
+
+    // NEW: Time of Flight Map (Distance in meters -> Time in seconds)
+    private static final InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
 
     static {
         /**
@@ -61,6 +64,20 @@ public final class ShooterAimCalculator {
         hoodAngleMap.put(2.50, 64.09);
         hoodAngleMap.put(3.00, 64.09);
         hoodAngleMap.put(4.00, 64.09);
+
+        /**
+         * Distance (m) -> Time of Flight (seconds)
+         * TUNE THESE! These are baseline estimates. If your ball misses "behind" your
+         * movement direction, increase these times. If it misses "ahead", decrease
+         * them.
+         */
+        timeOfFlightMap.put(1.20, 0.40);
+        timeOfFlightMap.put(1.50, 0.48);
+        timeOfFlightMap.put(2.00, 0.58);
+        timeOfFlightMap.put(2.50, 0.65);
+        timeOfFlightMap.put(3.00, 0.72);
+        timeOfFlightMap.put(4.00, 0.85);
+        timeOfFlightMap.put(4.50, 0.95);
     }
 
     // ============================================================
@@ -73,31 +90,43 @@ public final class ShooterAimCalculator {
 
         Translation2d robotVelocity = new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
 
-        // 1. Predict robot position when the ball actually leaves the shooter
+        // 1. PHASE DELAY: Predict robot position when the ball actually leaves the
+        // shooter
         Translation2d predictedShooterPos = shooterPose.getTranslation().plus(robotVelocity.times(SYSTEM_LATENCY_SEC));
 
-        // 2. Calculate distance and base requirements from the LUT
-        Translation2d targetVec = goalLocation.minus(predictedShooterPos);
-        double dist = MathUtil.clamp(targetVec.getNorm(), MIN_DISTANCE, MAX_DISTANCE);
+        // 2. ITERATIVE TIME-OF-FLIGHT COMPENSATION
+        double distanceMeters = predictedShooterPos.getDistance(goalLocation);
+        Translation2d virtualGoal = goalLocation;
 
-        double idealStationaryRPM = rpmMap.get(dist);
-        Angle hoodAngle = Degrees.of(hoodAngleMap.get(dist));
+        // Loop 20 times to converge on the mathematically perfect lookahead distance
+        for (int i = 0; i < 20; i++) {
+            double clampedDist = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
 
-        // 3. Vector Compensation: Subtract robot velocity from the required exit
-        // velocity vector
-        double tangentialVelocityMS = (idealStationaryRPM / 60.0) * (2 * Math.PI * WHEEL_RADIUS);
-        Translation2d exitVelocityVec = targetVec.div(targetVec.getNorm()).times(tangentialVelocityMS);
-        Translation2d compensatedVec = exitVelocityVec.minus(robotVelocity);
+            // Guess how long the ball will be in the air based on the current estimated
+            // distance
+            double timeOfFlight = timeOfFlightMap.get(clampedDist);
 
-        // 4. Convert back to RPM and Heading
-        Rotation2d compensatedHeading = compensatedVec.getAngle();
-        double compensatedRPM = (compensatedVec.getNorm() * 60.0) / (2 * Math.PI * WHEEL_RADIUS);
+            // The ball will drift sideways by (velocity * time).
+            // We shift the target exactly opposite to this drift to compensate.
+            virtualGoal = goalLocation.minus(robotVelocity.times(timeOfFlight));
+
+            // Recalculate distance using the new shifted target
+            distanceMeters = predictedShooterPos.getDistance(virtualGoal);
+        }
+
+        // 3. GENERATE HARDWARE SETPOINTS
+        double clampedFinalDist = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
+
+        // Aim at the shifted virtual goal
+        Rotation2d aimHeading = virtualGoal.minus(predictedShooterPos).getAngle();
+        double targetRPM = Math.min(rpmMap.get(clampedFinalDist), MAX_RPM);
+        Angle hoodAngle = Degrees.of(hoodAngleMap.get(clampedFinalDist));
 
         return new MovingShotSolution(
-                compensatedHeading,
-                MathUtil.clamp(compensatedRPM, 0, MAX_RPM),
+                aimHeading,
+                targetRPM,
                 hoodAngle,
-                dist);
+                distanceMeters);
     }
 
     public record MovingShotSolution(Rotation2d heading, double rpm, Angle hoodAngle, double distanceMeters) {
@@ -111,14 +140,12 @@ public final class ShooterAimCalculator {
         double clamped = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
         Angle hoodAngle = Degrees.of(hoodAngleMap.get(clamped));
 
-        // FIX: Removed applyLogCurve. We use the raw value from the map.
         double targetRPM = Math.min(rpmMap.get(clamped), MAX_RPM);
 
         return new ShooterSolution(hoodAngle, targetRPM, 0.0, clamped, true);
     }
 
     public static ShooterSolution fallback() {
-        // FIX: Replaced shapedRPM with raw 1150 value
         return new ShooterSolution(Degrees.of(65), 1150.0, 0.0, 1.5, true);
     }
 

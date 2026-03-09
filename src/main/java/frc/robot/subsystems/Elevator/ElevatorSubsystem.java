@@ -10,7 +10,8 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.ElevatorConfig;
 import yams.mechanisms.positional.Elevator;
 import yams.motorcontrollers.SmartMotorController;
@@ -31,8 +32,10 @@ public class ElevatorSubsystem extends SubsystemBase {
                     MetersPerSecond.of(1),
                     MetersPerSecondPerSecond.of(2))
             .withFeedforward(new ElevatorFeedforward(0, 0, 0))
-            .withTelemetry("ElevatorMotor", TelemetryVerbosity.LOW)
-            .withGearing(12)
+            .withTelemetry("ElevatorMotor", TelemetryVerbosity.HIGH)
+            .withGearing(
+                    new MechanismGearing(
+                            GearBox.fromReductionStages(180, 1)))
             .withMotorInverted(false)
             .withStatorCurrentLimit(Amps.of(40))
             .withIdleMode(MotorMode.BRAKE);
