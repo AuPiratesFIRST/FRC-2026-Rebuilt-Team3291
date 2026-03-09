@@ -58,6 +58,12 @@
           "data": {
             "pathName": "center blue drive to climb"
           }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoAlignToClimb"
+          }
         }
       ]
     }

@@ -6,6 +6,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.Angle;
@@ -84,52 +85,110 @@ public final class ShooterAimCalculator {
     // PUBLIC SOLVER (MOVING)
     // ============================================================
     public static MovingShotSolution solveMoving(
-            Pose2d shooterPose,
+            Pose2d robotPose,
             ChassisSpeeds fieldSpeeds,
             Translation2d goalLocation) {
 
-        Translation2d robotVelocity = new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
+        // 1. PROJECT ROBOT POSE (Phase Delay)
+        // Project where the robot will be in 35ms (SYSTEM_LATENCY_SEC)
+        // Using exponential move (Twist2d) is more accurate for swerve than linear math
+        Pose2d predictedPose = robotPose.exp(new Twist2d(
+                fieldSpeeds.vxMetersPerSecond * SYSTEM_LATENCY_SEC,
+                fieldSpeeds.vyMetersPerSecond * SYSTEM_LATENCY_SEC,
+                fieldSpeeds.omegaRadiansPerSecond * SYSTEM_LATENCY_SEC));
 
-        // 1. PHASE DELAY: Predict robot position when the ball actually leaves the
-        // shooter
-        Translation2d predictedShooterPos = shooterPose.getTranslation().plus(robotVelocity.times(SYSTEM_LATENCY_SEC));
+        // 2. CALCULATE SHOOTER VELOCITY (The "Whip Effect")
+        // The shooter is at an offset. If the robot is rotating, the shooter's field
+        // velocity
+        // is different from the chassis center's velocity.
+        double rx = 0.35; // SHOOTER_OFFSET X
+        double ry = 0.0; // SHOOTER_OFFSET Y
+        double omega = fieldSpeeds.omegaRadiansPerSecond;
 
-        // 2. ITERATIVE TIME-OF-FLIGHT COMPENSATION
-        double distanceMeters = predictedShooterPos.getDistance(goalLocation);
+        double shooterFieldVx = fieldSpeeds.vxMetersPerSecond - (omega * ry);
+        double shooterFieldVy = fieldSpeeds.vyMetersPerSecond + (omega * rx);
+        Translation2d shooterVelocity = new Translation2d(shooterFieldVx, shooterFieldVy);
+
+        // 3. ITERATIVE CONVERGENCE (The 20-Loop)
+        Translation2d shooterPos = predictedPose.getTranslation().plus(
+                new Translation2d(rx, ry).rotateBy(predictedPose.getRotation()));
+
+        double distanceToHub = shooterPos.getDistance(goalLocation);
         Translation2d virtualGoal = goalLocation;
 
-        // Loop 20 times to converge on the mathematically perfect lookahead distance
         for (int i = 0; i < 20; i++) {
-            double clampedDist = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
+            double clampedDist = MathUtil.clamp(distanceToHub, MIN_DISTANCE, MAX_DISTANCE);
+            double tof = timeOfFlightMap.get(clampedDist);
 
-            // Guess how long the ball will be in the air based on the current estimated
-            // distance
-            double timeOfFlight = timeOfFlightMap.get(clampedDist);
-
-            // The ball will drift sideways by (velocity * time).
-            // We shift the target exactly opposite to this drift to compensate.
-            virtualGoal = goalLocation.minus(robotVelocity.times(timeOfFlight));
-
-            // Recalculate distance using the new shifted target
-            distanceMeters = predictedShooterPos.getDistance(virtualGoal);
+            // Move the goal in the opposite direction of our shooter's movement
+            virtualGoal = goalLocation.minus(shooterVelocity.times(tof));
+            distanceToHub = shooterPos.getDistance(virtualGoal);
         }
 
-        // 3. GENERATE HARDWARE SETPOINTS
-        double clampedFinalDist = MathUtil.clamp(distanceMeters, MIN_DISTANCE, MAX_DISTANCE);
+        // 4. OUTPUTS
+        Rotation2d ballFlightAngle = virtualGoal.minus(shooterPos).getAngle();
 
-        // Aim at the shifted virtual goal
-        Rotation2d aimHeading = virtualGoal.minus(predictedShooterPos).getAngle();
-        double targetRPM = Math.min(rpmMap.get(clampedFinalDist), MAX_RPM);
-        Angle hoodAngle = Degrees.of(hoodAngleMap.get(clampedFinalDist));
+        // THE 180-FLIP: Since shooter is on back, front points AWAY from ball flight
+        Rotation2d chassisHeading = ballFlightAngle.plus(Rotation2d.fromDegrees(180));
 
-        return new MovingShotSolution(
-                aimHeading,
-                targetRPM,
-                hoodAngle,
-                distanceMeters);
+        double finalDist = shooterPos.getDistance(virtualGoal);
+        double rpm = rpmMap.get(finalDist);
+        Angle hoodAngle = Degrees.of(hoodAngleMap.get(finalDist));
+
+        return new MovingShotSolution(chassisHeading, rpm, hoodAngle, finalDist);
     }
 
-    public record MovingShotSolution(Rotation2d heading, double rpm, Angle hoodAngle, double distanceMeters) {
+    // Update the Record definition at the bottom or top of the class
+    public record MovingShotSolution(Rotation2d chassisHeading, double rpm, Angle hoodAngle, double distanceMeters) {
+    }
+
+    // Update the method signature to accept 4 arguments
+    public static MovingShotSolution solveMoving(
+            Pose2d robotPose,
+            ChassisSpeeds robotRelativeSpeeds, // NEW
+            ChassisSpeeds fieldSpeeds, // NEW
+            Translation2d goalLocation) {
+
+        // 1. PROJECT ROBOT POSE (Phase Delay)
+        // Project where the robot will be in 35ms (SYSTEM_LATENCY_SEC)
+        Pose2d predictedPose = robotPose.exp(new Twist2d(
+                robotRelativeSpeeds.vxMetersPerSecond * SYSTEM_LATENCY_SEC,
+                robotRelativeSpeeds.vyMetersPerSecond * SYSTEM_LATENCY_SEC,
+                robotRelativeSpeeds.omegaRadiansPerSecond * SYSTEM_LATENCY_SEC));
+
+        // 2. CALCULATE SHOOTER VELOCITY (The "Whip Effect")
+        double rx = 0.35; // The X offset of the shooter
+        double ry = 0.0;
+        double omega = fieldSpeeds.omegaRadiansPerSecond;
+
+        double shooterFieldVx = fieldSpeeds.vxMetersPerSecond - (omega * ry);
+        double shooterFieldVy = fieldSpeeds.vyMetersPerSecond + (omega * rx);
+        Translation2d shooterVelocity = new Translation2d(shooterFieldVx, shooterFieldVy);
+
+        // 3. ITERATIVE CONVERGENCE (The 20-Loop)
+        Translation2d shooterPos = predictedPose.getTranslation().plus(
+                new Translation2d(rx, ry).rotateBy(predictedPose.getRotation()));
+
+        double distanceToHub = shooterPos.getDistance(goalLocation);
+        Translation2d virtualGoal = goalLocation;
+
+        for (int i = 0; i < 20; i++) {
+            double clampedDist = MathUtil.clamp(distanceToHub, MIN_DISTANCE, MAX_DISTANCE);
+            double tof = timeOfFlightMap.get(clampedDist);
+
+            virtualGoal = goalLocation.minus(shooterVelocity.times(tof));
+            distanceToHub = shooterPos.getDistance(virtualGoal);
+        }
+
+        // 4. OUTPUTS
+        Rotation2d ballFlightAngle = virtualGoal.minus(shooterPos).getAngle();
+        Rotation2d chassisHeading = ballFlightAngle.plus(Rotation2d.fromDegrees(180));
+
+        double finalDist = shooterPos.getDistance(virtualGoal);
+        double rpm = rpmMap.get(finalDist);
+        Angle hoodAngle = Degrees.of(hoodAngleMap.get(finalDist));
+
+        return new MovingShotSolution(chassisHeading, rpm, hoodAngle, finalDist);
     }
 
     // ============================================================

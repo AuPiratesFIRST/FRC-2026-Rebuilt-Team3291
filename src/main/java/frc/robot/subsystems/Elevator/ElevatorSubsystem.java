@@ -31,7 +31,7 @@ public class ElevatorSubsystem extends SubsystemBase {
                     5.9, 0, 0.12,
                     MetersPerSecond.of(1),
                     MetersPerSecondPerSecond.of(2))
-            .withFeedforward(new ElevatorFeedforward(0, 0, 0))
+            .withFeedforward(new ElevatorFeedforward(0, 5, 0))
             .withTelemetry("ElevatorMotor", TelemetryVerbosity.HIGH)
             .withGearing(
                     new MechanismGearing(

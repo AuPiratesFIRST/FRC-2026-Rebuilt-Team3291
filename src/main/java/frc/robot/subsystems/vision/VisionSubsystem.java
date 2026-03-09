@@ -235,6 +235,10 @@ public class VisionSubsystem extends SubsystemBase {
         return shooterCamera.getLatestResult();
     }
 
+    public PhotonPipelineResult getFrontCameraResult() {
+        return frontCamera.getLatestResult();
+    }
+
     // ============================================================
     // PERIODIC LOGGING
     // ============================================================

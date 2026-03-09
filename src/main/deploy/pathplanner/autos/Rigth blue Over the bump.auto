@@ -11,15 +11,40 @@
           }
         },
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": " Rigth blue drive and align to intake "
+            "name": "SmartShoot"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": " Rigth blue drive and align to intake "
+                }
+              }
+            ]
           }
         },
         {
           "type": "path",
           "data": {
             "pathName": "Rigth blue drive and align to shoot "
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SmartShoot"
           }
         }
       ]

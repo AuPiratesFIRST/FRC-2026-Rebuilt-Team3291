@@ -4,6 +4,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -26,6 +27,11 @@ public class Constants {
                                 FIELD_WIDTH.div(2), Inches.of(56.4));
                 public static final Distance FUNNEL_RADIUS = Inches.of(24);
                 public static final Distance FUNNEL_HEIGHT = Inches.of(72 - 56.4);
+
+                public static final Translation2d STOCKPILE_BLUE = new Translation2d(0.5, 0.5); // Bottom left corner
+                public static final Translation2d STOCKPILE_RED = new Translation2d(FIELD_LENGTH.in(Meters) - 0.5, 0.5); // Bottom
+                                                                                                                         // right
+                                                                                                                         // corner
         }
 
         public static class VisionConstants {
@@ -76,6 +82,10 @@ public class Constants {
                 // ---------- HUB TAGS ----------
                 public static final int[] RED_HUB_TAGS = { 2, 3, 4, 5, 8, 9, 10, 11 };
                 public static final int[] BLUE_HUB_TAGS = { 18, 19, 20, 21, 24, 25, 26, 27 };
+
+                // ---------- TOWER TAGS ----------
+                public static final int[] RED_TOWER_TAGS = { 15, 16 };
+                public static final int[] BLUE_TOWER_TAGS = { 31, 32 };;
 
         }
 
