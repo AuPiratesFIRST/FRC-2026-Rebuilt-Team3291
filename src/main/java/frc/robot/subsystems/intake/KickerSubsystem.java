@@ -31,6 +31,8 @@ public class KickerSubsystem extends SubsystemBase {
     // Assign the correct CAN ID for your Kicker/Router motor
     private final SparkMax spark = new SparkMax(30, MotorType.kBrushless);
 
+    private static final double IDLE_SPEED = 0.05;
+
     /*
      * =========================
      * Smart Motor Wrapper
@@ -91,6 +93,10 @@ public class KickerSubsystem extends SubsystemBase {
     public Command routeToHopper() {
         // Adjust the sign depending on which way the motor is mounted!
         return set(-0.8);
+    }
+
+    public Command idle() {
+        return set(IDLE_SPEED).withName("kickerIdle");
     }
 
     /** Stops the kicker to hold the ball in place */

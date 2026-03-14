@@ -13,6 +13,12 @@
         {
           "type": "named",
           "data": {
+            "name": "AutoAlign"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
             "name": "SmartShoot"
           }
         },
@@ -44,13 +50,13 @@
         {
           "type": "named",
           "data": {
-            "name": "SmartShoot"
+            "name": "AutoAlign"
           }
         },
         {
-          "type": "wait",
+          "type": "named",
           "data": {
-            "waitTime": 0.0
+            "name": "SmartShoot"
           }
         },
         {

@@ -79,7 +79,7 @@ public class AimAndShootSmart extends Command {
                 swerve.getPose(),
                 swerve.getRobotVelocity(),
                 swerve.getFieldVelocity(),
-                currentGoal);
+                currentGoal, hubIsActive);
 
         // 4. APPLY HARDWARE SETPOINTS
         // Use the solveMoving math for Heading, but use our Vision-Corrected distance

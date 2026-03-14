@@ -8,8 +8,8 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
 import frc.robot.Constants;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterAimCalculator;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
@@ -19,20 +19,16 @@ import frc.robot.subsystems.Turret.TurretVisualizer;
 import frc.robot.util.FuelSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.util.HubTracker;
+import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.math.MathUtil;
+import java.util.Optional;
 
 public class TurretSubsystem extends SubsystemBase {
 
-        // ------------------------------------------------
-        // CONSTANTS
-        // ------------------------------------------------
-        // NEGATIVE offset because the shooter is on the BACK of the robot
-        private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
-        private int fuelStored = 8;
+        private static final Transform2d robotToLauncher = VisionConstants.ROBOT_TO_LAUNCHER;
+        private int fuelStored = 180;
         public static final int FUEL_CAPACITY = 200;
 
-        // ------------------------------------------------
-        // DEPENDENCIES
-        // ------------------------------------------------
         private final VisionSubsystem vision;
         private final SwerveSubsystem swerve;
         private final ShooterSubsystem shooter;
@@ -40,25 +36,19 @@ public class TurretSubsystem extends SubsystemBase {
         private final FuelSim fuelSim;
         private final TurretVisualizer visualizer;
 
-        // ------------------------------------------------
-        // STATE
-        // ------------------------------------------------
         private boolean hubTrackingEnabled = false;
         private double manualOmega = 0.0;
         private Rotation2d desiredFieldHeading = new Rotation2d();
         private double distanceToTargetMeters = 0.0;
         private double calculatedRPM = 0.0;
-        private double calculatedHoodAngleDeg = 0.0;
-
-        // ------------------------------------------------
-        // CONTROLLERS
-        // ------------------------------------------------
-
-        private final PIDController headingPID = new PIDController(1, 0.0, 0); // P=1.74 for smooth snapping
         private double feedforwardOmega = 0.0;
-        // ------------------------------------------------
-        // CONSTRUCTOR
-        // ------------------------------------------------
+
+        // CONTROLLERS
+        // Tuned for 4.5m/s: P=5.0 for strength
+        private final PIDController headingPID = new PIDController(0.95, 0.0, 0);
+
+        // Increased to 60.0 to allow instant reaction at high speeds
+        private final SlewRateLimiter ffLimiter = new SlewRateLimiter(60.0);
 
         public TurretSubsystem(VisionSubsystem vision, SwerveSubsystem swerve, ShooterSubsystem shooter,
                         HoodSubsystem hood, FuelSim fuelSim) {
@@ -79,18 +69,15 @@ public class TurretSubsystem extends SubsystemBase {
                                                 .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue);
         }
 
-        // ------------------------------------------------
-        // PERIODIC
-        // ------------------------------------------------
         @Override
         public void periodic() {
                 updateTargeting();
+                SmartDashboard.putBoolean("Turret/IsTracking", hubTrackingEnabled);
                 logToAdvantageScope();
                 visualizer.update(shooter.getTargetRPM(), hood.getTargetAngle());
         }
 
         private void updateTargeting() {
-                // 1. Determine Alliance and Locations
                 boolean isBlue = DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue;
 
                 Translation2d hubPos = isBlue
@@ -101,42 +88,49 @@ public class TurretSubsystem extends SubsystemBase {
                                 ? Constants.FieldConstants.STOCKPILE_BLUE
                                 : Constants.FieldConstants.STOCKPILE_RED;
 
-                // 2. AUTO-STOCKPILE LOGIC: Switch goal if Hub is inactive
+                // AUTO-STOCKPILE LOGIC
                 boolean hubIsActive = HubTracker.isActive();
-                Translation2d currentGoal = hubIsActive ? hubPos : stockpilePos;
+                Translation2d currentGoal = hubIsActive ? hubPos : hubPos;
 
-                // 3. GET ROBOT DATA
                 Pose2d robotPose = swerve.getPose();
                 ChassisSpeeds fieldSpeeds = swerve.getFieldVelocity();
                 ChassisSpeeds robotSpeeds = swerve.getRobotVelocity();
 
-                // 4. SOLVE USING THE "GOLD STANDARD" CALCULATOR
-                // Pass both field and robot speeds for the "Whip Effect" math
-                var solution = ShooterAimCalculator.solveMoving(
-                                robotPose,
-                                robotSpeeds,
-                                fieldSpeeds,
-                                currentGoal);
-
-                // 5. STORE RESULTS
-                distanceToTargetMeters = solution.distanceMeters();
-                calculatedRPM = solution.rpm();
-                desiredFieldHeading = solution.chassisHeading();
-
-                // 6. KINEMATIC FEEDFORWARD (The active "Push")
+                // 1. KINEMATIC FEEDFORWARD
                 Translation2d robotToGoal = currentGoal.minus(robotPose.getTranslation());
                 double rX = robotToGoal.getX();
                 double rY = robotToGoal.getY();
                 double vX = fieldSpeeds.vxMetersPerSecond;
                 double vY = fieldSpeeds.vyMetersPerSecond;
                 double distSq = (rX * rX) + (rY * rY);
-                if (distSq > 0.01) {
-                        feedforwardOmega = (rY * vX - rX * vY) / distSq;
+
+                double rawFF = 0;
+                double velocityMagnitude = Math.sqrt(vX * vX + vY * vY);
+
+                if (distSq > 0.01 && velocityMagnitude > 0.1) {
+                        rawFF = (rY * vX - rX * vY) / distSq;
                 }
+
+                // Clamp FF to physical robot limit (approx 9 rad/s)
+                rawFF = MathUtil.clamp(rawFF, -7.0, 7.0);
+                feedforwardOmega = ffLimiter.calculate(rawFF);
+
+                // 2. SOLVE USING THE "ELITE" CALCULATOR
+                var params = ShooterAimCalculator.solveMoving(
+                                robotPose,
+                                robotSpeeds,
+                                fieldSpeeds,
+                                currentGoal,
+                                hubIsActive);
+
+                // 3. STORE RESULTS
+                distanceToTargetMeters = params.distanceMeters();
+                calculatedRPM = params.rpm();
+                desiredFieldHeading = params.chassisHeading();
 
                 if (hubTrackingEnabled) {
                         shooter.applyRPM(calculatedRPM);
-                        hood.applyAngle(solution.hoodAngle());
+                        hood.applyAngle(Radians.of(params.hoodAngle().in(Radians)));
                 }
 
                 SmartDashboard.putBoolean("Targeting/IsHubActive", hubIsActive);
@@ -147,9 +141,27 @@ public class TurretSubsystem extends SubsystemBase {
                 if (hubTrackingEnabled) {
                         double pidOmega = headingPID.calculate(swerve.getPose().getRotation().getRadians(),
                                         desiredFieldHeading.getRadians());
-                        return pidOmega + feedforwardOmega;
+
+                        // If error is > 30 degrees, reduce Feedforward to let PID recover
+                        double error = Math.abs(desiredFieldHeading.minus(swerve.getPose().getRotation()).getDegrees());
+                        double ffScalar = (error > 30) ? 0.5 : 1.0;
+
+                        return pidOmega + (feedforwardOmega * ffScalar);
                 }
                 return manualOmega;
+        }
+
+        public Optional<Rotation2d> getRotationTargetOverride() {
+                if (hubTrackingEnabled) {
+                        return Optional.of(desiredFieldHeading);
+                } else {
+                        return Optional.empty();
+                }
+        }
+
+        // Inside TurretSubsystem.java
+        public double getHeadingErrorDegrees() {
+                return desiredFieldHeading.minus(swerve.getPose().getRotation()).getDegrees();
         }
 
         public void enableHubTracking() {
@@ -178,9 +190,7 @@ public class TurretSubsystem extends SubsystemBase {
                 return hubTrackingEnabled;
         }
 
-        // ------------------------------------------------
-        // FUEL LOGIC
-        // ------------------------------------------------
+        // FUEL & SIMULATION COMMANDS (DO NOT REMOVE)
         public void intakeFuel() {
                 if (fuelStored < FUEL_CAPACITY)
                         fuelStored++;
@@ -194,22 +204,19 @@ public class TurretSubsystem extends SubsystemBase {
                 return fuelStored;
         }
 
-        // Inside TurretSubsystem.java
+        public void resetFuelStored() {
+                fuelStored = 0;
+        }
 
         public Command shootCommand() {
                 return run(() -> {
-                        // Continue shooting logic
                         shoot();
                 })
-                                .beforeStarting(this::enableHubTracking) // Turn on tracking
+                                .beforeStarting(this::enableHubTracking)
                                 .finallyDo(() -> {
-                                        disableHubTracking(); // Turn off tracking on end/cancel
-                                        shooter.stop(); // Optional: Stop wheels when done
+                                        disableHubTracking();
+                                        shooter.stop();
                                 });
-        }
-
-        public void resetFuelStored() {
-                fuelStored = 0;
         }
 
         public void shoot() {

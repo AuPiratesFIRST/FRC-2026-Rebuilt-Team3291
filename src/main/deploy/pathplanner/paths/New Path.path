@@ -1,0 +1,93 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 3.5862054208273886,
+        "y": 4.067346647646221
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 3.8338097598863943,
+        "y": 4.101873322539017
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.525235378031383,
+        "y": 6.836219686162625
+      },
+      "prevControl": {
+        "x": 2.0200876909005534,
+        "y": 5.931229675455637
+      },
+      "nextControl": {
+        "x": 3.115951208445476,
+        "y": 7.8945080626325765
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 8.231184022824536,
+        "y": 6.836219686162625
+      },
+      "prevControl": {
+        "x": 7.98256880185509,
+        "y": 6.862496518207484
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [],
+  "constraintZones": [],
+  "pointTowardsZones": [],
+  "eventMarkers": [
+    {
+      "name": "SmartShoot",
+      "waypointRelativePos": 0.0,
+      "endWaypointRelativePos": 0.7913571910871101,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "SmartShoot"
+        }
+      }
+    },
+    {
+      "name": "AutoAlign",
+      "waypointRelativePos": 0.65,
+      "endWaypointRelativePos": 1.9716407832545482,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "AutoAlign"
+        }
+      }
+    }
+  ],
+  "globalConstraints": {
+    "maxVelocity": 3.0,
+    "maxAcceleration": 3.0,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": 180.0
+  },
+  "reversed": false,
+  "folder": null,
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 180.0
+  },
+  "useDefaultConstraints": true
+}

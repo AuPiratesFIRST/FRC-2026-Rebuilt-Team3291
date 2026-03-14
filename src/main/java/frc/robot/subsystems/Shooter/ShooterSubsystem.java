@@ -76,8 +76,8 @@ public class ShooterSubsystem extends SubsystemBase {
                                     GearBox.fromReductionStages(1, 1)))
                     // Coast mode = motor freewheels when disabled (reduces heat)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
-                    // Limit current to 40A to prevent brownouts
-                    .withStatorCurrentLimit(Amps.of(40))
+                    // Limit current to 60A to prevent brownouts
+                    .withStatorCurrentLimit(Amps.of(60))
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));
@@ -85,7 +85,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private final FlyWheel flywheel = new FlyWheel(
             new FlyWheelConfig(shooterSMC)
                     .withDiameter(Inches.of(4))
-                    .withMass(Pounds.of(1))
+                    .withMass(Pounds.of(3.06))
                     .withUpperSoftLimit(RPM.of(MAX_RPM))
                     .withTelemetry("ShooterMech",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));

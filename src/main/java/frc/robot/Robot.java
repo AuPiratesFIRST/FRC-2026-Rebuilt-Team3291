@@ -109,7 +109,7 @@ public class Robot extends LoggedRobot {
     // This tells the sim to load the 2026 "Rebuilt" game field obstacles
     // (Based on the Javadocs you provided)
     // You might need to import:
-    Arena2026Rebuilt.getInstance(); // This line depends on exactly how YAGSL
+    // Arena2026Rebuilt.getInstance(); // This line depends on exactly how YAGSL
     // implemented the singleton, usually
     // accessing the instance loads it.
 
@@ -118,10 +118,10 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {
     // UPDATE THIS LINE to use the new YAGSL internal package
-    swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
-    // // m_robotContainer.getVision()
-    // .updateSimPose(m_robotContainer.getDrivebase().getPose());
-    // m_robotContainer.fuelSim.updateSim();
-    // m_robotContainer.logFuelScores();
+    // swervelib.simulation.ironmaple.simulation.SimulatedArena.getInstance().simulationPeriodic();
+    m_robotContainer.getVision()
+        .updateSimPose(m_robotContainer.getDrivebase().getPose());
+    m_robotContainer.fuelSim.updateSim();
+    m_robotContainer.logFuelScores();
   }
 }

@@ -8,6 +8,8 @@ import edu.wpi.first.networktables.*;
 import edu.wpi.first.units.measure.*;
 
 import frc.robot.Constants.FieldConstants;
+import frc.robot.Constants.VisionConstants;
+
 import java.util.function.Supplier;
 
 import edu.wpi.first.units.measure.Angle;
@@ -19,7 +21,7 @@ import org.littletonrobotics.junction.Logger;
 public class TurretVisualizer {
 
         // Shooter offset from robot center (FIXED SHOOTER)
-        private static final Translation2d SHOOTER_OFFSET = new Translation2d(0.35, 0.0);
+        private static final Transform2d robotToLauncher = VisionConstants.ROBOT_TO_LAUNCHER;
 
         private static final double SHOOTER_HEIGHT = 0.50; // meters
         private static final double GRAVITY = 9.81;
@@ -77,7 +79,7 @@ public class TurretVisualizer {
 
                 // Shooter position in field space
                 Translation2d shooterXY = robotPose.getTranslation().toTranslation2d()
-                                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
+                                .plus(robotToLauncher.getTranslation().rotateBy(robotYaw));
 
                 // Aim direction (robot → hub)
                 Translation2d toHub = hub.toTranslation2d().minus(shooterXY);
@@ -164,7 +166,7 @@ public class TurretVisualizer {
 
                 // Calculate the shooter's actual field-centric horizontal position
                 Translation2d shooterXY = robotPose.getTranslation().toTranslation2d()
-                                .plus(SHOOTER_OFFSET.rotateBy(robotYaw));
+                                .plus(robotToLauncher.getTranslation().rotateBy(robotYaw));
 
                 // Calculate the aiming heading towards the hub from the shooter's position
                 Translation2d toHub = hub.toTranslation2d().minus(shooterXY);

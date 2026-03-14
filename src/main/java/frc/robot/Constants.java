@@ -2,7 +2,9 @@ package frc.robot;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -35,6 +37,11 @@ public class Constants {
         }
 
         public static class VisionConstants {
+
+                public static final Translation2d SHOOTER_OFFSET_2D = new Translation2d(-0.34, 0.0);
+                public static final Transform2d ROBOT_TO_LAUNCHER = new Transform2d(
+                                SHOOTER_OFFSET_2D,
+                                Rotation2d.fromDegrees(180));
 
                 // How far forward the camera is from the center of the robot (meters)
                 public static final double kCameraXOffset = 0.25;

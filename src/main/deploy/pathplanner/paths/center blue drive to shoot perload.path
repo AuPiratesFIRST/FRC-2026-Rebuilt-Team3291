@@ -8,20 +8,20 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.78525258845311,
-        "y": 4.047297659396874
+        "x": 3.5567597978053977,
+        "y": 4.01188271506637
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.8399727896251705,
-        "y": 4.054
+        "x": 3.017,
+        "y": 4.093
       },
       "prevControl": {
-        "x": 3.089967349025478,
-        "y": 4.055649324178614
+        "x": 3.5992949344909357,
+        "y": 4.14013853461819
       },
       "nextControl": null,
       "isLocked": false,
@@ -30,7 +30,18 @@
   ],
   "rotationTargets": [],
   "constraintZones": [],
-  "pointTowardsZones": [],
+  "pointTowardsZones": [
+    {
+      "fieldPosition": {
+        "x": 4.6,
+        "y": 4.0
+      },
+      "rotationOffset": 0.0,
+      "minWaypointRelativePos": 1,
+      "maxWaypointRelativePos": 1.5,
+      "name": "HubArea"
+    }
+  ],
   "eventMarkers": [],
   "globalConstraints": {
     "maxVelocity": 3.0,

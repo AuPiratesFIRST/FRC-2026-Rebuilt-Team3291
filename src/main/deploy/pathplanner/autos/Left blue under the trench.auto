@@ -30,9 +30,9 @@
           }
         },
         {
-          "type": "wait",
+          "type": "named",
           "data": {
-            "waitTime": 0.0
+            "name": "AutoAlign"
           }
         },
         {
@@ -64,6 +64,12 @@
           "type": "path",
           "data": {
             "pathName": "Copy of Copy of New Path"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoAlign"
           }
         },
         {
