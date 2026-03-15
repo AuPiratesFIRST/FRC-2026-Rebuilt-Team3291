@@ -41,12 +41,14 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.Elevator.ElevatorSubsystem;
 import frc.robot.subsystems.vision.ObjectDetection;
 import frc.robot.subsystems.intake.KickerSubsystem;
+import frc.robot.subsystems.Lighting.LightingSubsystem;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.commands.AutoScoreCommand;
 import frc.robot.commands.AutoShootCommand;
+import frc.robot.subsystems.Elevator.LinearServo;
 
 // Import the YAGSL SwerveInputStream
 import swervelib.SwerveInputStream;
@@ -60,29 +62,34 @@ public class RobotContainer {
 
         // ---------------- SUBSYSTEMS ----------------
 
-        private final VisionSubsystem vision = new VisionSubsystem();
+        // private final VisionSubsystem vision = new VisionSubsystem();
 
-        private final SwerveSubsystem drivebase = new SwerveSubsystem(
-                        new File(Filesystem.getDeployDirectory(), "swerve"), vision);
-        // Shooter mechanism subsystems
-        private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
-        private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
-        private final Field2d m_field = new Field2d();
-        // private final ObjectDetection m_ballTracker = new ObjectDetection(m_field,
-        // drivebase);
+        // private final SwerveSubsystem drivebase = new SwerveSubsystem(
+        // new File(Filesystem.getDeployDirectory(), "swerve"), vision);
+        // // Shooter mechanism subsystems
+        // private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
+        // private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
+        // private final Field2d m_field = new Field2d();
+        // // private final ObjectDetection m_ballTracker = new ObjectDetection(m_field,
+        // // drivebase);
 
-        // private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
-        private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
-        private final KickerSubsystem kicker = new KickerSubsystem();
-        public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new
-        // fuelSim of FuelSim
+        // // private final ElevatorSubsystem elevatorSubsystem = new
+        // ElevatorSubsystem();
+        // private final IntakeRollerSubsystem intakeRollerSubsystem = new
+        // IntakeRollerSubsystem();
+        // private final KickerSubsystem kicker = new KickerSubsystem();
+        // public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new
+        // // fuelSim of FuelSim
 
         // Turret subsystem - calculates auto-aim heading (virtual turret, no physical
         // rotation)
         // Declared as temporary local variable first (will be initialized after
         // drivebase)
-        private final TurretSubsystem turret = new TurretSubsystem(vision,
-                        drivebase, shooter, hood, fuelSim);
+        // private final TurretSubsystem turret = new TurretSubsystem(vision,
+        // drivebase, shooter, hood, fuelSim);
+
+        private final LinearServo linearServo = new LinearServo(0, 100, 50); // channel, length, speed
+        private final LightingSubsystem lighting = new LightingSubsystem();
 
         // ---------------- CONTROLLERS ----------------
 
@@ -97,86 +104,87 @@ public class RobotContainer {
         public RobotContainer() {
 
                 // // Basic FuelSim initialization (before turret)
-                fuelSim.spawnStartingFuel();
-                fuelSim.start();
+                // fuelSim.spawnStartingFuel();
+                // fuelSim.start();
 
-                // // // NOW register robot and intake with FuelSim, as turret and drive are
-                // ready
-                registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
-                shooter.setDefaultCommand(shooter.idle());
-                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
-                kicker.setDefaultCommand(kicker.idle());
+                // // // // NOW register robot and intake with FuelSim, as turret and drive are
+                // // ready
+                // registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
+                // shooter.setDefaultCommand(shooter.idle());
+                // intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
+                // kicker.setDefaultCommand(kicker.idle());
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
                 // Auto score: pathfind + vision dock
-                NamedCommands.registerCommand(
-                                "AutoScore", new AutoScoreCommand(drivebase, vision));
-
-                NamedCommands.registerCommand(
-                                "StopShooter",
-                                shooter.stop());
-
-                NamedCommands.registerCommand(
-                                "EnableAutoAim",
-                                Commands.runOnce(turret::enableHubTracking, turret));
-
-                NamedCommands.registerCommand(
-                                "DisableAutoAim",
-                                Commands.runOnce(turret::disableHubTracking, turret));
                 // NamedCommands.registerCommand(
-                // "PrepShot",
-                // Commands.parallel(
-                // shooter.setRPM(1300),
-                // hood.setAngle(Degrees.of(75))));
+                // "AutoScore", new AutoScoreCommand(drivebase, vision));
+
                 // NamedCommands.registerCommand(
-                // "ShootFixed",
-                // Commands.deadline(
-                // turret.shootCommand().withTimeout(0.8), // Shoot for 0.8 seconds
-                // shooter.setRPM(1200),
-                // hood.setAngle(Degrees.of(65))));
-                NamedCommands.registerCommand("SmartShoot",
-                                // 1. Aim the shooter (requires shooter/hood)
-                                new AimShooterFromVision(shooter, hood, vision)
+                // "StopShooter",
+                // shooter.stop());
 
-                                                // 2. Feed the ball ONLY when the shooter is at speed
-                                                // This uses your intake AND your kicker subsystems simultaneously
-                                                .alongWith(new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
-                                                                turret.shootCommand())
+                // NamedCommands.registerCommand(
+                // "EnableAutoAim",
+                // Commands.runOnce(turret::enableHubTracking, turret));
 
-                                                // 3. Set a strict timeout so the robot doesn't get stuck waiting
-                                                .withTimeout(2.5));
+                // NamedCommands.registerCommand(
+                // "DisableAutoAim",
+                // Commands.runOnce(turret::disableHubTracking, turret));
+                // // NamedCommands.registerCommand(
+                // // "PrepShot",
+                // // Commands.parallel(
+                // // shooter.setRPM(1300),
+                // // hood.setAngle(Degrees.of(75))));
+                // // NamedCommands.registerCommand(
+                // // "ShootFixed",
+                // // Commands.deadline(
+                // // turret.shootCommand().withTimeout(0.8), // Shoot for 0.8 seconds
+                // // shooter.setRPM(1200),
+                // // hood.setAngle(Degrees.of(65))));
+                // NamedCommands.registerCommand("SmartShoot",
+                // // 1. Aim the shooter (requires shooter/hood)
+                // new AimShooterFromVision(shooter, hood, vision)
 
-                NamedCommands.registerCommand("AutoIntake",
-                                kicker.routeToHopper() // Command to run shooter backward/intake
-                                                .alongWith(intakeRollerSubsystem.in(1.0)) // Command to run rollers at
-                                                // 1.0 speed
-                                                .withTimeout(1.5) // Stop both after 1.5 seconds
-                                                .finallyDo(() -> { // Ensure everything stops when finished
-                                                        shooter.stop();
-                                                        intakeRollerSubsystem.stop();
-                                                }));
+                // // 2. Feed the ball ONLY when the shooter is at speed
+                // // This uses your intake AND your kicker subsystems simultaneously
+                // .alongWith(new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
+                // turret.shootCommand())
 
-                NamedCommands.registerCommand(
-                                "DockAtShotDistance",
-                                new ShooterDockAtDistanceCommand(
-                                                vision,
-                                                drivebase,
-                                                3.0 // your desired shot distance meters
-                                ));
-                NamedCommands.registerCommand(
-                                "IntakeOn",
-                                intakeRollerSubsystem.in(1.0));
+                // // 3. Set a strict timeout so the robot doesn't get stuck waiting
+                // .withTimeout(2.5));
 
-                NamedCommands.registerCommand(
-                                "IntakeOff",
-                                intakeRollerSubsystem.stop());
+                // NamedCommands.registerCommand("AutoIntake",
+                // kicker.routeToHopper() // Command to run shooter backward/intake
+                // .alongWith(intakeRollerSubsystem.in(1.0)) // Command to run rollers at
+                // // 1.0 speed
+                // .withTimeout(1.5) // Stop both after 1.5 seconds
+                // .finallyDo(() -> { // Ensure everything stops when finished
+                // shooter.stop();
+                // intakeRollerSubsystem.stop();
+                // }));
 
-                // Inside RobotContainer constructor
-                new PointTowardsZoneTrigger("HubArea")
-                                .whileTrue(new PathPlannerAlign(turret, drivebase));
+                // NamedCommands.registerCommand(
+                // "DockAtShotDistance",
+                // new ShooterDockAtDistanceCommand(
+                // vision,
+                // drivebase,
+                // 3.0 // your desired shot distance meters
+                // ));
+                // NamedCommands.registerCommand(
+                // "IntakeOn",
+                // intakeRollerSubsystem.in(1.0));
 
-                NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret, drivebase).withTimeout(1));
+                // NamedCommands.registerCommand(
+                // "IntakeOff",
+                // intakeRollerSubsystem.stop());
+
+                // // Inside RobotContainer constructor
+                // new PointTowardsZoneTrigger("HubArea")
+                // .whileTrue(new PathPlannerAlign(turret, drivebase));
+
+                // NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret,
+                // drivebase).withTimeout(1));
 
                 // NamedCommands.registerCommand("AutoAlignToClimb",
                 // Commands.deferredProxy(() -> {
@@ -192,7 +200,7 @@ public class RobotContainer {
                 // }));
 
                 // Set up auto routines
-                autoChooser = AutoBuilder.buildAutoChooser();
+                autoChooser = new SendableChooser<>();
                 autoChooser.setDefaultOption("Do Nothing", Commands.none());
                 SmartDashboard.putData("Auto Chooser", autoChooser);
 
@@ -204,6 +212,22 @@ public class RobotContainer {
         // --------------------------------------------------
         private void configureBindings() {
 
+                // Joystick control Controlling Servo
+                driver.x().onTrue(Commands.runOnce(() -> {
+                        linearServo.setTargetPosition(70.0); // Use the new method name
+                }));
+
+                driver.y().onTrue(Commands.runOnce(() -> {
+                        linearServo.setTargetPosition(0.0); // Use the new method name
+                }));
+                driver.a().onTrue(Commands.runOnce(() -> {
+                        linearServo.setTargetPosition(100.0); // Use the new method name
+                }));
+                driver.b().onTrue(Commands.runOnce(() -> {
+                        lighting.blink(); // Use the new method name
+                }));
+                Commands.run(() -> linearServo.updateCurPos()).schedule();
+
                 // ================= DRIVE =================
 
                 /**
@@ -213,45 +237,47 @@ public class RobotContainer {
                  * 2. Applying Deadbands and Scaling in one place.
                  * 3. Handling Alliance-relative controls (field-oriented) automatically.
                  */
-                SwerveInputStream driveStream = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                () -> -driver.getLeftY(), // Forward/Backward
-                                () -> -driver.getLeftX()) // Left/Right strafe
-                                .deadband(0.1) // Apply 10% deadband to all translation axes
-                                .scaleTranslation(0.7) // Reduce max speed to 80% for better control
-                                .allianceRelativeControl(false) // Ensure "Forward" is always away from your alliance
-                                                                // wall
-                                .robotRelative(true)
-                                .withControllerRotationAxis(() -> {
-                                        // Simple rotation using right stick without turret integration
-                                        // double rightStickX = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
-                                        // return rightStickX;
-                                        // // Custom logic to bridge the Driver's Right Stick and the Turret Auto-Aim
-                                        double rightStickX = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+                // SwerveInputStream driveStream =
+                // SwerveInputStream.of(drivebase.getSwerveDrive(),
+                // () -> -driver.getLeftY(), // Forward/Backward
+                // () -> -driver.getLeftX()) // Left/Right strafe
+                // .deadband(0.1) // Apply 10% deadband to all translation axes
+                // .scaleTranslation(0.7) // Reduce max speed to 80% for better control
+                // .allianceRelativeControl(false) // Ensure "Forward" is always away from your
+                // alliance
+                // // wall
+                // .robotRelative(true)
+                // .withControllerRotationAxis(() -> {
+                // // Simple rotation using right stick without turret integration
+                // // double rightStickX = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
+                // // return rightStickX;
+                // // // Custom logic to bridge the Driver's Right Stick and the Turret Auto-Aim
+                // double rightStickX = -MathUtil.applyDeadband(driver.getRightX(), 0.1);
 
-                                        if (Math.abs(rightStickX) > 0.05) {
-                                                // Driver is actively rotating with the stick.
-                                                // Call manualRotate with the stick value. This will also handle
-                                                // disabling hub tracking if it was previously enabled.
-                                                turret.manualRotate(rightStickX);
-                                                // Directly return the stick input for immediate responsiveness.
-                                                return rightStickX;
-                                        } else {
-                                                // Stick is in deadband (i.e., released).
-                                                // If hub tracking is NOT currently active, explicitly tell the turret
-                                                // to stop manual rotation by setting manualOmega to 0.0.
-                                                if (!turret.isHubTrackingEnabled()) {
-                                                        turret.manualRotate(0.0);
-                                                }
-                                                // Return the auto-aim PID output or 0.0 if disabled.
-                                                return turret.getDesiredRobotOmega();
-                                        }
-                                });
+                // if (Math.abs(rightStickX) > 0.05) {
+                // // Driver is actively rotating with the stick.
+                // // Call manualRotate with the stick value. This will also handle
+                // // disabling hub tracking if it was previously enabled.
+                // turret.manualRotate(rightStickX);
+                // // Directly return the stick input for immediate responsiveness.
+                // return rightStickX;
+                // } else {
+                // // Stick is in deadband (i.e., released).
+                // // If hub tracking is NOT currently active, explicitly tell the turret
+                // // to stop manual rotation by setting manualOmega to 0.0.
+                // if (!turret.isHubTrackingEnabled()) {
+                // turret.manualRotate(0.0);
+                // }
+                // // Return the auto-aim PID output or 0.0 if disabled.
+                // return turret.getDesiredRobotOmega();
+                // }
+                // });
 
-                // Set the SwerveInputStream as the supplier for the drive command
-                drivebase.setDefaultCommand(drivebase.driveCommand(driveStream));
+                // // Set the SwerveInputStream as the supplier for the drive command
+                // drivebase.setDefaultCommand(drivebase.driveCommand(driveStream));
 
-                driver.a().onTrue(
-                                Commands.runOnce(drivebase::zeroGyro));
+                // driver.a().onTrue(
+                // Commands.runOnce(drivebase::zeroGyro));
 
                 // Hold 'X' to automatically collect all balls in view
                 // driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
@@ -262,9 +288,9 @@ public class RobotContainer {
                 // .withInterruptBehavior(
                 // Command.InterruptionBehavior.kCancelSelf));
 
-                // ================= TURRET =================
-                driver.y().onTrue(
-                                Commands.runOnce(turret::enableHubTracking));
+                // // ================= TURRET =================
+                // driver.y().onTrue(
+                // Commands.runOnce(turret::enableHubTracking));
 
                 // driver.povDown().whileTrue(
                 // new ChaseTagCommand(
@@ -273,8 +299,8 @@ public class RobotContainer {
                 // new int[] { 25 },
                 // 1.5));
 
-                driver.b().onTrue(
-                                Commands.runOnce(turret::disableHubTracking));
+                // driver.b().onTrue(
+                // Commands.runOnce(turret::disableHubTracking));
 
                 // driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0).alongWith(kicker.routeToHopper()));
 
@@ -359,77 +385,77 @@ public class RobotContainer {
                 return autoChooser.getSelected();
         }
 
-        /**
-         * Register the robot and intake components with FuelSim.
-         * This method is called after all necessary subsystems (drivebase, turret,
-         * intake)
-         * are initialized.
-         *
-         * @param drivebase       The Drive subsystem instance.
-         * @param turretSubsystem The TurretSubsystem instance.
-         * @param intakeSubsystem The IntakeRollerSubsystem instance.
-         */
-        private void registerFuelSimComponents(SwerveSubsystem drivebase,
-                        TurretSubsystem turretSubsystem,
-                        IntakeRollerSubsystem intakeSubsystem) {
-                FuelSim sim = fuelSim;
+        // /**
+        // * Register the robot and intake components with FuelSim.
+        // * This method is called after all necessary subsystems (drivebase, turret,
+        // * intake)
+        // * are initialized.
+        // *
+        // * @param drivebase The Drive subsystem instance.
+        // * @param turretSubsystem The TurretSubsystem instance.
+        // * @param intakeSubsystem The IntakeRollerSubsystem instance.
+        // */
+        // private void registerFuelSimComponents(SwerveSubsystem drivebase,
+        // TurretSubsystem turretSubsystem,
+        // IntakeRollerSubsystem intakeSubsystem) {
+        // FuelSim sim = fuelSim;
 
-                // Register robot with real dimensions
-                sim.registerRobot(
-                                0.724, // width in meters
-                                0.673, // length in meters
-                                0.5, // bumper height (unchanged)
-                                drivebase::getPose,
-                                drivebase::getRobotVelocity);
+        // // Register robot with real dimensions
+        // sim.registerRobot(
+        // 0.724, // width in meters
+        // 0.673, // length in meters
+        // 0.5, // bumper height (unchanged)
+        // drivebase::getPose,
+        // drivebase::getRobotVelocity);
 
-                // Define the intake bounding box in robot-centric coordinates
-                double robotHalfWidth = 0.724 / 2.0;
-                double robotHalfLength = 0.673 / 2.0;
+        // // Define the intake bounding box in robot-centric coordinates
+        // double robotHalfWidth = 0.724 / 2.0;
+        // double robotHalfLength = 0.673 / 2.0;
 
-                // Assuming a front-mounted intake, spanning robot width
-                // Adjust these values to match your robot's actual intake geometry
-                double intakeMinX = robotHalfLength - 0.1; // Extends slightly behind the
-                // front bumper
-                double intakeMaxX = robotHalfLength + 0.1; // Extends slightly in front ofthe
-                // front bumper
-                double intakeMinY = -robotHalfWidth;
-                double intakeMaxY = robotHalfWidth;
+        // // Assuming a front-mounted intake, spanning robot width
+        // // Adjust these values to match your robot's actual intake geometry
+        // double intakeMinX = robotHalfLength - 0.1; // Extends slightly behind the
+        // // front bumper
+        // double intakeMaxX = robotHalfLength + 0.1; // Extends slightly in front ofthe
+        // // front bumper
+        // double intakeMinY = -robotHalfWidth;
+        // double intakeMaxY = robotHalfWidth;
 
-                sim.registerIntake(
-                                intakeMinX,
-                                intakeMaxX,
-                                intakeMinY,
-                                intakeMaxY,
-                                // shouldIntakeSupplier: only active when intakeRollerSubsystem is running
-                                // AND
-                                // turret has capacity
-                                () -> intakeSubsystem.isRunning()
-                                                && turretSubsystem.getFuelStored() < TurretSubsystem.FUEL_CAPACITY,
-                                () -> turretSubsystem.intakeFuel() // Callback to increment fuel count in
-                // TurretSubsystem
-                );
+        // sim.registerIntake(
+        // intakeMinX,
+        // intakeMaxX,
+        // intakeMinY,
+        // intakeMaxY,
+        // // shouldIntakeSupplier: only active when intakeRollerSubsystem is running
+        // // AND
+        // // turret has capacity
+        // () -> intakeSubsystem.isRunning()
+        // && turretSubsystem.getFuelStored() < TurretSubsystem.FUEL_CAPACITY,
+        // () -> turretSubsystem.intakeFuel() // Callback to increment fuel count in
+        // // TurretSubsystem
+        // );
 
-                // SmartDashboard reset button (keep here as it's FuelSim related)
-                SmartDashboard.putData(Commands.runOnce(() -> {
-                        sim.clearFuel();
-                        sim.spawnStartingFuel();
-                        turretSubsystem.resetFuelStored(); // Also reset fuel count in
-                        // TurretSubsystem
-                }).withName("Reset Fuel").ignoringDisable(true));
-        }
+        // // SmartDashboard reset button (keep here as it's FuelSim related)
+        // SmartDashboard.putData(Commands.runOnce(() -> {
+        // sim.clearFuel();
+        // sim.spawnStartingFuel();
+        // turretSubsystem.resetFuelStored(); // Also reset fuel count in
+        // // TurretSubsystem
+        // }).withName("Reset Fuel").ignoringDisable(true));
+        // }
 
-        public void logFuelScores() {
-                Logger.recordOutput("Fuel/BlueScore", FuelSim.Hub.BLUE_HUB.getScore());
-                Logger.recordOutput("Fuel/RedScore", FuelSim.Hub.RED_HUB.getScore());
-        }
+        // public void logFuelScores() {
+        // Logger.recordOutput("Fuel/BlueScore", FuelSim.Hub.BLUE_HUB.getScore());
+        // Logger.recordOutput("Fuel/RedScore", FuelSim.Hub.RED_HUB.getScore());
+        // }
 
-        // ---------------- ACCESSORS ----------------
-        public SwerveSubsystem getDrivebase() {
-                return drivebase;
-        }
+        // // ---------------- ACCESSORS ----------------
+        // public SwerveSubsystem getDrivebase() {
+        // return drivebase;
+        // }
 
-        public VisionSubsystem getVision() {
-                return vision;
-        }
+        // public VisionSubsystem getVision() {
+        // return vision;
+        // }
 
 }
