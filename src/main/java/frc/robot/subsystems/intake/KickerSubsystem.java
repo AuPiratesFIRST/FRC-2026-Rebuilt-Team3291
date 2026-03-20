@@ -34,7 +34,7 @@ public class KickerSubsystem extends SubsystemBase {
     private static final double IDLE_SPEED = 0.05;
 
     /*
-     * =========================
+     * ================= ========
      * Smart Motor Wrapper
      * =========================
      */
@@ -47,6 +47,7 @@ public class KickerSubsystem extends SubsystemBase {
                     .withFeedforward(new SimpleMotorFeedforward(0.0, 0.12, 0.0))
                     .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
                     .withIdleMode(MotorMode.BRAKE) // BRAKE is better here so balls don't roll past it!
+                    .withMotorInverted(true)
                     .withStatorCurrentLimit(Amps.of(40))
                     .withTelemetry("KickerMotor", TelemetryVerbosity.LOW));
 
@@ -91,6 +92,11 @@ public class KickerSubsystem extends SubsystemBase {
 
     /** Pulls the ball DOWN into the Hopper (Matches Intake direction) */
     public Command routeToHopper() {
+        // Adjust the sign depending on which way the motor is mounted!
+        return set(-0.8);
+    }
+
+    public Command routeToShooter() {
         // Adjust the sign depending on which way the motor is mounted!
         return set(-0.8);
     }

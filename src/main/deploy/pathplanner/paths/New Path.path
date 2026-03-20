@@ -3,41 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.5862054208273886,
-        "y": 4.067346647646221
+        "x": 3.3274322396576315,
+        "y": 4.028530670470756
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.8338097598863943,
-        "y": 4.101873322539017
+        "x": 3.575036578716637,
+        "y": 4.063057345363553
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.525235378031383,
-        "y": 6.836219686162625
+        "x": 2.758131241084165,
+        "y": 7.379643366619116
       },
       "prevControl": {
-        "x": 2.0200876909005534,
-        "y": 5.931229675455637
-      },
-      "nextControl": {
-        "x": 3.115951208445476,
-        "y": 7.8945080626325765
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 8.231184022824536,
-        "y": 6.836219686162625
-      },
-      "prevControl": {
-        "x": 7.98256880185509,
-        "y": 6.862496518207484
+        "x": -0.15306704707560614,
+        "y": 7.35376604850214
       },
       "nextControl": null,
       "isLocked": false,
@@ -49,24 +33,24 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "SmartShoot",
-      "waypointRelativePos": 0.0,
-      "endWaypointRelativePos": 0.7913571910871101,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "SmartShoot"
-        }
-      }
-    },
-    {
       "name": "AutoAlign",
-      "waypointRelativePos": 0.65,
+      "waypointRelativePos": 0.3133018230925066,
       "endWaypointRelativePos": 1.9716407832545482,
       "command": {
         "type": "named",
         "data": {
           "name": "AutoAlign"
+        }
+      }
+    },
+    {
+      "name": "SmartShoot",
+      "waypointRelativePos": 0.3160027008777739,
+      "endWaypointRelativePos": null,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "SmartShoot"
         }
       }
     }

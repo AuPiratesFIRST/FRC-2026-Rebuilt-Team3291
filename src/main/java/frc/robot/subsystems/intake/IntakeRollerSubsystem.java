@@ -1,142 +1,65 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
-
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
-
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import yams.gearing.GearBox;
 import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
 import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
 
 public class IntakeRollerSubsystem extends SubsystemBase {
 
-    /*
-     * =========================
-     * Hardware
-     * =========================
-     */
-
-    // SparkMax + NEO (built-in encoder automatically used by YAMS)
-    private final SparkMax spark = new SparkMax(15, MotorType.kBrushless);
+    // 1. Hardware Definition
+    private final SparkMax spark = new SparkMax(14, MotorType.kBrushless);
     private static final double IDLE_SPEED = 0.05;
-    /*
-     * =========================
-     * Smart Motor Config (YAMS)
-     * =========================
-     */
 
-    private final SmartMotorControllerConfig smcConfig = new SmartMotorControllerConfig(this)
-            .withControlMode(ControlMode.OPEN_LOOP) // intake = duty control
-            .withFeedforward(new SimpleMotorFeedforward(0, 0))
-            .withSimFeedforward(new SimpleMotorFeedforward(0, 0))
-            .withTelemetry("IntakeMotor", TelemetryVerbosity.HIGH)
-            .withMotorInverted(false)
-            .withIdleMode(MotorMode.COAST)
-            .withStatorCurrentLimit(Amps.of(80));
+    // 2. The Smart Motor Controller (The Wrapper)
+    private final SmartMotorController intakeSMC;
 
-    /*
-     * =========================
-     * Smart Motor Wrapper
-     * =========================
-     */
-
-    private final SmartMotorController intakeSMC = new SparkWrapper(
-            spark,
-            DCMotor.getNEO(1),
-            new SmartMotorControllerConfig(this)
-
-                    /*
-                     * Control Mode
-                     * Intake rollers are duty-cycle controlled.
-                     */
-                    .withControlMode(SmartMotorControllerConfig.ControlMode.OPEN_LOOP)
-
-                    /*
-                     * Feedforward (placeholder for sim stability)
-                     */
-                    .withFeedforward(
-                            new SimpleMotorFeedforward(
-                                    0.0,
-                                    0.12,
-                                    0.0))
-
-                    /*
-                     * Gearing
-                     * Intake is effectively 1:1 unless you know otherwise.
-                     */
-                    .withGearing(
-                            new MechanismGearing(
-                                    GearBox.fromReductionStages(1)))
-
-                    /*
-                     * Motor Safety
-                     */
-                    .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
-                    .withStatorCurrentLimit(Amps.of(60))
-
-                    /*
-                     * Telemetry
-                     */
-                    .withTelemetry(
-                            "IntakeMotor",
-                            SmartMotorControllerConfig.TelemetryVerbosity.MID));
-
-    /*
-     * =========================
-     * FlyWheel Mechanism
-     * =========================
-     */
-
-    private final FlyWheelConfig intakeConfig = new FlyWheelConfig(intakeSMC)
-            .withDiameter(Inches.of(2))
-            .withMass(Pounds.of(0.25))
-            .withUpperSoftLimit(RPM.of(6000))
-            .withTelemetry("IntakeRoller",
-                    SmartMotorControllerConfig.TelemetryVerbosity.MID);
-
-    private final FlyWheel intake = new FlyWheel(intakeConfig);
-
-    /*
-     * =========================
-     * State Cache (API continuity)
-     * =========================
-     */
+    // 3. The FlyWheel Mechanism (The Physics/Logic)
+    private final FlyWheel intake;
 
     private double lastDuty = 0.0;
 
-    /*
-     * =========================
-     * Constructor
-     * =========================
-     */
-
     public IntakeRollerSubsystem() {
+        // Define the configuration ONCE
+        SmartMotorControllerConfig config = new SmartMotorControllerConfig(this)
+                .withControlMode(SmartMotorControllerConfig.ControlMode.OPEN_LOOP)
+                .withFeedforward(new SimpleMotorFeedforward(0.0, 0.12, 0.0))
+                .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
+                .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
+                .withStatorCurrentLimit(Amps.of(60))
+                .withTelemetry("Intake/Motor", SmartMotorControllerConfig.TelemetryVerbosity.MID);
+
+        // Initialize the Wrapper using that config
+        this.intakeSMC = new SparkWrapper(spark, DCMotor.getNEO(1), config);
+
+        // Initialize the FlyWheel Mechanism
+        FlyWheelConfig mechanismConfig = new FlyWheelConfig(intakeSMC)
+                .withDiameter(Inches.of(2))
+                .withMass(Pounds.of(0.25))
+                .withUpperSoftLimit(RPM.of(6000))
+                .withTelemetry("Intake/Roller", SmartMotorControllerConfig.TelemetryVerbosity.MID);
+
+        this.intake = new FlyWheel(mechanismConfig);
+
+        // Set default command to stop
         setDefaultCommand(stop());
     }
 
-    /*
-     * =========================
-     * Commands (YAMS pattern)
-     * =========================
-     */
+    /* ========================= Commands ========================= */
 
     public Command set(double duty) {
-        return intake.set(duty)
-                .beforeStarting(() -> lastDuty = duty);
+        return intake.set(duty).beforeStarting(() -> lastDuty = duty);
     }
 
     public Command in(double speed) {
@@ -147,69 +70,41 @@ public class IntakeRollerSubsystem extends SubsystemBase {
         return set(-Math.abs(speed));
     }
 
-    public Command idle() {
-        return set(IDLE_SPEED).withName("IntakeIdle");
-    }
-
     public Command stop() {
         return set(0);
     }
 
-    /*
-     * =========================
-     * State API
-     * =========================
-     */
     public void setPowerDirect(double duty) {
         intakeSMC.setDutyCycle(duty);
         lastDuty = duty;
     }
 
-    /** Returns true if intake is currently spinning */
+    /* ========================= Logic/State ========================= */
+
     public boolean isRunning() {
         return Math.abs(lastDuty) > 0.05;
     }
 
-    /** Returns true if intake is ejecting */
-    public boolean outtaking() {
-        return lastDuty < -0.05;
-    }
-
-    /** Current motor current (useful for note detection later) */
     public Current getCurrent() {
         return Amps.of(spark.getOutputCurrent());
     }
 
-    /** Current duty cycle */
-    public double getDutyCycle() {
-        return lastDuty;
-    }
-
     /**
      * A command that feeds ONLY when the shooter is ready.
-     * 
-     * @param readyCondition A "State Checker" (like shooter::isAtTarget)
      */
     public Command smartFeed(java.util.function.BooleanSupplier readyCondition) {
-        // this.run() creates a single command that stays alive
         return this.run(() -> {
             if (readyCondition.getAsBoolean()) {
-                // Talk to the motor directly
                 this.setPowerDirect(1.0);
             } else {
-                // Small anti-jam kickback
-                this.setPowerDirect(-0.1);
+                this.setPowerDirect(-0.1); // Slight anti-jam kickback
             }
         })
                 .withName("SmartFeed")
-                // When the command ends (button released or timeout), stop the motor
                 .finallyDo((interrupted) -> this.setPowerDirect(0.0));
     }
-    /*
-     * =========================
-     * Required YAMS Hooks
-     * =========================
-     */
+
+    /* ========================= YAMS Hooks ========================= */
 
     @Override
     public void periodic() {

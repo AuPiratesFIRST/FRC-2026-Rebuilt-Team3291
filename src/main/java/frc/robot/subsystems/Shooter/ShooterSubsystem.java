@@ -47,8 +47,8 @@ public class ShooterSubsystem extends SubsystemBase {
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
-    // CAN ID 28 must match what's configured in REV Hardware Client
-    private final SparkMax shooterMotor = new SparkMax(28, MotorType.kBrushless);
+    // CAN ID 19 must match what's configured in REV Hardware Client
+    private final SparkMax shooterMotor = new SparkMax(19, MotorType.kBrushless);
 
     // ========== YAMS SMART MOTOR CONTROLLER ==========
     // YAMS wraps the SparkMax and adds features like automatic logging,
@@ -62,13 +62,13 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.02, 0.0, 0.0,
+                            0.0044, 0, 0.,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(400))
+                            RotationsPerSecondPerSecond.of(3700))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.15, 0.121, 0.0))
+                                    0.27, 0.1294, 0.8))
 
                     // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
@@ -76,8 +76,9 @@ public class ShooterSubsystem extends SubsystemBase {
                                     GearBox.fromReductionStages(1, 1)))
                     // Coast mode = motor freewheels when disabled (reduces heat)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
-                    // Limit current to 60A to prevent brownouts
+                    // Limit current to 40A to prevent brownouts
                     .withStatorCurrentLimit(Amps.of(60))
+                    .withMotorInverted(true)
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));

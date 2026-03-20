@@ -42,7 +42,7 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     // ---------------- MOTOR ----------------
 
-    private final SparkMax motor = new SparkMax(27, MotorType.kBrushless);
+    private final SparkMax motor = new SparkMax(28, MotorType.kBrushless);
 
     private final SmartMotorController smartMotor = new SparkWrapper(motor, DCMotor.getNEO(1), motorConfig);
 
