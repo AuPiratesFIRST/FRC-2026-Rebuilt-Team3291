@@ -2,6 +2,7 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Shooter.*;
+import frc.robot.subsystems.Shooter.ShooterAimCalculator.ShooterSolution;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
@@ -66,6 +67,7 @@ public class AimAndShootSmart extends Command {
             // Use high-precision Vision Distance
             finalDistance = visionDistance.get();
             SmartDashboard.putString("Targeting/Source", "VISION");
+
         } else {
             // Fallback to Odometry Distance (or use it for Stockpiling)
             finalDistance = swerve.getPose().getTranslation().getDistance(currentGoal);

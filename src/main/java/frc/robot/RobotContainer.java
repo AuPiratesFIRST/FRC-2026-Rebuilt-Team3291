@@ -145,7 +145,7 @@ public class RobotContainer {
                                                                 turret.shootCommand())
 
                                                 // 3. Set a strict timeout so the robot doesn't get stuck waiting
-                                                .withTimeout(2.5));
+                                                .withTimeout(9));
 
                 NamedCommands.registerCommand("AutoIntake",
                                 kicker.routeToHopper() // Command to run shooter backward/intake
@@ -255,7 +255,7 @@ public class RobotContainer {
 
                 // Hold 'X' to automatically collect all balls in view
                 // driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
-                // driver.rightTrigger(0.2).whileTrue(new ChaseBall(drivebase, m_ballTracker));
+                // driver.x().whileTrue(new ChaseBall(drivebase, m_ballTracker));
                 // driver.x()
                 // .onTrue(
                 // new AutoScoreCommand(drivebase, vision)
@@ -266,17 +266,17 @@ public class RobotContainer {
                 driver.y().onTrue(
                                 Commands.runOnce(turret::enableHubTracking));
 
-                // driver.povDown().whileTrue(
-                // new ChaseTagCommand(
-                // vision,
-                // drivebase,
-                // new int[] { 25 },
-                // 1.5));
+                driver.povDown().whileTrue(
+                                new ChaseTagCommand(
+                                                vision,
+                                                drivebase,
+                                                new int[] { 25 },
+                                                1));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                // driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0).alongWith(kicker.routeToHopper()));
+                driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0).alongWith(kicker.routeToHopper()));
 
                 // Driver
                 // 'A'
@@ -304,11 +304,11 @@ public class RobotContainer {
                 // hood.setAngle(
                 // hood.getAngle().minus(Degrees.of(2))));
 
-                // // // ================= SHOOTER =================
-                // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                // new AimShooterFromVision(shooter, hood, vision),
-                // new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
-                // turret.shootCommand()));
+                // // ================= SHOOTER =================
+                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                                new AimShooterFromVision(shooter, hood, vision),
+                                new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
+                                turret.shootCommand()));
 
                 // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                 // new AimAndShootSmart(shooter, hood, drivebase, turret, intakeRollerSubsystem,
@@ -316,20 +316,11 @@ public class RobotContainer {
                 // vision),
                 // turret.shootCommand()));
 
-                // Alternative "Smoother" Trigger Binding
-                // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                // // Use the already-calculated solution from the turret periodic loop
-                // Commands.run(() -> {
-                // shooter.applyRPM(turret.getCalculatedRPM());
-                // hood.applyAngle(Degrees.of(turret.getCalculatedHoodAngleDeg()));
-                // }, shooter, hood),
-                // turret.shootCommand()));
                 // // Manual shooter test (no vision)
 
-                // operator.a().whileTrue(
-                // Commands.parallel(
-                // shooter.setRPM(3000),
-                // hood.setAngle(Degrees.of(35))));
+                operator.a().whileTrue(
+                                Commands.parallel(
+                                                shooter.setRPM(3000)));
 
                 // Hold 'X' to Auto-Aim on the move. It will automatically calculate
                 // the shot, compensate for drifting, and fire when locked in!

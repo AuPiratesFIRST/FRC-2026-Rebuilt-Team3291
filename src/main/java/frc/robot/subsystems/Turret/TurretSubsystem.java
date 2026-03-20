@@ -214,7 +214,7 @@ public class TurretSubsystem extends SubsystemBase {
                 })
                                 .beforeStarting(this::enableHubTracking)
                                 .finallyDo(() -> {
-                                        disableHubTracking();
+                                        // disableHubTracking();
                                         shooter.stop();
                                 });
         }

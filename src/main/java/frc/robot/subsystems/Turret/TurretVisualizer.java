@@ -25,6 +25,7 @@ public class TurretVisualizer {
 
         private static final double SHOOTER_HEIGHT = 0.50; // meters
         private static final double GRAVITY = 9.81;
+        double lookaheadTime = 0.05; // 50ms delay
         private final FuelSim fuelSim;
         private final Supplier<Pose3d> robotPoseSupplier;
         private final Supplier<ChassisSpeeds> fieldSpeedsSupplier;
@@ -195,11 +196,15 @@ public class TurretVisualizer {
                 double vy = vHorizontal * aimHeading.getSin()
                                 + speeds.vyMetersPerSecond; // Add robot's strafe speed
 
-                // Initial position of the fuel
-                Translation3d initialPos = new Translation3d(
-                                shooterXY.getX(),
-                                shooterXY.getY(),
-                                SHOOTER_HEIGHT);
+                double shooterX = shooterXY.getX() + (vx * lookaheadTime);
+                double shooterY = shooterXY.getY() + (vy * lookaheadTime);
+
+                // // Initial position of the fuel
+                // Translation3d initialPos = new Translation3d(
+                // shooterXY.getX(),
+                // shooterXY.getY(),
+                // SHOOTER_HEIGHT);
+                Translation3d initialPos = new Translation3d(shooterX, shooterY, SHOOTER_HEIGHT);
 
                 // Initial velocity vector of the fuel
                 Translation3d initialVel = new Translation3d(vx, vy, vz);

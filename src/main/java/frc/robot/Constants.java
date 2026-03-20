@@ -38,7 +38,7 @@ public class Constants {
 
         public static class VisionConstants {
 
-                public static final Translation2d SHOOTER_OFFSET_2D = new Translation2d(-0.34, 0.0);
+                public static final Translation2d SHOOTER_OFFSET_2D = new Translation2d(0.18375715, 0.0);
                 public static final Transform2d ROBOT_TO_LAUNCHER = new Transform2d(
                                 SHOOTER_OFFSET_2D,
                                 Rotation2d.fromDegrees(180));
@@ -59,7 +59,7 @@ public class Constants {
                 // ---------- SHOOTER (DISTANCE + POSE) CAMERA ----------
                 public static final String SHOOTER_CAMERA_NAME = "shooterCamera";
                 public static final Transform3d ROBOT_TO_SHOOTER_CAMERA = new Transform3d(
-                                new Translation3d(0.15, 0.0, 0.55), // above shooter
+                                new Translation3d(0.26486640, 0.12246703, 0.41597024), // above shooter
                                 new Rotation3d(0, Units.degreesToRadians(-20), Units.degreesToRadians(180)) // pitched
                                                                                                             // down
                 );
