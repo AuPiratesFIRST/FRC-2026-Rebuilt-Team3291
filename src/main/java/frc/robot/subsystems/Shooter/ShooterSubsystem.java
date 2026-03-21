@@ -70,7 +70,7 @@ public class ShooterSubsystem extends SubsystemBase {
                             new SimpleMotorFeedforward(
                                     0.27, 0.1294, 0.8))
 
-                    // 1:1 gear reduction (motor spins faster than flywheel)
+                    // 1:1 gear reduction
                     .withGearing(
                             new MechanismGearing(
                                     GearBox.fromReductionStages(1, 1)))

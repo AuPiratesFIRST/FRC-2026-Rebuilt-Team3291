@@ -40,7 +40,7 @@ public class SwerveSubsystem extends SubsystemBase {
     this.vision = vision;
 
     Pose2d startingPose = new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0));
-    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
+    SwerveDriveTelemetry.verbosity = TelemetryVerbosity.POSE;
 
     try {
       swerveDrive = new SwerveParser(directory)

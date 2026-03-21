@@ -71,7 +71,7 @@ public class RobotContainer {
         // private final ObjectDetection m_ballTracker = new ObjectDetection(m_field,
         // drivebase);
 
-        // private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
+        private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
         private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
         private final KickerSubsystem kicker = new KickerSubsystem();
         public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new
@@ -318,9 +318,9 @@ public class RobotContainer {
 
                 // // Manual shooter test (no vision)
 
-                operator.a().whileTrue(
-                                Commands.parallel(
-                                                shooter.setRPM(3000)));
+                // operator.a().whileTrue(
+                // Commands.parallel(
+                // shooter.setRPM(3000)));
 
                 // Hold 'X' to Auto-Aim on the move. It will automatically calculate
                 // the shot, compensate for drifting, and fire when locked in!
@@ -334,8 +334,8 @@ public class RobotContainer {
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.
-                // operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
-                // operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
+                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
+                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
                 // driver.povDown().whileTrue(
                 // Commands.deferredProxy(() -> {
                 // boolean isRed = DriverStation.getAlliance().orElse(
