@@ -1,6 +1,7 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.subsystems.Lighting.LightingSubsystem;
 import frc.robot.subsystems.Shooter.*;
 import frc.robot.subsystems.Shooter.ShooterAimCalculator.ShooterSolution;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -24,9 +25,11 @@ public class AimAndShootSmart extends Command {
     private final IntakeRollerSubsystem intake;
     private final KickerSubsystem kicker;
     private final VisionSubsystem vision;
+    private final LightingSubsystem lighting; // Add this
 
     public AimAndShootSmart(ShooterSubsystem shooter, HoodSubsystem hood, SwerveSubsystem swerve,
-            TurretSubsystem turret, IntakeRollerSubsystem intake, KickerSubsystem kicker, VisionSubsystem vision) {
+            TurretSubsystem turret, IntakeRollerSubsystem intake, KickerSubsystem kicker, VisionSubsystem vision,
+            LightingSubsystem lighting) {
         this.shooter = shooter;
         this.hood = hood;
         this.swerve = swerve;
@@ -34,6 +37,7 @@ public class AimAndShootSmart extends Command {
         this.intake = intake;
         this.kicker = kicker;
         this.vision = vision;
+        this.lighting = lighting;
 
         // We add Vision to the requirements
         addRequirements(shooter, hood, intake, kicker);
@@ -91,15 +95,17 @@ public class AimAndShootSmart extends Command {
 
         // 5. THE FIRING HANDSHAKE
         // We only fire if: 1. RPM is stable, 2. We are pointed at the Hub/Goal
-        boolean atSpeed = shooter.getActualRPM() >= (solution.rpm() * 0.97);
-        boolean aimed = Math.abs(swerve.getPose().getRotation().minus(solution.chassisHeading()).getDegrees()) < 2.0;
+        boolean atSpeed = shooter.getActualRPM() >= (solution.rpm() * 0.95);
+        boolean aimed = Math.abs(swerve.getPose().getRotation().minus(solution.chassisHeading()).getDegrees()) < 20.0;
 
-        if (atSpeed && aimed) {
+        // Update the LEDs
+        lighting.setAligned(aimed);
+        if (atSpeed) {
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);
         } else {
             // Pull the ball back slightly so it's not touching the spinning flywheel
-            intake.setPowerDirect(-0.1);
+            intake.setPowerDirect(0.4);
             kicker.setPowerDirect(-0.1);
         }
 
@@ -111,7 +117,7 @@ public class AimAndShootSmart extends Command {
     @Override
     public void end(boolean interrupted) {
         turret.disableHubTracking();
-        shooter.stop();
+        shooter.idle();
         intake.setPowerDirect(0.0);
         kicker.setPowerDirect(0.0);
     }

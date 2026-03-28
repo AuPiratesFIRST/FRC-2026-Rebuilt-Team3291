@@ -1,6 +1,7 @@
 package frc.robot;
 
 import java.io.File;
+import java.util.function.DoubleSupplier;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -22,6 +23,7 @@ import frc.robot.subsystems.Shooter.HoodSubsystem;
 import frc.robot.subsystems.Shooter.ShooterSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
+import frc.robot.subsystems.intake.AgitatorSubsystem;
 import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.util.FuelSim;
@@ -39,14 +41,17 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.Elevator.ElevatorSubsystem;
+import frc.robot.subsystems.Lighting.LightingSubsystem;
 import frc.robot.subsystems.vision.ObjectDetection;
 import frc.robot.subsystems.intake.KickerSubsystem;
+import frc.robot.subsystems.intake.AgitatorSubsystem;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.commands.AutoScoreCommand;
 import frc.robot.commands.AutoShootCommand;
+import frc.robot.commands.AutoShootOnTheMove;
 
 // Import the YAGSL SwerveInputStream
 import swervelib.SwerveInputStream;
@@ -68,12 +73,13 @@ public class RobotContainer {
         private final HoodSubsystem hood = new HoodSubsystem(); // Adjustable angle
         private final ShooterSubsystem shooter = new ShooterSubsystem(); // Flywheel
         private final Field2d m_field = new Field2d();
-        // private final ObjectDetection m_ballTracker = new ObjectDetection(m_field,
-        // drivebase);
+        private final ObjectDetection m_ballTracker = new ObjectDetection(m_field,
+                        drivebase);
 
         private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
         private final IntakeRollerSubsystem intakeRollerSubsystem = new IntakeRollerSubsystem();
         private final KickerSubsystem kicker = new KickerSubsystem();
+        private final AgitatorSubsystem agitatorSubsystem = new AgitatorSubsystem();
         public FuelSim fuelSim = new FuelSim("FuelSimTableKey"); // creates a new
         // fuelSim of FuelSim
 
@@ -83,6 +89,7 @@ public class RobotContainer {
         // drivebase)
         private final TurretSubsystem turret = new TurretSubsystem(vision,
                         drivebase, shooter, hood, fuelSim);
+        private final LightingSubsystem lighting = new LightingSubsystem();
 
         // ---------------- CONTROLLERS ----------------
 
@@ -104,8 +111,10 @@ public class RobotContainer {
                 // ready
                 registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
                 shooter.setDefaultCommand(shooter.idle());
-                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
+                // intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
                 kicker.setDefaultCommand(kicker.idle());
+                agitatorSubsystem.setDefaultCommand(agitatorSubsystem.idle());
+                elevatorSubsystem.setDefaultCommand(elevatorSubsystem.stow());
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
@@ -141,11 +150,20 @@ public class RobotContainer {
 
                                                 // 2. Feed the ball ONLY when the shooter is at speed
                                                 // This uses your intake AND your kicker subsystems simultaneously
-                                                .alongWith(new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
+                                                .alongWith(new AutoShootCommand(shooter, intakeRollerSubsystem, kicker,
+                                                                agitatorSubsystem),
                                                                 turret.shootCommand())
 
                                                 // 3. Set a strict timeout so the robot doesn't get stuck waiting
                                                 .withTimeout(9));
+                NamedCommands.registerCommand("SOTM", new AutoShootOnTheMove(
+                                shooter,
+                                hood,
+                                drivebase,
+                                turret,
+                                intakeRollerSubsystem,
+                                kicker,
+                                vision));
 
                 NamedCommands.registerCommand("AutoIntake",
                                 kicker.routeToHopper() // Command to run shooter backward/intake
@@ -213,11 +231,13 @@ public class RobotContainer {
                  * 2. Applying Deadbands and Scaling in one place.
                  * 3. Handling Alliance-relative controls (field-oriented) automatically.
                  */
+                // This returns 0.4 (very slow) if tracking, and 1.0 (normal) if not.
+                DoubleSupplier speedMultiplier = () -> turret.isHubTrackingEnabled() ? 0.4 : 1.0;
                 SwerveInputStream driveStream = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                () -> -driver.getLeftY(), // Forward/Backward
-                                () -> -driver.getLeftX()) // Left/Right strafe
+                                () -> -driver.getLeftY() * speedMultiplier.getAsDouble(), // Forward/Backward
+                                () -> -driver.getLeftX() * speedMultiplier.getAsDouble()) // Left/Right strafe
                                 .deadband(0.1) // Apply 10% deadband to all translation axes
-                                .scaleTranslation(0.7) // Reduce max speed to 80% for better control
+                                .scaleTranslation(1) // Reduce max speed to 80% for better control
                                 .allianceRelativeControl(false) // Ensure "Forward" is always away from your alliance
                                                                 // wall
                                 .robotRelative(true)
@@ -255,7 +275,7 @@ public class RobotContainer {
 
                 // Hold 'X' to automatically collect all balls in view
                 // driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
-                // driver.x().whileTrue(new ChaseBall(drivebase, m_ballTracker));
+                driver.x().whileTrue(new ChaseBall(drivebase, m_ballTracker));
                 // driver.x()
                 // .onTrue(
                 // new AutoScoreCommand(drivebase, vision)
@@ -276,7 +296,7 @@ public class RobotContainer {
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                driver.leftTrigger().whileTrue(intakeRollerSubsystem.in(1.0).alongWith(kicker.routeToHopper()));
+                operator.leftTrigger().whileTrue(intakeRollerSubsystem.in(0.3).alongWith(kicker.routeToHopper()));
 
                 // Driver
                 // 'A'
@@ -307,20 +327,19 @@ public class RobotContainer {
                 // // ================= SHOOTER =================
                 driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
-                                new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
-                                turret.shootCommand()));
+                                new AutoShootCommand(shooter, intakeRollerSubsystem, kicker, agitatorSubsystem)));
+                // driver.rightTrigger().whileTrue(shooter.getSysIdCommand());
 
-                // driver.rightTrigger(0.2).whileTrue(Commands.parallel(
-                // new AimAndShootSmart(shooter, hood, drivebase, turret, intakeRollerSubsystem,
-                // kicker,
-                // vision),
-                // turret.shootCommand()));
+                operator.rightTrigger(0.2).whileTrue(Commands.parallel(
+                                new AimAndShootSmart(shooter, hood, drivebase, turret, intakeRollerSubsystem,
+                                                kicker,
+                                                vision, lighting)));
 
                 // // Manual shooter test (no vision)
 
-                // operator.a().whileTrue(
-                // Commands.parallel(
-                // shooter.setRPM(3000)));
+                operator.x().whileTrue(
+                                Commands.parallel(
+                                                shooter.setRPM(3000)));
 
                 // Hold 'X' to Auto-Aim on the move. It will automatically calculate
                 // the shot, compensate for drifting, and fire when locked in!
@@ -334,8 +353,8 @@ public class RobotContainer {
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.
-                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.5)));
-                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
+                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
+                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(-1)));
                 // driver.povDown().whileTrue(
                 // Commands.deferredProxy(() -> {
                 // boolean isRed = DriverStation.getAlliance().orElse(
@@ -421,6 +440,26 @@ public class RobotContainer {
 
         public VisionSubsystem getVision() {
                 return vision;
+        }
+
+        public ShooterSubsystem getShooter() {
+                return shooter;
+        }
+
+        public KickerSubsystem getKicker() {
+                return kicker;
+        }
+
+        public ElevatorSubsystem getElevatorSubsystem() {
+                return elevatorSubsystem;
+        }
+
+        public IntakeRollerSubsystem getIntakeRollerSubsystem() {
+                return intakeRollerSubsystem;
+        }
+
+        public LightingSubsystem getLightingSubsystem() {
+                return lighting;
         }
 
 }

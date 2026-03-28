@@ -21,7 +21,7 @@ import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
 
-public class KickerSubsystem extends SubsystemBase {
+public class AgitatorSubsystem extends SubsystemBase {
 
     /*
      * =========================
@@ -29,7 +29,7 @@ public class KickerSubsystem extends SubsystemBase {
      * =========================
      */
     // Assign the correct CAN ID for your Kicker/Router motor
-    private final SparkMax spark = new SparkMax(30, MotorType.kBrushless);
+    private final SparkMax spark = new SparkMax(18, MotorType.kBrushless);
 
     private static final double IDLE_SPEED = -0.1;
 
@@ -47,28 +47,28 @@ public class KickerSubsystem extends SubsystemBase {
                     .withFeedforward(new SimpleMotorFeedforward(0.0, 0.12, 0.0))
                     .withGearing(
                             new MechanismGearing(
-                                    GearBox.fromReductionStages(9, 1)))
+                                    GearBox.fromReductionStages(5, 1)))
                     .withIdleMode(MotorMode.BRAKE) // BRAKE is better here so balls don't roll past it!
                     .withMotorInverted(true)
                     .withStatorCurrentLimit(Amps.of(30))
-                    .withTelemetry("KickerMotor", TelemetryVerbosity.LOW));
+                    .withTelemetry("agitatorMotor", TelemetryVerbosity.LOW));
 
     /*
      * =========================
      * FlyWheel Mechanism (YAMS wrapper)
      * =========================
      */
-    private final FlyWheelConfig kickerConfig = new FlyWheelConfig(kickerSMC)
+    private final FlyWheelConfig agitatorConfig = new FlyWheelConfig(kickerSMC)
             .withDiameter(Inches.of(2))
             .withMass(Pounds.of(0.35))
             .withUpperSoftLimit(RPM.of(6000))
-            .withTelemetry("KickerRoller", TelemetryVerbosity.LOW);
+            .withTelemetry("agitatorRoller", TelemetryVerbosity.LOW);
 
-    private final FlyWheel kicker = new FlyWheel(kickerConfig);
+    private final FlyWheel agitator = new FlyWheel(agitatorConfig);
 
     private double lastDuty = 0.0;
 
-    public KickerSubsystem() {
+    public AgitatorSubsystem() {
         setDefaultCommand(stop());
     }
 
@@ -83,7 +83,7 @@ public class KickerSubsystem extends SubsystemBase {
     }
 
     public Command set(double duty) {
-        return kicker.set(duty).beforeStarting(() -> lastDuty = duty);
+        return agitator.set(duty).beforeStarting(() -> lastDuty = duty);
     }
 
     /*
@@ -136,7 +136,7 @@ public class KickerSubsystem extends SubsystemBase {
      */
     @Override
     public void periodic() {
-        kicker.updateTelemetry();
+        agitator.updateTelemetry();
     }
 
     public double getTemperature() {
@@ -146,6 +146,6 @@ public class KickerSubsystem extends SubsystemBase {
 
     @Override
     public void simulationPeriodic() {
-        kicker.simIterate();
+        agitator.simIterate();
     }
 }

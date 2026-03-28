@@ -54,16 +54,15 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "",
-      "waypointRelativePos": 0,
-      "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
-      "name": "",
-      "waypointRelativePos": 1.85,
-      "endWaypointRelativePos": null,
-      "command": null
+      "name": "SOTM",
+      "waypointRelativePos": 1.226198514517218,
+      "endWaypointRelativePos": 2.0,
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "SOTM"
+        }
+      }
     }
   ],
   "globalConstraints": {

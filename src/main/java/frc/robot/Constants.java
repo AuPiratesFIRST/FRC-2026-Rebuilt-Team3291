@@ -60,7 +60,7 @@ public class Constants {
                 public static final String SHOOTER_CAMERA_NAME = "shooterCamera";
                 public static final Transform3d ROBOT_TO_SHOOTER_CAMERA = new Transform3d(
                                 new Translation3d(0.26486640, 0.12246703, 0.41597024), // above shooter
-                                new Rotation3d(0, Units.degreesToRadians(-20), Units.degreesToRadians(180)) // pitched
+                                new Rotation3d(0, Units.degreesToRadians(-15), Units.degreesToRadians(180)) // pitched
                                                                                                             // down
                 );
 
@@ -94,6 +94,62 @@ public class Constants {
                 public static final int[] RED_TOWER_TAGS = { 15, 16 };
                 public static final int[] BLUE_TOWER_TAGS = { 31, 32 };;
 
+        }
+
+        public final static class Lighting {
+                public final static int lightingPort = 1;
+
+                public enum Colors {
+                        // HOTPINK ("Hot Pink", 0.57),
+                        // DARKRED ("Dark Red", 0.59),
+                        RED("Red", 0.61),
+                        // REDORANGE ("Red Orange", 0.63),
+                        ORANGE("Orange", 0.65),
+                        // GOLD ("Gold", 0.67),
+                        // YELLOW ("Yellow", 0.69),
+                        // LAWNGREEN ("Lawn Green", 0.71),
+                        LIME("Lime", 0.73),
+                        // DARKGREEN ("Dark Green", 0.75),
+                        GREEN("Green", 0.77),
+                        // BLUEGREEN ("Blue Green", 0.79),
+                        // AQUA ("Aqua", 0.81),
+                        // SKYBLUE ("Sky Blue", 0.83),
+                        // DARKBLUE ("Dark Blue", 0.85),
+                        BLUE("Blue", 0.87),
+                        BLUEVIOLET("Blue Violet", 0.89),
+                        VIOLET("Violet", 0.91),
+                        WHITE("White", 0.93),
+                        GRAY("Gray", 0.95),
+                        DARKGRAY("Dark Gray", 0.97),
+                        RAINBOW("Rainbow", -0.99),
+                        RAINBOWGLITTER("Rainbow- Glitter", -0.89),
+                        BLINK_RED("Blink Red", -0.11), // Heartbeat Red (Good for "Motor Hot")
+                        // RAINBOWSINELON ("Rainbow - Sinelon", -0.79),
+                        // RAINBOWBEATS ("Rainbow - Beats Per Minute", -0.69),
+                        // RAINBOWTWINKLES ("Rainbow - Tinkles", -0.55),
+                        // RAINBOWWAVES ("Rainbow - Color Waves", -0.45),
+                        // REDCHASE ("Light Chase - Red", -0.31),
+                        // BLUECHASE ("Light Chase - Blue", -0.29),
+                        OFF("Off", 0.99);
+
+                        public final String colorName;
+                        public final double colorValue;
+
+                        Colors(String colorName, double colorValue) {
+                                this.colorName = colorName;
+                                this.colorValue = colorValue;
+                        }
+
+                        public String getColorName() {
+                                return this.colorName;
+                        }
+
+                        public double getColorValue() {
+                                return this.colorValue;
+                        }
+                }
+
+                public final static Colors startingColor = Colors.OFF;
         }
 
 }

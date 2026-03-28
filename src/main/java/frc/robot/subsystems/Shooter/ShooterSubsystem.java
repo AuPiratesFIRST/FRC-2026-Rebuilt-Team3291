@@ -8,7 +8,9 @@ import com.revrobotics.spark.SparkMax;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.units.measure.LinearVelocity;
 
 import org.littletonrobotics.junction.Logger;
@@ -19,6 +21,11 @@ import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
 import yams.motorcontrollers.*;
 import yams.motorcontrollers.local.SparkWrapper;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.units.measure.MutAngle;
+import edu.wpi.first.units.measure.MutAngularVelocity;
+import edu.wpi.first.units.measure.MutVoltage;
+import edu.wpi.first.wpilibj.RobotController;
 
 /**
  * Shooter Subsystem - Controls the flywheel that launches game pieces.
@@ -42,13 +49,17 @@ public class ShooterSubsystem extends SubsystemBase {
     // Maximum safe RPM for the flywheel (limited by motor and mechanical
     // constraints)
     private static final double MAX_RPM = 6000.0;
-    // Idle RPM to keep the flywheel spinning at a low speed (prevents stalling)
-    private static final double IDLE_RPM = 100.0;
+    // A good starting point for KitBot intake speed is 1000-1500 RPM
+    private static final double INTAKE_RPM = 3900.0;
+    private static final double OUTTAKE_RPM = -3900.0;
+
+    // Default idle to keep belts moving and overcome static friction
+    private static final double IDLE_RPM = 260.0;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
-    // CAN ID 19 must match what's configured in REV Hardware Client
-    private final SparkMax shooterMotor = new SparkMax(19, MotorType.kBrushless);
+    // CAN ID 28 must match what's configured in REV Hardware Client
+    private final SparkMax shooterMotor = new SparkMax(14, MotorType.kBrushless);
 
     // ========== YAMS SMART MOTOR CONTROLLER ==========
     // YAMS wraps the SparkMax and adds features like automatic logging,
@@ -62,22 +73,22 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.0044, 0, 0.,
+                            0.028, 0, 0.,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(3700))
+                            RotationsPerSecondPerSecond.of(600))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.27, 0.1294, 0.8))
+                                    0.165, 0.1199, 0.9))
 
-                    // 1:1 gear reduction
+                    // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
                             new MechanismGearing(
                                     GearBox.fromReductionStages(1, 1)))
                     // Coast mode = motor freewheels when disabled (reduces heat)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
-                    // Limit current to 40A to prevent brownouts
-                    .withStatorCurrentLimit(Amps.of(60))
+                    // Limit current to 50A to prevent brownouts
+                    .withStatorCurrentLimit(Amps.of(45))
                     .withMotorInverted(true)
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
@@ -86,7 +97,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private final FlyWheel flywheel = new FlyWheel(
             new FlyWheelConfig(shooterSMC)
                     .withDiameter(Inches.of(4))
-                    .withMass(Pounds.of(3.06))
+                    .withMass(Pounds.of(3.98))
                     .withUpperSoftLimit(RPM.of(MAX_RPM))
                     .withTelemetry("ShooterMech",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));
@@ -110,6 +121,46 @@ public class ShooterSubsystem extends SubsystemBase {
 
     public Command idle() {
         return setRPM(IDLE_RPM).withName("ShooterIdle");
+    }
+
+    // Mutable holders for logging (prevents memory allocation every loop)
+    private final MutVoltage m_appliedVoltage = new MutVoltage(0, 0, Volts);
+    private final MutAngle m_distance = new MutAngle(0, 0, Rotations);
+    private final MutAngularVelocity m_velocity = new MutAngularVelocity(0, 0, RotationsPerSecond);
+
+    // Define the Routine manually so we can call .quasistatic() and .dynamic()
+    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+            new SysIdRoutine.Config(
+                    Volts.of(0.5).per(Second), // Ramp rate
+                    Volts.of(7), // Step voltage
+                    Seconds.of(10) // Timeout
+            ),
+            new SysIdRoutine.Mechanism(
+                    (volts) -> shooterSMC.setDutyCycle(volts.in(Volts) / RobotController.getBatteryVoltage()),
+                    log -> {
+                        shooterSMC.updateTelemetry();
+                        shooterSMC.simIterate();
+                        log.motor("Shooter")
+                                .voltage(m_appliedVoltage.mut_replace(
+                                        shooterSMC.getDutyCycle() * RobotController.getBatteryVoltage(), Volts))
+                                .angularPosition(m_distance.mut_replace(shooterSMC.getMechanismPosition()))
+                                .angularVelocity(m_velocity.mut_replace(shooterSMC.getMechanismVelocity()));
+                    },
+                    this,
+                    "Shooter"));
+
+    /**
+     * Runs the full SysId sequence: Quasistatic Forward -> Wait -> Dynamic Forward.
+     */
+    public Command getSysIdCommand() {
+        return sysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward)
+                .until(() -> getActualRPM() > MAX_RPM) // Safety check
+                .andThen(Commands.runOnce(() -> shooterSMC.setDutyCycle(0))) // Stop motor
+                .andThen(Commands.waitSeconds(5.0)) // Wait for 3.08lb mass to stop fully
+                .andThen(sysIdRoutine.dynamic(SysIdRoutine.Direction.kForward)
+                        .until(() -> getActualRPM() > MAX_RPM))
+                .andThen(Commands.runOnce(() -> shooterSMC.setDutyCycle(0)))
+                .withName("ShooterSysId");
     }
 
     // ------------------------------------------------
@@ -136,6 +187,11 @@ public class ShooterSubsystem extends SubsystemBase {
         return lastTargetRPM;
     }
 
+    public double getTemperature() {
+        // This returns the temperature in Celsius
+        return shooterMotor.getMotorTemperature();
+    }
+
     public double getActualRPM() {
         return flywheel.getSpeed().in(RPM);
     }
@@ -143,6 +199,22 @@ public class ShooterSubsystem extends SubsystemBase {
     public boolean isAtTarget() {
         // Standard 5% tolerance check
         return Math.abs(getActualRPM() - getTargetRPM()) < (getTargetRPM() * 0.05);
+    }
+
+    /**
+     * Command to run the motor at a safe speed for intaking.
+     * This moves the belts enough to pull balls in, but doesn't launch them.
+     */
+    public Command intakeMode() {
+        return setRPM(INTAKE_RPM).withName("ShooterIntakeMode");
+    }
+
+    /**
+     * Command to run the motor at a safe speed for outtaking.
+     * This moves the belts enough to eject balls, but doesn't launch them.
+     */
+    public Command outtakeMode() {
+        return setRPM(OUTTAKE_RPM).withName("ShooterOuttakeMode");
     }
 
     // ------------------------------------------------

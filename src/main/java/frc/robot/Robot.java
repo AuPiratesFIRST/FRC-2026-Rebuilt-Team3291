@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import swervelib.simulation.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
@@ -43,7 +44,25 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void robotPeriodic() {
+
     CommandScheduler.getInstance().run();
+    // 1. Define your "Danger" threshold (55 degrees Celsius is a safe warning)
+    double dangerTemp = 55.0;
+
+    // 2. Check if ANY motor is over the limit
+    boolean coolingRequired = m_robotContainer.getShooter().getTemperature() > dangerTemp ||
+        m_robotContainer.getKicker().getTemperature() > dangerTemp ||
+        m_robotContainer.getElevatorSubsystem().getTemperature() > dangerTemp ||
+        m_robotContainer.getIntakeRollerSubsystem().getTemperature() > dangerTemp;
+
+    // 3. Tell the LEDs to show the warning
+    m_robotContainer.getLightingSubsystem().setMotorHot(coolingRequired);
+
+    // OPTIONAL: Print to SmartDashboard so you can see the actual numbers
+    SmartDashboard.putNumber("Temps/KickerTemp", m_robotContainer.getKicker().getTemperature());
+    SmartDashboard.putNumber("Temps/ShooterTemp", m_robotContainer.getShooter().getTemperature());
+    SmartDashboard.putNumber("Temps/ElevatorTemp", m_robotContainer.getElevatorSubsystem().getTemperature());
+    SmartDashboard.putNumber("Temps/IntakeRollerTemp", m_robotContainer.getIntakeRollerSubsystem().getTemperature());
 
   }
 
@@ -85,6 +104,7 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void teleopPeriodic() {
+
   }
 
   @Override

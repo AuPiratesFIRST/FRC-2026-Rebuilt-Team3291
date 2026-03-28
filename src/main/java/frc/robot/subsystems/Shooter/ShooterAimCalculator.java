@@ -24,14 +24,14 @@ public final class ShooterAimCalculator {
     private static final InterpolatingDoubleTreeMap stockpileRpmMap = new InterpolatingDoubleTreeMap();
 
     static {
-        rpmMap.put(1.20, 1035.0);
-        rpmMap.put(1.50, 1140.0);
-        rpmMap.put(2.00, 1190.0);
-        rpmMap.put(2.50, 1338.0);
-        rpmMap.put(3.00, 1359.0);
-        rpmMap.put(4.00, 1460.0);
-        rpmMap.put(4.25, 1540.0);
-        rpmMap.put(4.50, 1590.0);
+        rpmMap.put(1.20, 2835.0);
+        rpmMap.put(1.50, 2940.0);
+        rpmMap.put(2.00, 3190.0);
+        rpmMap.put(2.50, 3338.0);
+        rpmMap.put(3.00, 3520.0);
+        rpmMap.put(4.00, 4260.0);
+        rpmMap.put(4.25, 4540.0);
+        rpmMap.put(4.50, 4590.0);
 
         hoodAngleMap.put(1.20, 64.09);
         hoodAngleMap.put(1.50, 64.09);
@@ -124,6 +124,6 @@ public final class ShooterAimCalculator {
     }
 
     public static ShooterSolution fallback() {
-        return new ShooterSolution(Degrees.of(65), 1150.0, 0.0, 1.5, true);
+        return new ShooterSolution(Degrees.of(65), 3150.0, 0.0, 1.5, true);
     }
 }

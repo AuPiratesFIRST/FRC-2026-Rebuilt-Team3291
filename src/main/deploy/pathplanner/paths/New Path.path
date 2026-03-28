@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.3274322396576315,
-        "y": 4.028530670470756
+        "x": 3.509,
+        "y": 3.99
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.575036578716637,
-        "y": 4.063057345363553
+        "x": 3.7566043390590056,
+        "y": 4.024526674892797
       },
       "isLocked": false,
       "linkedName": null
@@ -33,24 +33,13 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "AutoAlign",
-      "waypointRelativePos": 0.3133018230925066,
-      "endWaypointRelativePos": 1.9716407832545482,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "AutoAlign"
-        }
-      }
-    },
-    {
-      "name": "SmartShoot",
+      "name": "SOTM",
       "waypointRelativePos": 0.3160027008777739,
-      "endWaypointRelativePos": null,
+      "endWaypointRelativePos": 1.0,
       "command": {
         "type": "named",
         "data": {
-          "name": "SmartShoot"
+          "name": "SOTM"
         }
       }
     }

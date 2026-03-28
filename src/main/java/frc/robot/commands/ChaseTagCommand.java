@@ -29,7 +29,7 @@ public class ChaseTagCommand extends Command {
         private final int[] tagIds;
         private final Transform3d tagToGoal;
 
-        private final ProfiledPIDController xController = new ProfiledPIDController(3.0, 0, 0.05, X_CONSTRAINTS);
+        private final ProfiledPIDController xController = new ProfiledPIDController(3.2, 0, 0.05, X_CONSTRAINTS);
         private final ProfiledPIDController yController = new ProfiledPIDController(3.0, 0, 0.05, Y_CONSTRAINTS);
         private final ProfiledPIDController omegaController = new ProfiledPIDController(2.0, 0, 0.05,
                         OMEGA_CONSTRAINTS);

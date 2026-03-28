@@ -24,7 +24,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
         addCommands(
                 // PHASE 1: Fast approach with the elevator DOWN (keeps Center of Gravity low)
                 // It runs until the robot is within the safeElevatorDistance.
-                new ChaseFrontTagCommand(vision, swerve, towerTagIds, safeElevatorDistance)
+                new ChaseTagCommand(vision, swerve, towerTagIds, safeElevatorDistance)
                         .until(() -> isCloseEnough(vision, towerTagIds, safeElevatorDistance)),
 
                 // PHASE 2: Run two commands at the exact same time!
@@ -32,7 +32,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
                 // simultaneously
                 new ParallelCommandGroup(
                         elevator.setHeight(Meters.of(1.5)), // <-- TUNE THIS to your climb height
-                        new ChaseFrontTagCommand(vision, swerve, towerTagIds, finalDockingDistance)
+                        new ChaseTagCommand(vision, swerve, towerTagIds, finalDockingDistance)
                                 .until(() -> isCloseEnough(vision, towerTagIds, finalDockingDistance + 0.05))));
     }
 

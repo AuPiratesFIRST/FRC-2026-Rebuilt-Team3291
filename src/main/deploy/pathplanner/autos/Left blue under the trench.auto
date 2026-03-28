@@ -30,18 +30,6 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "AutoAlign"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "SmartShoot"
-          }
-        },
-        {
           "type": "parallel",
           "data": {
             "commands": [
@@ -75,7 +63,13 @@
         {
           "type": "named",
           "data": {
-            "name": "SmartShoot"
+            "name": "SOTM"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "StopShooter"
           }
         }
       ]

@@ -19,7 +19,7 @@ import yams.motorcontrollers.local.SparkWrapper;
 public class IntakeRollerSubsystem extends SubsystemBase {
 
     // 1. Hardware Definition
-    private final SparkMax spark = new SparkMax(14, MotorType.kBrushless);
+    private final SparkMax spark = new SparkMax(19, MotorType.kBrushless);
     private static final double IDLE_SPEED = 0.05;
 
     // 2. The Smart Motor Controller (The Wrapper)
@@ -38,7 +38,7 @@ public class IntakeRollerSubsystem extends SubsystemBase {
                 .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
                 .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                 .withStatorCurrentLimit(Amps.of(60))
-                .withTelemetry("Intake/Motor", SmartMotorControllerConfig.TelemetryVerbosity.MID);
+                .withTelemetry("Intake/Motor", SmartMotorControllerConfig.TelemetryVerbosity.LOW);
 
         // Initialize the Wrapper using that config
         this.intakeSMC = new SparkWrapper(spark, DCMotor.getNEO(1), config);
@@ -46,9 +46,9 @@ public class IntakeRollerSubsystem extends SubsystemBase {
         // Initialize the FlyWheel Mechanism
         FlyWheelConfig mechanismConfig = new FlyWheelConfig(intakeSMC)
                 .withDiameter(Inches.of(2))
-                .withMass(Pounds.of(0.25))
+                .withMass(Pounds.of(0.35))
                 .withUpperSoftLimit(RPM.of(6000))
-                .withTelemetry("Intake/Roller", SmartMotorControllerConfig.TelemetryVerbosity.MID);
+                .withTelemetry("Intake/Roller", SmartMotorControllerConfig.TelemetryVerbosity.LOW);
 
         this.intake = new FlyWheel(mechanismConfig);
 
@@ -87,6 +87,11 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     public Current getCurrent() {
         return Amps.of(spark.getOutputCurrent());
+    }
+
+    public double getTemperature() {
+        // This returns the temperature in Celsius
+        return spark.getMotorTemperature();
     }
 
     /**
