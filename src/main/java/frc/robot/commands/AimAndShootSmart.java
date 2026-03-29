@@ -13,6 +13,8 @@ import frc.robot.Constants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.util.HubTracker;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.Optional;
@@ -26,6 +28,9 @@ public class AimAndShootSmart extends Command {
     private final KickerSubsystem kicker;
     private final VisionSubsystem vision;
     private final LightingSubsystem lighting; // Add this
+    private final MedianFilter outlierFilter = new MedianFilter(5);
+    private final LinearFilter smoothFilter = LinearFilter.movingAverage(10);
+    private double lastSmoothDistance = 2.0;
 
     public AimAndShootSmart(ShooterSubsystem shooter, HoodSubsystem hood, SwerveSubsystem swerve,
             TurretSubsystem turret, IntakeRollerSubsystem intake, KickerSubsystem kicker, VisionSubsystem vision,
@@ -40,7 +45,7 @@ public class AimAndShootSmart extends Command {
         this.lighting = lighting;
 
         // We add Vision to the requirements
-        addRequirements(shooter, hood, intake, kicker);
+        addRequirements(shooter, hood, intake, kicker, vision);
     }
 
     @Override
@@ -65,27 +70,29 @@ public class AimAndShootSmart extends Command {
         // 2. VISION VS ODOMETRY DISTANCE
         // We get the raw vision distance if available
         Optional<Double> visionDistance = vision.getDistanceToTagMeters(validTags);
-        double finalDistance;
 
-        if (visionDistance.isPresent() && hubIsActive) {
-            // Use high-precision Vision Distance
-            finalDistance = visionDistance.get();
-            SmartDashboard.putString("Targeting/Source", "VISION");
+        double rawDist = visionDistance.isPresent() && hubIsActive
+                ? visionDistance.get()
+                : swerve.getPose().getTranslation().getDistance(currentGoal);
 
-        } else {
-            // Fallback to Odometry Distance (or use it for Stockpiling)
-            finalDistance = swerve.getPose().getTranslation().getDistance(currentGoal);
-            SmartDashboard.putString("Targeting/Source", "ODOMETRY");
-        }
+        // Apply filters to stop the flywheels from "fighting"
+        double medianDist = outlierFilter.calculate(rawDist);
+        double finalDistance = smoothFilter.calculate(medianDist);
 
-        // 3. RUN THE DYNAMIC SOLVER
-        // We still use the solveMoving logic to handle the robot's velocity (Whip
-        // Effect)
+        // 3. RUN THE SOLVER
         var solution = ShooterAimCalculator.solveMoving(
                 swerve.getPose(),
                 swerve.getRobotVelocity(),
                 swerve.getFieldVelocity(),
-                currentGoal, hubIsActive);
+                currentGoal,
+                hubIsActive);
+
+        // 4. APPLY OUTPUTS
+        // We use the solveMoving for the HEADING (the Whip Effect)
+        // But we use our FILTERED distance for the RPM
+        double correctedRPM = hubIsActive
+                ? ShooterAimCalculator.solve(finalDistance).rpm()
+                : solution.rpm(); // Use stockpile map if not hub
 
         // 4. APPLY HARDWARE SETPOINTS
         // Use the solveMoving math for Heading, but use our Vision-Corrected distance
@@ -95,8 +102,8 @@ public class AimAndShootSmart extends Command {
 
         // 5. THE FIRING HANDSHAKE
         // We only fire if: 1. RPM is stable, 2. We are pointed at the Hub/Goal
-        boolean atSpeed = shooter.getActualRPM() >= (solution.rpm() * 0.95);
-        boolean aimed = Math.abs(swerve.getPose().getRotation().minus(solution.chassisHeading()).getDegrees()) < 20.0;
+        boolean atSpeed = shooter.getActualRPM() >= (correctedRPM * 0.97); // 3% tolerance is better for heavy wheels
+        boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 1.5; // Tighter tolerance
 
         // Update the LEDs
         lighting.setAligned(aimed);
@@ -105,7 +112,7 @@ public class AimAndShootSmart extends Command {
             kicker.setPowerDirect(1.0);
         } else {
             // Pull the ball back slightly so it's not touching the spinning flywheel
-            intake.setPowerDirect(0.4);
+            intake.setPowerDirect(1.0);
             kicker.setPowerDirect(-0.1);
         }
 

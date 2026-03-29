@@ -4,6 +4,7 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.*;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -134,10 +135,11 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    var poses = vision.getEstimatedGlobalPoses();
 
     // Loop through ALL available camera estimates from BOTH cameras and feed them
     // to YAGSL
-    for (var est : vision.getEstimatedGlobalPoses()) {
+    for (var est : poses) {
 
       // Dynamically choose standard deviations based on if the camera saw 1 tag or
       // multiple tags
@@ -145,12 +147,17 @@ public class SwerveSubsystem extends SubsystemBase {
           ? VisionConstants.MULTI_TAG_STD_DEVS
           : VisionConstants.SINGLE_TAG_STD_DEVS;
 
+      // Add this to see the raw camera pose on the map
+      Logger.recordOutput("Vision/RawCameraPose", est.estimatedPose.toPose2d());
+
       swerveDrive.addVisionMeasurement(
           est.estimatedPose.toPose2d(),
           est.timestampSeconds,
           trustMatrix);
     }
+    SmartDashboard.putNumber("Vision/PosesCount", poses.size()); // Check if this is > 0
     swerveDrive.updateOdometry();
+    vision.updateSimPose(getPose());
 
   }
 

@@ -111,7 +111,7 @@ public class RobotContainer {
                 // ready
                 registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
                 shooter.setDefaultCommand(shooter.idle());
-                // intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
+                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
                 kicker.setDefaultCommand(kicker.idle());
                 agitatorSubsystem.setDefaultCommand(agitatorSubsystem.idle());
                 elevatorSubsystem.setDefaultCommand(elevatorSubsystem.stow());
@@ -237,7 +237,7 @@ public class RobotContainer {
                                 () -> -driver.getLeftY() * speedMultiplier.getAsDouble(), // Forward/Backward
                                 () -> -driver.getLeftX() * speedMultiplier.getAsDouble()) // Left/Right strafe
                                 .deadband(0.1) // Apply 10% deadband to all translation axes
-                                .scaleTranslation(1) // Reduce max speed to 80% for better control
+                                .scaleTranslation(0.7) // Reduce max speed to 80% for better control
                                 .allianceRelativeControl(false) // Ensure "Forward" is always away from your alliance
                                                                 // wall
                                 .robotRelative(true)
@@ -296,7 +296,7 @@ public class RobotContainer {
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                operator.leftTrigger().whileTrue(intakeRollerSubsystem.in(0.3).alongWith(kicker.routeToHopper()));
+                operator.leftTrigger().whileTrue(intakeRollerSubsystem.in(0.5).alongWith(kicker.routeToHopper()));
 
                 // Driver
                 // 'A'

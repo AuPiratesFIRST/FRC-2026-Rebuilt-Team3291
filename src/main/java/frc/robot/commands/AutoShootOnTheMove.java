@@ -94,14 +94,14 @@ public class AutoShootOnTheMove extends Command {
         boolean atSpeed = shooter.getActualRPM() >= (solution.rpm() * 0.98);
         boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 2.0;
         turret.shoot();
-        if (atSpeed && aimed) {
+        if (atSpeed) {
 
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);
             hasFired = true;
             finishTimer.start();
         } else {
-            intake.setPowerDirect(-0.1);
+            intake.setPowerDirect(1.0);
             kicker.setPowerDirect(-0.1);
         }
     }

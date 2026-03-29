@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.*;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import java.util.ArrayList;
@@ -245,9 +246,8 @@ public class VisionSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        for (EstimatedRobotPose est : getEstimatedGlobalPoses()) {
-            visionPosePub.set(est.estimatedPose.toPose2d());
-            break; // Just grab one to display an icon on AdvantageScope/Glass
-        }
+        // Just log raw camera status to see if it's alive
+        SmartDashboard.putBoolean("Vision/ShooterCamConnected", shooterCamera.isConnected());
+
     }
 }

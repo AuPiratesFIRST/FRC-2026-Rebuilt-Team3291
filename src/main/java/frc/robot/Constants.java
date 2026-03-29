@@ -83,7 +83,7 @@ public class Constants {
                 public static final double SHOOTER_MAX_ANGULAR_SPEED = Math.PI; // rad/s
 
                 // ---------- VISION UNCERTAINTY ----------
-                public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS = VecBuilder.fill(4, 4, 8);
+                public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS = VecBuilder.fill(0.7, 0.7, 8);
                 public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS = VecBuilder.fill(0.5, 0.5, 1);
 
                 // ---------- HUB TAGS ----------
