@@ -52,7 +52,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
             // PHASE 2: PRECISION VISION DOCK ON THAT SIDE (Using Unified Command)
             new ParallelCommandGroup(
                 elevator.setHeight(Meters.of(0.3)),
-                new SmartChaseTagCommand(
+                new ChaseTowerTagCommand(
                     vision, 
                     swerve, 
                     new int[]{15, 16, 31, 32}, // Tower Tags
