@@ -24,13 +24,18 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
     public AutoAlignToClimb(VisionSubsystem vision, SwerveSubsystem swerve, ElevatorSubsystem elevator, Side side) {
         
         // 1. DETERMINE OFFSETS (Based on Page 27 Tower Dimensions)
-        // Rungs are 16.125" (0.41m) from center.
-        double lateralOffset = (side == Side.LEFT) ? 0.41 : -0.41;
+        // Uprights are 32.25" apart, which means they are ~16.125" (0.41m) from the center.
+        double uprightOffset = (side == Side.LEFT) ? 0.41 : -0.41;
+
+        // Because your climber is on the LEFT side of the robot, you need to shift the 
+        // center of the robot to the RIGHT so the left edge hooks the upright.
+        double robotHalfWidth = 0.35; // TODO: Adjust to your robot's actual half-width in meters!
+        double lateralOffset = uprightOffset - robotHalfWidth;
 
         // 2. DEFINE THE NEIGHBORHOOD POSE
-        // Blue Alliance Tower Center is roughly at X=0, Y=4.0. 
-        // We approach from X=1.2m away.
-        Pose2d blueTowerApproach = new Pose2d(new Translation2d(1.2, 4.0 + lateralOffset), Rotation2d.fromDegrees(180));
+        // We are BACKING UP to the Blue Tower (X=0). 
+        // This means the robot's front faces AWAY from the tower -> Rotation is 0 degrees.
+        Pose2d blueTowerApproach = new Pose2d(new Translation2d(1.2, 4.0 + lateralOffset), Rotation2d.fromDegrees(0));
         
         PathConstraints constraints = new PathConstraints(2.0, 1.5, Math.PI, 2 * Math.PI);
 
@@ -44,12 +49,16 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
                 return AutoBuilder.pathfindToPose(target, constraints, 0.0);
             }, Set.of(swerve)),
 
-            // PHASE 2: PRECISION VISION DOCK ON THAT SIDE
+            // PHASE 2: PRECISION VISION DOCK ON THAT SIDE (Using Unified Command)
             new ParallelCommandGroup(
                 elevator.setHeight(Meters.of(0.3)),
-                // Pass the specific tower tags (IDs 15, 16, 31, 32 per Page 34)
-                new ChaseFrontTagCommand(vision, swerve, new int[]{15, 16, 31, 32}, 0.6, lateralOffset)
-                    .withTimeout(1.5)
+                new SmartChaseTagCommand(
+                    vision, 
+                    swerve, 
+                    new int[]{15, 16, 31, 32}, // Tower Tags
+                    0.8, // Target distance in meters
+                    lateralOffset
+                ).withTimeout(2.5) // Slightly longer timeout to allow backing up safely
             )
         );
     }
