@@ -104,36 +104,30 @@ public class VisionSubsystem extends SubsystemBase {
      * Loops through unread frames from BOTH cameras to generate a list of field
      * poses.
      */
-    public List<EstimatedRobotPose> getEstimatedGlobalPoses() {
+    
+    public List<EstimatedRobotPose> getEstimatedGlobalPoses(Rotation2d gyroRotation) {
         List<EstimatedRobotPose> estimates = new ArrayList<>();
+        double timestamp = Timer.getFPGATimestamp();
 
-        // Process all unseen frames from the Front Camera
+        // 1. Give the estimators the Pigeon 2.0 data to help solve the math
+        frontPoseEstimator.addHeadingData(timestamp, gyroRotation);
+        shooterPoseEstimator.addHeadingData(timestamp, gyroRotation);
+
+        // 2. Process all unseen frames from the Front Camera
         for (var result : frontCamera.getAllUnreadResults()) {
-            // Primary strategy: Multi-tag PNP
-            Optional<EstimatedRobotPose> pose = frontPoseEstimator.estimateCoprocMultiTagPose(result);
-
-            // Fallback strategy: Lowest Ambiguity (Single Tag)
-            if (pose.isEmpty()) {
-                pose = frontPoseEstimator.estimateLowestAmbiguityPose(result);
-            }
+            Optional<EstimatedRobotPose> pose = frontPoseEstimator.update(result);
             pose.ifPresent(estimates::add);
         }
 
-        // Process all unseen frames from the Shooter Camera
+        // 3. Process all unseen frames from the Shooter Camera
         for (var result : shooterCamera.getAllUnreadResults()) {
-            // Primary strategy: Multi-tag PNP
-            Optional<EstimatedRobotPose> pose = shooterPoseEstimator.estimateCoprocMultiTagPose(result);
-
-            // Fallback strategy: Lowest Ambiguity (Single Tag)
-            if (pose.isEmpty()) {
-                pose = shooterPoseEstimator.estimateLowestAmbiguityPose(result);
-            }
+            Optional<EstimatedRobotPose> pose = shooterPoseEstimator.update(result);
             pose.ifPresent(estimates::add);
         }
 
         return estimates;
     }
-
+    
     // ============================================================
     // DISTANCE TO TAG (PLANAR) - Uses Shooter Camera
     // ============================================================
