@@ -39,16 +39,17 @@ public class ChaseFrontTagCommand extends Command {
             VisionSubsystem vision,
             SwerveSubsystem swerve,
             int[] tagIds,
-            double targetDistanceMeters) {
+            double targetDistanceMeters,
+            double lateralOffsetMeters) {
 
         this.vision = vision;
         this.swerve = swerve;
         this.tagIds = tagIds;
 
-        // Rotation of Math.PI mathematically forces the FRONT of your robot to face the
-        // tag
+        /// Use lateralOffsetMeters to shift the robot left or right of the tag
+        // Positive Y is left, Negative Y is right
         this.tagToGoal = new Transform3d(
-                new Translation3d(targetDistanceMeters, 0.0, 0.0),
+                new Translation3d(targetDistanceMeters, lateralOffsetMeters, 0.0),
                 new Rotation3d(0.0, 0.0, Math.PI));
 
         xController.setTolerance(0.05);
