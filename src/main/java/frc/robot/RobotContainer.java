@@ -29,6 +29,7 @@ import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.ShooterDockAtDistanceCommand;
 import frc.robot.commands.ChaseTagCommand;
+import frc.robot.commands.ManualChaseBall;
 import frc.robot.commands.PathfindThroughBalls;
 import frc.robot.commands.ChaseBall;
 import frc.robot.commands.PathPlannerAlign;
@@ -275,7 +276,13 @@ public class RobotContainer {
 
                 // Hold 'X' to automatically collect all balls in view
                 // driver.x().whileTrue(new PathfindThroughBalls(drivebase, m_ballTracker));
-                driver.x().whileTrue(new ChaseBall(drivebase, m_ballTracker));
+                // Pass the joystick suppliers into ChaseBall so you can still move
+                // but the robot handles the rotation for you!
+                driver.x().whileTrue(new ManualChaseBall(
+                                drivebase,
+                                m_ballTracker,
+                                () -> -driver.getLeftY(),
+                                () -> -driver.getLeftX()));
                 // driver.x()
                 // .onTrue(
                 // new AutoScoreCommand(drivebase, vision)

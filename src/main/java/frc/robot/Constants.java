@@ -83,8 +83,12 @@ public class Constants {
                 public static final double SHOOTER_MAX_ANGULAR_SPEED = Math.PI; // rad/s
 
                 // ---------- VISION UNCERTAINTY ----------
-                public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS = VecBuilder.fill(0.7, 0.7, 8);
-                public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS = VecBuilder.fill(0.5, 0.5, 1);
+                // Trust X/Y slightly, but set Rotation to a near-infinite number
+                public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS = VecBuilder.fill(4.0, 4.0, 9999.0);
+
+                // Multi-tag is more accurate for position (X/Y), so we trust it more,
+                // but still ignore its rotation.
+                public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS = VecBuilder.fill(1.9, 1.9, 9999.0);
 
                 // ---------- HUB TAGS ----------
                 public static final int[] RED_HUB_TAGS = { 2, 3, 4, 5, 8, 9, 10, 11 };
