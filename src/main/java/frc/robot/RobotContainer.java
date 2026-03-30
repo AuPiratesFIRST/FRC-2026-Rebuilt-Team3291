@@ -237,11 +237,11 @@ public class RobotContainer {
                 SwerveInputStream driveStream = SwerveInputStream.of(drivebase.getSwerveDrive(),
                                 () -> -driver.getLeftY() * speedMultiplier.getAsDouble(), // Forward/Backward
                                 () -> -driver.getLeftX() * speedMultiplier.getAsDouble()) // Left/Right strafe
-                                .deadband(0.1) // Apply 10% deadband to all translation axes
-                                .scaleTranslation(0.7) // Reduce max speed to 80% for better control
-                                .allianceRelativeControl(false) // Ensure "Forward" is always away from your alliance
-                                                                // wall
-                                .robotRelative(true)
+                                .deadband(0.15) // Apply 15% deadband to all translation axes
+                                .scaleTranslation(0.72) // Reduce max speed to 80% for better control
+                                .allianceRelativeControl(true) // Ensure "Forward" is always away from your alliance
+                                                               // wall
+                                .robotRelative(false)
                                 .withControllerRotationAxis(() -> {
                                         // Simple rotation using right stick without turret integration
                                         // double rightStickX = -MathUtil.applyDeadband(driver.getRightX(), 0.1);

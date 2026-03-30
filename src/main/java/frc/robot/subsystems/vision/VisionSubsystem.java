@@ -7,16 +7,20 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.*;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import org.photonvision.*;
-import org.photonvision.simulation.*;
 import org.photonvision.targeting.*;
+import org.photonvision.EstimatedRobotPose;
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonPoseEstimator;
+import org.photonvision.simulation.PhotonCameraSim;
+import org.photonvision.simulation.SimCameraProperties;
+import org.photonvision.simulation.VisionSystemSim;
 
 public class VisionSubsystem extends SubsystemBase {
 
@@ -79,7 +83,7 @@ public class VisionSubsystem extends SubsystemBase {
 
         SimCameraProperties props = new SimCameraProperties();
         props.setCalibration(960, 720, Rotation2d.fromDegrees(90));
-        props.setFPS(30);
+        props.setFPS(15);
         props.setAvgLatencyMs(35);
         props.setCalibError(0.25, 0.25);
 
@@ -104,30 +108,44 @@ public class VisionSubsystem extends SubsystemBase {
      * Loops through unread frames from BOTH cameras to generate a list of field
      * poses.
      */
-    
+
     public List<EstimatedRobotPose> getEstimatedGlobalPoses(Rotation2d gyroRotation) {
         List<EstimatedRobotPose> estimates = new ArrayList<>();
         double timestamp = Timer.getFPGATimestamp();
 
-        // 1. Give the estimators the Pigeon 2.0 data to help solve the math
+        // 1. Give the estimators the pigeon data to help solve the math
         frontPoseEstimator.addHeadingData(timestamp, gyroRotation);
         shooterPoseEstimator.addHeadingData(timestamp, gyroRotation);
 
         // 2. Process all unseen frames from the Front Camera
         for (var result : frontCamera.getAllUnreadResults()) {
-            Optional<EstimatedRobotPose> pose = frontPoseEstimator.update(result);
+            // Try multi-tag first (most accurate)
+            Optional<EstimatedRobotPose> pose = frontPoseEstimator.estimateCoprocMultiTagPose(result);
+
+            // If multi-tag fails (e.g. only 1 tag visible), fallback to the best single tag
+            if (pose.isEmpty()) {
+                pose = frontPoseEstimator.estimateLowestAmbiguityPose(result);
+            }
+
             pose.ifPresent(estimates::add);
         }
 
         // 3. Process all unseen frames from the Shooter Camera
         for (var result : shooterCamera.getAllUnreadResults()) {
-            Optional<EstimatedRobotPose> pose = shooterPoseEstimator.update(result);
+            // Try multi-tag first (most accurate)
+            Optional<EstimatedRobotPose> pose = shooterPoseEstimator.estimateCoprocMultiTagPose(result);
+
+            // Fallback for single tag
+            if (pose.isEmpty()) {
+                pose = shooterPoseEstimator.estimateLowestAmbiguityPose(result);
+            }
+
             pose.ifPresent(estimates::add);
         }
 
         return estimates;
     }
-    
+
     // ============================================================
     // DISTANCE TO TAG (PLANAR) - Uses Shooter Camera
     // ============================================================

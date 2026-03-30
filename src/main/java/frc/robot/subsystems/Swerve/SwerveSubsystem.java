@@ -135,7 +135,8 @@ public class SwerveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    var poses = vision.getEstimatedGlobalPoses();
+    // var poses = vision.getEstimatedGlobalPoses(swerveDrive.getYaw());
+    var poses = vision.getEstimatedGlobalPoses(getHeading());
 
     // Loop through ALL available camera estimates from BOTH cameras and feed them
     // to YAGSL
@@ -176,6 +177,19 @@ public class SwerveSubsystem extends SubsystemBase {
    * Getter for the SwerveDrive object.
    * Required for RobotContainer to initialize SwerveInputStream.
    */
+
+  /**
+   * Gets the current yaw angle of the robot, as reported by the swerve pose
+   * estimator in the underlying drivebase.
+   * Note, this is not the raw gyro reading, this may be corrected from calls to
+   * resetOdometry().
+   *
+   * @return The yaw angle
+   */
+  public Rotation2d getHeading() {
+    return getPose().getRotation();
+  }
+
   public SwerveDrive getSwerveDrive() {
     return swerveDrive;
   }
