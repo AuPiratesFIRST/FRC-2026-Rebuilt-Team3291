@@ -7,8 +7,8 @@ import frc.robot.subsystems.Swerve.SwerveSubsystem;
 import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 import frc.robot.subsystems.intake.KickerSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
+import frc.robot.subsystems.intake.AgitatorSubsystem;
 import frc.robot.Constants;
-import frc.robot.subsystems.Shooter.ShooterAimCalculator;
 
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -24,6 +24,7 @@ public class AutoShootOnTheMove extends Command {
     private final IntakeRollerSubsystem intake;
     private final KickerSubsystem kicker;
     private final VisionSubsystem vision;
+    private final AgitatorSubsystem agitator;
 
     private final Timer finishTimer = new Timer();
     private boolean hasFired = false;
@@ -35,7 +36,7 @@ public class AutoShootOnTheMove extends Command {
             TurretSubsystem turret,
             IntakeRollerSubsystem intake,
             KickerSubsystem kicker,
-            VisionSubsystem vision) {
+            VisionSubsystem vision, AgitatorSubsystem agitator) {
 
         this.shooter = shooter;
         this.hood = hood;
@@ -44,10 +45,11 @@ public class AutoShootOnTheMove extends Command {
         this.intake = intake;
         this.kicker = kicker;
         this.vision = vision;
+        this.agitator = agitator;
 
         // We require the scoring components.
         // We still do NOT require Swerve so PathPlanner doesn't stop.
-        addRequirements(shooter, hood, turret, intake, kicker);
+        addRequirements(shooter, hood, turret, intake, kicker, agitator);
     }
 
     @Override
@@ -92,17 +94,20 @@ public class AutoShootOnTheMove extends Command {
 
         // --- FIRING LOGIC ---
         boolean atSpeed = shooter.getActualRPM() >= (solution.rpm() * 0.98);
-        boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 2.0;
+        boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 1.0;
         turret.shoot();
-        if (atSpeed) {
+        if (atSpeed && aimed) {
 
-            intake.setPowerDirect(1.0);
+            intake.setPowerDirect(0.6);
             kicker.setPowerDirect(1.0);
+            agitator.setPowerDirect(0.5);
+            turret.shoot();
             hasFired = true;
             finishTimer.start();
         } else {
-            intake.setPowerDirect(1.0);
-            kicker.setPowerDirect(-0.1);
+            intake.setPowerDirect(0.6);
+            kicker.setPowerDirect(0);
+            agitator.setPowerDirect(0.5);
         }
     }
 
@@ -110,16 +115,17 @@ public class AutoShootOnTheMove extends Command {
     public boolean isFinished() {
         // If we are a Standalone command (not in a path), finish when fired.
         // If we are a Marker in a path, finish when fired.
-        return hasFired && finishTimer.hasElapsed(0.65);
+        return hasFired && finishTimer.hasElapsed(1.5);
     }
 
     @Override
     public void end(boolean interrupted) {
         PPHolonomicDriveController.clearRotationFeedbackOverride();
 
-        shooter.idle();
+        shooter.stop();
         intake.setPowerDirect(0.0);
         kicker.setPowerDirect(0.0);
+        agitator.setPowerDirect(0.0);
 
         // Only stop the wheels if we were the ones driving them
         if (swerve.getCurrentCommand() == this) {

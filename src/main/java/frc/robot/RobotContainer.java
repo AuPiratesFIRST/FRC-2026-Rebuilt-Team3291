@@ -164,7 +164,7 @@ public class RobotContainer {
                                 turret,
                                 intakeRollerSubsystem,
                                 kicker,
-                                vision));
+                                vision, agitatorSubsystem));
 
                 NamedCommands.registerCommand("AutoIntake",
                                 kicker.routeToHopper() // Command to run shooter backward/intake
@@ -299,6 +299,16 @@ public class RobotContainer {
                                                 drivebase,
                                                 new int[] { 25 },
                                                 1));
+                driver.povLeft().whileTrue(new AutoAlignToClimb(
+                                vision,
+                                drivebase,
+                                elevatorSubsystem,
+                                AutoAlignToClimb.Side.LEFT));
+                driver.povRight().whileTrue(new AutoAlignToClimb(
+                                vision,
+                                drivebase,
+                                elevatorSubsystem,
+                                AutoAlignToClimb.Side.RIGHT));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
@@ -340,7 +350,7 @@ public class RobotContainer {
                 operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimAndShootSmart(shooter, hood, drivebase, turret, intakeRollerSubsystem,
                                                 kicker,
-                                                vision, lighting)));
+                                                vision, lighting, agitatorSubsystem)));
 
                 // // Manual shooter test (no vision)
 

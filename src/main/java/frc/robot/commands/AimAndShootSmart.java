@@ -7,6 +7,7 @@ import frc.robot.subsystems.Shooter.ShooterAimCalculator.ShooterSolution;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.Turret.TurretSubsystem;
 import frc.robot.subsystems.Swerve.SwerveSubsystem;
+import frc.robot.subsystems.intake.AgitatorSubsystem;
 import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 import frc.robot.subsystems.intake.KickerSubsystem;
 import frc.robot.Constants;
@@ -18,6 +19,7 @@ import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.Optional;
+import frc.robot.subsystems.intake.AgitatorSubsystem;
 
 public class AimAndShootSmart extends Command {
     private final ShooterSubsystem shooter;
@@ -28,13 +30,15 @@ public class AimAndShootSmart extends Command {
     private final KickerSubsystem kicker;
     private final VisionSubsystem vision;
     private final LightingSubsystem lighting; // Add this
+    private final AgitatorSubsystem agitator;
+
     private final MedianFilter outlierFilter = new MedianFilter(5);
     private final LinearFilter smoothFilter = LinearFilter.movingAverage(10);
     private double lastSmoothDistance = 2.0;
 
     public AimAndShootSmart(ShooterSubsystem shooter, HoodSubsystem hood, SwerveSubsystem swerve,
             TurretSubsystem turret, IntakeRollerSubsystem intake, KickerSubsystem kicker, VisionSubsystem vision,
-            LightingSubsystem lighting) {
+            LightingSubsystem lighting, AgitatorSubsystem agitator) {
         this.shooter = shooter;
         this.hood = hood;
         this.swerve = swerve;
@@ -43,9 +47,10 @@ public class AimAndShootSmart extends Command {
         this.kicker = kicker;
         this.vision = vision;
         this.lighting = lighting;
+        this.agitator = agitator;
 
         // We add Vision to the requirements
-        addRequirements(shooter, hood, intake, kicker, vision);
+        addRequirements(shooter, hood, intake, kicker, vision, agitator);
     }
 
     @Override
@@ -110,10 +115,12 @@ public class AimAndShootSmart extends Command {
         if (atSpeed) {
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);
+            agitator.setPowerDirect(0.5);
         } else {
             // Pull the ball back slightly so it's not touching the spinning flywheel
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(-0.1);
+            agitator.setPowerDirect(0.5);
         }
 
         // Debugging

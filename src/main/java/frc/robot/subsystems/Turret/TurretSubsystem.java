@@ -45,7 +45,7 @@ public class TurretSubsystem extends SubsystemBase {
 
         // CONTROLLERS
         // Tuned for 4.5m/s: P=5.0 for strength
-        private final PIDController headingPID = new PIDController(0.95, 0.0, 0);
+        private final PIDController headingPID = new PIDController(1, 0.0, 0);
 
         // Increased to 60.0 to allow instant reaction at high speeds
         private final SlewRateLimiter ffLimiter = new SlewRateLimiter(60.0);
