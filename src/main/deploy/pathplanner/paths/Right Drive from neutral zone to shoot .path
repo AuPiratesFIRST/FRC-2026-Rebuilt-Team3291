@@ -37,7 +37,7 @@
       },
       "prevControl": {
         "x": 3.3371938044703673,
-        "y": 0.488923017895352
+        "y": 0.4889230178953519
       },
       "nextControl": null,
       "isLocked": false,
@@ -61,7 +61,7 @@
     "rotation": -119.99999999999999
   },
   "reversed": false,
-  "folder": "Rigth Trench zone ",
+  "folder": "Rigth Trench zone",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 100.0

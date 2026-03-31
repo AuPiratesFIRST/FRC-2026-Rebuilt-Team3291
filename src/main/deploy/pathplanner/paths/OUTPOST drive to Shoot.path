@@ -3,41 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.12,
-        "y": 0.6515406562054205
+        "x": 0.5326818830242506,
+        "y": 0.6774179743223976
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.120000000000001,
-        "y": 0.6515406562054205
+        "x": 0.6646966461445108,
+        "y": 1.11633325337657
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.9927960057061345,
-        "y": 0.6515406562054205
+        "x": 1.1537375178316684,
+        "y": 1.1432097004279604
       },
       "prevControl": {
-        "x": 5.637337731811698,
-        "y": 0.43643544935805934
-      },
-      "nextControl": {
-        "x": 6.348254279600571,
-        "y": 0.8666458630527816
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 6.600912981455064,
-        "y": 2.1653637660485026
-      },
-      "prevControl": {
-        "x": 6.445649072753209,
-        "y": 1.2337803138373762
+        "x": 0.7791758155940003,
+        "y": 0.8544024449783847
       },
       "nextControl": null,
       "isLocked": false,
@@ -58,13 +42,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 90.0
+    "rotation": -130.0
   },
   "reversed": false,
-  "folder": "Rigth Trench zone ",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": -119.99999999999999
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }

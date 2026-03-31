@@ -61,7 +61,7 @@
     "rotation": 100.0
   },
   "reversed": false,
-  "folder": "Rigth Trench zone ",
+  "folder": "Rigth Trench zone",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 0.0

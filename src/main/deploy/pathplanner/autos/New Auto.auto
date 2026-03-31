@@ -7,25 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Right under trench to intake"
+            "pathName": "Centet drive to OUTPOST"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Right Drive from neutral zone to shoot "
+            "pathName": "OUTPOST drive to Shoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SmartShoot"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Right Drive from neutral zone to intake 2nd"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Right Drive from neutral zone to shoot 2nd"
+            "pathName": "OUTPOST drive to climb"
           }
         }
       ]
