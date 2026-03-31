@@ -6,6 +6,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
+import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
@@ -29,6 +31,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final SparkMax motor = new SparkMax(28, MotorType.kBrushless);
     // Through Bore Encoder on DIO 0 (Absolute mode)
     private final DutyCycleEncoder absoluteEncoder = new DutyCycleEncoder(8);
+    private final MedianFilter outlierFilter = new MedianFilter(5);
+    private final LinearFilter smoothFilter = LinearFilter.movingAverage(10);
 
     private final double spoolDiameter = 1.2; // Inches
     private final double maxTravelMeters = 0.305; // 12 inches
@@ -69,11 +73,13 @@ public class ElevatorSubsystem extends SubsystemBase {
         if (absoluteEncoder.isConnected()) {
             // 1. Get the raw value (e.g., 0.42)
             double rawPos = absoluteEncoder.get();
+            double medianPos = outlierFilter.calculate(rawPos);
+            double filteredPos = smoothFilter.calculate(medianPos);
 
             // 2. Subtract your recorded bottom-position offset
             // Replace 0.42 with the actual number you see on your dashboard
             double offset = 0.46629376165734404;
-            double correctedPos = rawPos - offset;
+            double correctedPos = filteredPos - offset;
 
             // 3. Handle the "Wrap Around"
             // (If the number goes negative, the encoder passed the 1.0 -> 0.0 flip point)
@@ -132,6 +138,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         SmartDashboard.putNumber("Raw Encoder Value", absoluteEncoder.get());
+        SmartDashboard.putNumber("Filtered Encoder Value",
+                smoothFilter.calculate(outlierFilter.calculate(absoluteEncoder.get())));
         elevator.updateTelemetry();
     }
 

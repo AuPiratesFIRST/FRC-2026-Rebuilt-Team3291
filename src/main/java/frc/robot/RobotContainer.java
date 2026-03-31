@@ -114,8 +114,8 @@ public class RobotContainer {
                 shooter.setDefaultCommand(shooter.idle());
                 intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
                 kicker.setDefaultCommand(kicker.idle());
-                agitatorSubsystem.setDefaultCommand(agitatorSubsystem.idle());
-                elevatorSubsystem.setDefaultCommand(elevatorSubsystem.stow());
+                // agitatorSubsystem.setDefaultCommand(agitatorSubsystem.idle());
+                // elevatorSubsystem.setDefaultCommand(elevatorSubsystem.stow());
 
                 /* ================= PATHPLANNER NAMED COMMANDS ================= */
 
@@ -233,12 +233,12 @@ public class RobotContainer {
                  * 3. Handling Alliance-relative controls (field-oriented) automatically.
                  */
                 // This returns 0.4 (very slow) if tracking, and 1.0 (normal) if not.
-                DoubleSupplier speedMultiplier = () -> turret.isHubTrackingEnabled() ? 0.4 : 1.0;
+                DoubleSupplier speedMultiplier = () -> turret.isHubTrackingEnabled() ? 0.6 : 1.0;
                 SwerveInputStream driveStream = SwerveInputStream.of(drivebase.getSwerveDrive(),
                                 () -> -driver.getLeftY() * speedMultiplier.getAsDouble(), // Forward/Backward
                                 () -> -driver.getLeftX() * speedMultiplier.getAsDouble()) // Left/Right strafe
                                 .deadband(0.15) // Apply 15% deadband to all translation axes
-                                .scaleTranslation(0.72) // Reduce max speed to 80% for better control
+                                .scaleTranslation(0.8) // Reduce max speed to 80% for better control
                                 .allianceRelativeControl(true) // Ensure "Forward" is always away from your alliance
                                                                // wall
                                 .robotRelative(false)
@@ -299,16 +299,16 @@ public class RobotContainer {
                                                 drivebase,
                                                 new int[] { 25 },
                                                 1));
-                driver.povLeft().whileTrue(new AutoAlignToClimb(
-                                vision,
-                                drivebase,
-                                elevatorSubsystem,
-                                AutoAlignToClimb.Side.LEFT));
-                driver.povRight().whileTrue(new AutoAlignToClimb(
-                                vision,
-                                drivebase,
-                                elevatorSubsystem,
-                                AutoAlignToClimb.Side.RIGHT));
+                // driver.povLeft().whileTrue(new AutoAlignToClimb(
+                // vision,
+                // drivebase,
+                // elevatorSubsystem,
+                // AutoAlignToClimb.Side.LEFT));
+                // driver.povRight().whileTrue(new AutoAlignToClimb(
+                // vision,
+                // drivebase,
+                // elevatorSubsystem,
+                // AutoAlignToClimb.Side.RIGHT));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
@@ -467,9 +467,9 @@ public class RobotContainer {
                 return kicker;
         }
 
-        public ElevatorSubsystem getElevatorSubsystem() {
-                return elevatorSubsystem;
-        }
+        // public ElevatorSubsystem getElevatorSubsystem() {
+        // return elevatorSubsystem;
+        // }
 
         public IntakeRollerSubsystem getIntakeRollerSubsystem() {
                 return intakeRollerSubsystem;

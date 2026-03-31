@@ -52,7 +52,7 @@ public class Robot extends LoggedRobot {
     // 2. Check if ANY motor is over the limit
     boolean coolingRequired = m_robotContainer.getShooter().getTemperature() > dangerTemp ||
         m_robotContainer.getKicker().getTemperature() > dangerTemp ||
-        m_robotContainer.getElevatorSubsystem().getTemperature() > dangerTemp ||
+        // m_robotContainer.getElevatorSubsystem().getTemperature() > dangerTemp ||
         m_robotContainer.getIntakeRollerSubsystem().getTemperature() > dangerTemp;
 
     // 3. Tell the LEDs to show the warning
@@ -61,7 +61,8 @@ public class Robot extends LoggedRobot {
     // OPTIONAL: Print to SmartDashboard so you can see the actual numbers
     SmartDashboard.putNumber("Temps/KickerTemp", m_robotContainer.getKicker().getTemperature());
     SmartDashboard.putNumber("Temps/ShooterTemp", m_robotContainer.getShooter().getTemperature());
-    SmartDashboard.putNumber("Temps/ElevatorTemp", m_robotContainer.getElevatorSubsystem().getTemperature());
+    // SmartDashboard.putNumber("Temps/ElevatorTemp",
+    // m_robotContainer.getElevatorSubsystem().getTemperature());
     SmartDashboard.putNumber("Temps/IntakeRollerTemp", m_robotContainer.getIntakeRollerSubsystem().getTemperature());
 
   }
