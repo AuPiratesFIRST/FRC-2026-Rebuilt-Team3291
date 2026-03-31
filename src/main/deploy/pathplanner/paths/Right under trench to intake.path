@@ -3,69 +3,51 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.52151212553495,
-        "y": 7.366704707560627
+        "x": 3.5732667617689007,
+        "y": 0.5350927246790309
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.93037963627206,
-        "y": 7.312660692716866
+        "x": 3.8208711008279064,
+        "y": 0.5696193995718273
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.798716119828815,
-        "y": 7.159686162624822
+        "x": 5.966918687589158,
+        "y": 0.7421112696148362
       },
       "prevControl": {
-        "x": 5.295120157961809,
-        "y": 7.40479048602744
+        "x": 4.9291443659416725,
+        "y": 0.587986447531428
       },
       "nextControl": {
-        "x": 6.622867648369133,
-        "y": 6.758564791366777
+        "x": 7.004693009236643,
+        "y": 0.8962360916982444
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.643,
-        "y": 5.879
+        "x": 7.83,
+        "y": 2.178
       },
       "prevControl": {
-        "x": 6.9261330924861895,
-        "y": 6.679132081002944
+        "x": 8.20522111269615,
+        "y": 2.0742054208210945
       },
       "nextControl": null,
       "isLocked": false,
       "linkedName": null
     }
   ],
-  "rotationTargets": [
-    {
-      "waypointRelativePos": 1.9,
-      "rotationDegrees": -29.999999999999996
-    }
-  ],
+  "rotationTargets": [],
   "constraintZones": [],
   "pointTowardsZones": [],
-  "eventMarkers": [
-    {
-      "name": "",
-      "waypointRelativePos": 0,
-      "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
-      "name": "",
-      "waypointRelativePos": 0,
-      "endWaypointRelativePos": null,
-      "command": null
-    }
-  ],
+  "eventMarkers": [],
   "globalConstraints": {
     "maxVelocity": 3.0,
     "maxAcceleration": 3.0,
@@ -76,10 +58,10 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -70.0
+    "rotation": 100.0
   },
   "reversed": false,
-  "folder": "Left Trench zone ",
+  "folder": "Rigth Trench zone ",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 0.0
