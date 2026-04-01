@@ -157,7 +157,7 @@ public class RobotContainer {
                                                                 turret.shootCommand())
 
                                                 // 3. Set a strict timeout so the robot doesn't get stuck waiting
-                                                .withTimeout(9));
+                                                .withTimeout(1.3));
                 NamedCommands.registerCommand("SOTM", new AutoShootOnTheMove(
                                 shooter,
                                 hood,
@@ -293,16 +293,16 @@ public class RobotContainer {
                                                 drivebase,
                                                 new int[] { 25 },
                                                 1));
-                // driver.povLeft().whileTrue(new AutoAlignToClimb(
-                // vision,
-                // drivebase,
-                // elevatorSubsystem,
-                // AutoAlignToClimb.Side.LEFT));
-                // driver.povRight().whileTrue(new AutoAlignToClimb(
-                // vision,
-                // drivebase,
-                // elevatorSubsystem,
-                // AutoAlignToClimb.Side.RIGHT));
+                driver.povLeft().whileTrue(new AutoAlignToClimb(
+                                vision,
+                                drivebase,
+                                elevatorSubsystem,
+                                AutoAlignToClimb.Side.LEFT));
+                driver.povRight().whileTrue(new AutoAlignToClimb(
+                                vision,
+                                drivebase,
+                                elevatorSubsystem,
+                                AutoAlignToClimb.Side.RIGHT));
 
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));

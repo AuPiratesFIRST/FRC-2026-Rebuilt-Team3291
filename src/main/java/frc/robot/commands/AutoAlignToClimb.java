@@ -84,7 +84,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
                 new Translation2d(fieldApproachX, 3.964 + fieldLateralOffset),
                 Rotation2d.fromDegrees(targetRotationDegrees));
 
-        PathConstraints constraints = new PathConstraints(2.0, 1.5, Math.PI, 2 * Math.PI);
+        PathConstraints constraints = new PathConstraints(2.8, 2, Math.PI, 2 * Math.PI);
 
         addCommands(
                 // PHASE 1: PATHFIND TO THE SPECIFIC SIDE
@@ -98,7 +98,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
 
                 // PHASE 2: PRECISION VISION DOCK ON THAT SIDE (Using Unified Command)
                 new ParallelCommandGroup(
-                        elevator.setHeight(Meters.of(0.3))
+                        elevator.goToHeight(Meters.of(0.3))
                 // new ChaseTowerTagCommand(
                 // vision,
                 // swerve,

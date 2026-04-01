@@ -34,6 +34,12 @@
           "data": {
             "commands": [
               {
+                "type": "named",
+                "data": {
+                  "name": "DisableAutoAim"
+                }
+              },
+              {
                 "type": "path",
                 "data": {
                   "pathName": "left under trench to intake 2nd"
@@ -44,12 +50,6 @@
                 "data": {
                   "name": "AutoIntake"
                 }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "DisableAutoAim"
-                }
               }
             ]
           }
@@ -58,12 +58,6 @@
           "type": "path",
           "data": {
             "pathName": "left under trench to shoot 2nd"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoAlign"
           }
         },
         {
