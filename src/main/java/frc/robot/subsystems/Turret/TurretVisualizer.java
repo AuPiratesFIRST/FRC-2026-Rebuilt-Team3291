@@ -114,8 +114,12 @@ public class TurretVisualizer {
                 for (int i = 0; i < trajectory.length; i++) {
                         double t = i * 0.04;
 
-                        double x = shooterXY.getX() + vx * t;
-                        double y = shooterXY.getY() + vy * t;
+                        // Simple Drag: reduce velocity over time
+                        // Velocity_new = Velocity_old * (1 - drag_constant * dt)
+                        double dragFactor = Math.pow(0.92, t); // Exponential decay example
+
+                        double x = shooterXY.getX() + (vx * t * dragFactor);
+                        double y = shooterXY.getY() + (vy * t * dragFactor);
                         double z = SHOOTER_HEIGHT
                                         + vz * t
                                         - 0.5 * GRAVITY * t * t;

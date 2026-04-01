@@ -36,6 +36,7 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     private final double spoolDiameter = 1.2; // Inches
     private final double maxTravelMeters = 0.305; // 12 inches
+    private Distance targetHeight = Meters.of(0);
 
     // ---------------- CONFIG ----------------
     private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
@@ -118,11 +119,13 @@ public class ElevatorSubsystem extends SubsystemBase {
     }
 
     public Command setHeight(Distance height) {
-        return elevator.run(height);
+        return elevator.run(height)
+                .beforeStarting(() -> this.targetHeight = height);
     }
 
     public Command goToHeight(Distance height) {
-        return elevator.runTo(height, Meters.of(0.01));
+        return elevator.runTo(height, Meters.of(0.01))
+                .beforeStarting(() -> this.targetHeight = height);
     }
 
     public Command manual(double percent) {
@@ -137,6 +140,15 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        // PID Tuning Telemetry
+        SmartDashboard.putNumber("Elevator/Target Height (m)", targetHeight.in(Meters));
+        SmartDashboard.putNumber("Elevator/Actual Height (m)", elevator.getHeight().in(Meters));
+
+        // Error helps you see how close the PID is getting
+        double error = targetHeight.in(Meters) - elevator.getHeight().in(Meters);
+
+        SmartDashboard.putNumber("Elevator/Error (m)", error);
+
         SmartDashboard.putNumber("Raw Encoder Value", absoluteEncoder.get());
         SmartDashboard.putNumber("Filtered Encoder Value",
                 smoothFilter.calculate(outlierFilter.calculate(absoluteEncoder.get())));

@@ -83,7 +83,7 @@ public class VisionSubsystem extends SubsystemBase {
 
         SimCameraProperties props = new SimCameraProperties();
         props.setCalibration(960, 720, Rotation2d.fromDegrees(90));
-        props.setFPS(15);
+        props.setFPS(30);
         props.setAvgLatencyMs(35);
         props.setCalibError(0.25, 0.25);
 

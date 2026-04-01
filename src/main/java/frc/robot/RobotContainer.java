@@ -342,12 +342,12 @@ public class RobotContainer {
                 // hood.getAngle().minus(Degrees.of(2))));
 
                 // // ================= SHOOTER =================
-                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
+                operator.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimShooterFromVision(shooter, hood, vision),
                                 new AutoShootCommand(shooter, intakeRollerSubsystem, kicker, agitatorSubsystem)));
                 // driver.rightTrigger().whileTrue(shooter.getSysIdCommand());
 
-                operator.rightTrigger(0.2).whileTrue(Commands.parallel(
+                driver.rightTrigger(0.2).whileTrue(Commands.parallel(
                                 new AimAndShootSmart(shooter, hood, drivebase, turret, intakeRollerSubsystem,
                                                 kicker,
                                                 vision, lighting, agitatorSubsystem)));
@@ -370,8 +370,8 @@ public class RobotContainer {
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.
-                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(1)));
-                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(-1)));
+                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.2)));
+                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(-0.2)));
                 // driver.povDown().whileTrue(
                 // Commands.deferredProxy(() -> {
                 // boolean isRed = DriverStation.getAlliance().orElse(
