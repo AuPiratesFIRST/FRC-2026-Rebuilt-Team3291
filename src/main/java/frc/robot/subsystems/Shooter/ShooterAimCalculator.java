@@ -6,6 +6,8 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.VisionConstants;
 
 public final class ShooterAimCalculator {
@@ -88,7 +90,15 @@ public final class ShooterAimCalculator {
             virtualGoal = goalLocation.minus(launcherVel.times(tof));
             lookaheadDist = goalLocation.getDistance(virtualGoal);
         }
-
+        // Create a Pose2d for visualization
+        Pose2d virtualGoalPose = new Pose2d(virtualGoal, new Rotation2d());
+        // SmartDashboard.putN("Shooter/VirtualGoal", new Field2d().getRobotPose()); //
+        // This is one way, but better:
+        SmartDashboard.putNumberArray("Shooter/VirtualGoalPose", new double[] {
+                virtualGoal.getX(),
+                virtualGoal.getY(),
+                0 // Rotation in degrees
+        });
         // D. OFFSET SOLVE (Arcsin correction for non-centered shooter)
         Rotation2d fieldToTargetAngle = virtualGoal.minus(predictedPose.getTranslation()).getAngle();
         double sinAngle = MathUtil.clamp(
@@ -106,7 +116,6 @@ public final class ShooterAimCalculator {
         double targetRPM = isHubTarget
                 ? Math.min(rpmMap.get(finalDist), MAX_RPM)
                 : Math.min(stockpileRpmMap.get(finalDist), MAX_RPM);
-
         return new MovingShotSolution(chassisHeading, targetRPM, Degrees.of(hoodAngleMap.get(finalDist)), finalDist);
     }
 
