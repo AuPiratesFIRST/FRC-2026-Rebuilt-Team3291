@@ -90,7 +90,7 @@ public class TurretSubsystem extends SubsystemBase {
 
                 // AUTO-STOCKPILE LOGIC
                 boolean hubIsActive = HubTracker.isActive();
-                Translation2d currentGoal = hubIsActive ? hubPos : hubPos;
+                Translation2d currentGoal = hubIsActive ? hubPos : stockpilePos;
 
                 Pose2d robotPose = swerve.getPose();
                 ChassisSpeeds fieldSpeeds = swerve.getFieldVelocity();

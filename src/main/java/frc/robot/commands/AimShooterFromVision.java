@@ -17,16 +17,11 @@ public class AimShooterFromVision extends Command {
     private final HoodSubsystem hood;
     private final VisionSubsystem vision;
 
-    // 1. Median Filter: Ignores random "spikes" (e.g., if a frame says 100m by
-    // accident)
-    // Size 5 means it takes the middle value of the last 5 frames.
-    private final MedianFilter outlierFilter = new MedianFilter(5);
-
-    // 2. Moving Average: Smooths out the tiny jitters (e.g., 2.45m to 2.47m)
-    // Size 10 means it averages the last 10 frames (~0.2 seconds of data).
-    private final LinearFilter smoothFilter = LinearFilter.movingAverage(10);
+    private MedianFilter outlierFilter;
+    private LinearFilter smoothFilter;
 
     private double filteredDistance = 0;
+    private boolean firstRun = true;
 
     public AimShooterFromVision(
             ShooterSubsystem shooter,
@@ -36,6 +31,16 @@ public class AimShooterFromVision extends Command {
         this.hood = hood;
         this.vision = vision;
         addRequirements(shooter, hood);
+    }
+
+    @Override
+    public void initialize() {
+        // Resetting filters on start ensures simulation doesn't start with
+        // values from the last time you ran the robot.
+        outlierFilter = new MedianFilter(5);
+        smoothFilter = LinearFilter.movingAverage(10);
+
+        filteredDistance = 0;
     }
 
     @Override

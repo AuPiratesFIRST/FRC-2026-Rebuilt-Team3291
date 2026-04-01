@@ -16,6 +16,8 @@ import frc.robot.util.HubTracker;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.MedianFilter;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.Optional;
@@ -55,77 +57,69 @@ public class AimAndShootSmart extends Command {
 
     @Override
     public void initialize() {
-        turret.enableHubTracking();
+        // turret.enableHubTracking();
     }
 
-    @Override
     public void execute() {
-        // 1. Setup Alliance and Targets
+        // 1. Setup Targets
         boolean isBlue = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue;
         int[] validTags = isBlue ? VisionConstants.BLUE_HUB_TAGS : VisionConstants.RED_HUB_TAGS;
-
         Translation2d hubPos = isBlue ? Constants.FieldConstants.HUB_BLUE.toTranslation2d()
                 : Constants.FieldConstants.HUB_RED.toTranslation2d();
-        Translation2d stockpilePos = isBlue ? Constants.FieldConstants.STOCKPILE_BLUE
-                : Constants.FieldConstants.STOCKPILE_RED;
+        Translation2d currentGoal = HubTracker.isActive() ? hubPos
+                : (isBlue ? Constants.FieldConstants.STOCKPILE_BLUE : Constants.FieldConstants.STOCKPILE_RED);
 
-        boolean hubIsActive = HubTracker.isActive();
-        Translation2d currentGoal = hubIsActive ? hubPos : stockpilePos;
-
-        // 2. VISION VS ODOMETRY DISTANCE
-        // We get the raw vision distance if available
+        // 2. GET DISTANCE (Vision is prioritized)
         Optional<Double> visionDistance = vision.getDistanceToTagMeters(validTags);
+        double odomDist = swerve.getPose().getTranslation().getDistance(currentGoal);
 
-        double rawDist = visionDistance.isPresent() && hubIsActive
-                ? visionDistance.get()
-                : swerve.getPose().getTranslation().getDistance(currentGoal);
+        // Use vision if available, otherwise fallback to odometry
+        double rawDist = (visionDistance.isPresent() && HubTracker.isActive()) ? visionDistance.get() : odomDist;
 
-        // Apply filters to stop the flywheels from "fighting"
-        double medianDist = outlierFilter.calculate(rawDist);
-        double finalDistance = smoothFilter.calculate(medianDist);
+        // Filter the distance to prevent RPM jitter
+        double finalDistance = smoothFilter.calculate(outlierFilter.calculate(rawDist));
 
-        // 3. RUN THE SOLVER
+        // 3. CORRECT THE POSE FOR THE SOLVER
+        // This is the "Magic Step". We create a virtual pose that is exactly
+        // 'finalDistance' away from the goal along the same line.
+        Rotation2d angleToGoal = currentGoal.minus(swerve.getPose().getTranslation()).getAngle();
+        Translation2d correctedTranslation = currentGoal.minus(new Translation2d(finalDistance, angleToGoal));
+        Pose2d correctedPose = new Pose2d(correctedTranslation, swerve.getPose().getRotation());
+
+        // 4. RUN THE SOLVER
+        // We pass the 'correctedPose' so the physics match the vision distance
         var solution = ShooterAimCalculator.solveMoving(
-                swerve.getPose(),
+                correctedPose,
                 swerve.getRobotVelocity(),
                 swerve.getFieldVelocity(),
                 currentGoal,
-                hubIsActive);
+                HubTracker.isActive());
 
-        // 4. APPLY OUTPUTS
-        // We use the solveMoving for the HEADING (the Whip Effect)
-        // But we use our FILTERED distance for the RPM
-        double correctedRPM = hubIsActive
-                ? ShooterAimCalculator.solve(finalDistance).rpm()
-                : solution.rpm(); // Use stockpile map if not hub
-
-        // 4. APPLY HARDWARE SETPOINTS
-        // Use the solveMoving math for Heading, but use our Vision-Corrected distance
-        // for RPM/Hood
-        shooter.applyRPM(solution.rpm());
+        // 5. APPLY OUTPUTS
+        double targetRPM = solution.rpm();
+        shooter.applyRPM(targetRPM);
         hood.applyAngle(solution.hoodAngle());
 
-        // 5. THE FIRING HANDSHAKE
-        // We only fire if: 1. RPM is stable, 2. We are pointed at the Hub/Goal
-        boolean atSpeed = shooter.getActualRPM() >= (correctedRPM * 0.97); // 3% tolerance is better for heavy wheels
-        boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 1.5; // Tighter tolerance
+        // 6. THE FIRING HANDSHAKE
+        // Use a small deadband for RPM and Turret
+        boolean atSpeed = Math.abs(shooter.getActualRPM() - targetRPM) < (targetRPM * 0.03);
+        boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 2.0;
 
-        // Update the LEDs
         lighting.setAligned(aimed);
-        if (atSpeed) {
+        if (atSpeed && aimed) {
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);
             agitator.setPowerDirect(0.5);
         } else {
-            // Pull the ball back slightly so it's not touching the spinning flywheel
-            intake.setPowerDirect(1.0);
-            kicker.setPowerDirect(-0.1);
-            agitator.setPowerDirect(0.5);
+            intake.setPowerDirect(0.0);
+            kicker.setPowerDirect(-0.1); // Prevent ball from touching wheel
+            agitator.setPowerDirect(0.0);
         }
 
-        // Debugging
-        SmartDashboard.putNumber("Targeting/FinalDistance", finalDistance);
+        SmartDashboard.putNumber("Targeting/VisionDist", finalDistance);
+        SmartDashboard.putNumber("Targeting/TargetRPM", targetRPM);
         SmartDashboard.putBoolean("Targeting/SystemReady", atSpeed && aimed);
+
     }
 
     @Override

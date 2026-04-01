@@ -28,6 +28,7 @@ import frc.robot.subsystems.intake.IntakeRollerSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.util.FuelSim;
 import frc.robot.commands.ShooterDockAtDistanceCommand;
+import frc.robot.commands.AutoAlignToClimb.Side;
 import frc.robot.commands.ChaseTagCommand;
 import frc.robot.commands.ManualChaseBall;
 import frc.robot.commands.PathfindThroughBalls;
@@ -197,18 +198,11 @@ public class RobotContainer {
 
                 NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret, drivebase).withTimeout(1));
 
-                // NamedCommands.registerCommand("AutoAlignToClimb",
-                // Commands.deferredProxy(() -> {
-                // // Check the alliance color at the moment the command is called
-                // boolean isRed = DriverStation.getAlliance().orElse(
-                // DriverStation.Alliance.Blue) == DriverStation.Alliance.Red;
+                NamedCommands.registerCommand("AutoAlignToClimbLEFT",
+                                new AutoAlignToClimb(vision, drivebase, elevatorSubsystem, Side.LEFT));
 
-                // // Select the correct set of AprilTag IDs
-                // int[] towerTags = isRed ? RED_TOWER_TAGS : BLUE_TOWER_TAGS;
-
-                // // Build and return the final command with the correct data
-                // return new AutoAlignToClimb(vision, drivebase, elevatorSubsystem, towerTags);
-                // }));
+                NamedCommands.registerCommand("AutoAlignToClimbRIGHT",
+                                new AutoAlignToClimb(vision, drivebase, elevatorSubsystem, Side.RIGHT));
 
                 // Set up auto routines
                 autoChooser = AutoBuilder.buildAutoChooser();

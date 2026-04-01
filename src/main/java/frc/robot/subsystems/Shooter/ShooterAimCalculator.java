@@ -33,8 +33,8 @@ public final class ShooterAimCalculator {
                 rpmMap.put(2.50, 3350.0);
                 rpmMap.put(3.00, 3520.0);
                 rpmMap.put(4.00, 4260.0);
-                // rpmMap.put(4.25, 4540.0);
-                // rpmMap.put(4.50, 4590.0);
+                rpmMap.put(4.25, 4540.0);
+                rpmMap.put(4.50, 4590.0);
 
                 hoodAngleMap.put(1.20, 64.09);
                 hoodAngleMap.put(1.50, 64.09);
@@ -67,13 +67,19 @@ public final class ShooterAimCalculator {
                         ChassisSpeeds fieldSpeeds,
                         Translation2d goalLocation, boolean isHubTarget) {
 
+                // 1. LOG INPUTS
+                SmartDashboard.putNumber("Shooter/Debug/RobotX", robotPose.getX());
+                SmartDashboard.putNumber("Shooter/Debug/RobotY", robotPose.getY());
+                SmartDashboard.putNumber("Shooter/Debug/FieldVX", fieldSpeeds.vxMetersPerSecond);
+                SmartDashboard.putNumber("Shooter/Debug/FieldVY", fieldSpeeds.vyMetersPerSecond);
+
                 // A. PREDICT FUTURE POSE (30ms phase delay)
                 Pose2d predictedPose = robotPose.exp(new Twist2d(
                                 robotRelativeSpeeds.vxMetersPerSecond * PHASE_DELAY,
                                 robotRelativeSpeeds.vyMetersPerSecond * PHASE_DELAY,
                                 robotRelativeSpeeds.omegaRadiansPerSecond * PHASE_DELAY));
 
-                // B. WHIP EFFECT: Calculate field velocity of the shooter specifically
+                // B. WHIP EFFECT
                 double robotAngle = predictedPose.getRotation().getRadians();
                 double launcherVx = fieldSpeeds.vxMetersPerSecond + fieldSpeeds.omegaRadiansPerSecond *
                                 (robotToLauncher.getY() * Math.cos(robotAngle)
@@ -83,9 +89,12 @@ public final class ShooterAimCalculator {
                                                 - robotToLauncher.getY() * Math.sin(robotAngle));
                 Translation2d launcherVel = new Translation2d(launcherVx, launcherVy);
 
-                // C. ITERATIVE CONVERGENCE (The 20-Loop)
+                SmartDashboard.putNumber("Shooter/Debug/LauncherVelMag", launcherVel.getNorm());
+
+                // C. ITERATIVE CONVERGENCE
                 Translation2d launcherPos = predictedPose.transformBy(robotToLauncher).getTranslation();
-                double lookaheadDist = goalLocation.getDistance(launcherPos);
+                double rawDistToGoal = goalLocation.getDistance(launcherPos);
+                double lookaheadDist = rawDistToGoal;
                 Translation2d virtualGoal = goalLocation;
 
                 for (int i = 0; i < 20; i++) {
@@ -93,35 +102,44 @@ public final class ShooterAimCalculator {
                         virtualGoal = goalLocation.minus(launcherVel.times(tof));
                         lookaheadDist = goalLocation.getDistance(virtualGoal);
                 }
-                // Create a Pose2d for visualization
-                Pose2d virtualGoalPose = new Pose2d(virtualGoal, new Rotation2d());
-                SmartDashboard.putNumberArray("Shooter/VirtualGoalPose", new double[] {
-                                virtualGoal.getX(),
-                                virtualGoal.getY(),
-                                0 // Rotation in degrees
-                });
-                // D. OFFSET SOLVE (Arcsin correction for non-centered shooter)
+
+                // D. LOG THE VIRTUAL DATA
+                double virtualDist = shooterPosDistance(predictedPose, virtualGoal);
+                SmartDashboard.putNumber("Shooter/Debug/RawDistToGoal", rawDistToGoal);
+                SmartDashboard.putNumber("Shooter/Debug/VirtualDist", virtualDist);
+                SmartDashboard.putNumber("Shooter/Debug/DistDifference", virtualDist - rawDistToGoal);
+
+                // E. OFFSET SOLVE
                 Rotation2d fieldToTargetAngle = virtualGoal.minus(predictedPose.getTranslation()).getAngle();
+                double distToVirtual = virtualGoal.getDistance(predictedPose.getTranslation());
+
+                // Safety: Prevent divide by zero if robot is on top of virtual goal
                 double sinAngle = MathUtil.clamp(
-                                robotToLauncher.getTranslation().getY()
-                                                / virtualGoal.getDistance(predictedPose.getTranslation()),
-                                -1.0,
-                                1.0);
+                                robotToLauncher.getTranslation().getY() / Math.max(distToVirtual, 0.1),
+                                -1.0, 1.0);
                 Rotation2d offsetCorrection = new Rotation2d(Math.asin(sinAngle));
 
-                // Final Heading: Point the launcher at the target
                 Rotation2d chassisHeading = fieldToTargetAngle.plus(offsetCorrection)
                                 .plus(robotToLauncher.getRotation());
 
-                // 5. SELECT RPM BASED ON TARGET
-                double finalDist = MathUtil.clamp(shooterPosDistance(predictedPose, virtualGoal), MIN_DIST, MAX_DIST);
+                // F. SELECT RPM
+                double clampedDist = MathUtil.clamp(virtualDist, MIN_DIST, MAX_DIST);
 
-                // Choose the map based on the boolean
-                double targetRPM = isHubTarget
-                                ? Math.min(rpmMap.get(finalDist), MAX_RPM)
-                                : Math.min(stockpileRpmMap.get(finalDist), MAX_RPM);
-                return new MovingShotSolution(chassisHeading, targetRPM, Degrees.of(hoodAngleMap.get(finalDist)),
-                                finalDist);
+                double targetRPM;
+                if (isHubTarget) {
+                        targetRPM = rpmMap.get(clampedDist);
+                        SmartDashboard.putString("Shooter/Debug/CurrentMap", "HUB");
+                } else {
+                        targetRPM = stockpileRpmMap.get(clampedDist);
+                        SmartDashboard.putString("Shooter/Debug/CurrentMap", "STOCKPILE");
+                }
+
+                // G. FINAL LOGS
+                SmartDashboard.putNumber("Shooter/Debug/FinalTargetRPM", targetRPM);
+                SmartDashboard.putNumber("Shooter/Debug/ClampedDist", clampedDist);
+
+                return new MovingShotSolution(chassisHeading, targetRPM, Degrees.of(hoodAngleMap.get(clampedDist)),
+                                clampedDist);
         }
 
         private static double shooterPosDistance(Pose2d pose, Translation2d target) {

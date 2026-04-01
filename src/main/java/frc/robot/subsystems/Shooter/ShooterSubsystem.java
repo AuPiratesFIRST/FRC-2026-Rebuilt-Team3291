@@ -51,10 +51,10 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double MAX_RPM = 6000.0;
     // A good starting point for KitBot intake speed is 1000-1500 RPM
     private static final double INTAKE_RPM = 3900.0;
-    private static final double OUTTAKE_RPM = -3900.0;
+    private static final double MIN_RPM = 2000.0;
 
     // Default idle to keep belts moving and overcome static friction
-    private static final double IDLE_RPM = 260.0;
+    private static final double IDLE_RPM = 300;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
@@ -76,12 +76,16 @@ public class ShooterSubsystem extends SubsystemBase {
                             0.02654, 0, 0.,
                             RPM.of(MAX_RPM),
                             RotationsPerSecondPerSecond.of(3600))
+                    .withSimClosedLoopController(
+                            0, 0, 0,
+                            RPM.of(MAX_RPM),
+                            RotationsPerSecondPerSecond.of(3600))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
                                     0.165, 0.1199, 1.7))
 
-                    .withSimFeedforward(new SimpleMotorFeedforward(0.22, 0.12, 0.015))
+                    .withSimFeedforward(new SimpleMotorFeedforward(0.005, 0.122, 0))
 
                     // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(
@@ -101,6 +105,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withDiameter(Inches.of(4))
                     .withMass(Pounds.of(3.58))
                     .withUpperSoftLimit(RPM.of(MAX_RPM))
+                    .withLowerSoftLimit(RPM.of(MIN_RPM))
                     .withTelemetry("ShooterMech",
                             SmartMotorControllerConfig.TelemetryVerbosity.LOW));
 
@@ -209,14 +214,6 @@ public class ShooterSubsystem extends SubsystemBase {
      */
     public Command intakeMode() {
         return setRPM(INTAKE_RPM).withName("ShooterIntakeMode");
-    }
-
-    /**
-     * Command to run the motor at a safe speed for outtaking.
-     * This moves the belts enough to eject balls, but doesn't launch them.
-     */
-    public Command outtakeMode() {
-        return setRPM(OUTTAKE_RPM).withName("ShooterOuttakeMode");
     }
 
     // ------------------------------------------------

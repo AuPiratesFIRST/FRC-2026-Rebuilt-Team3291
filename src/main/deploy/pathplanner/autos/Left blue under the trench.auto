@@ -69,7 +69,13 @@
         {
           "type": "named",
           "data": {
-            "name": "SOTM"
+            "name": "SmartShoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoAlignToClimbLEFT"
           }
         }
       ]
