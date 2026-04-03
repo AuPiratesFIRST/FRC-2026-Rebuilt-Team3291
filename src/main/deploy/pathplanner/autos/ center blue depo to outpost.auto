@@ -5,28 +5,9 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Left drive to neutral zone "
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "AutoIntake"
-                }
-              }
-            ]
-          }
-        },
-        {
           "type": "path",
           "data": {
-            "pathName": "Left Drive from neutral zone to shoot "
+            "pathName": "center blue drive to shoot perload"
           }
         },
         {
@@ -49,19 +30,13 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "deadline",
           "data": {
             "commands": [
               {
-                "type": "named",
-                "data": {
-                  "name": "DisableAutoAim"
-                }
-              },
-              {
                 "type": "path",
                 "data": {
-                  "pathName": "left under trench to intake 2nd"
+                  "pathName": "center blue drive to intake"
                 }
               },
               {
@@ -76,7 +51,38 @@
         {
           "type": "path",
           "data": {
-            "pathName": "left under trench to shoot 2nd"
+            "pathName": "center blue drive to shoot "
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoAlign"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SmartShoot"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "depo to outpost"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "OUTPOST drive to Shoot"
           }
         },
         {

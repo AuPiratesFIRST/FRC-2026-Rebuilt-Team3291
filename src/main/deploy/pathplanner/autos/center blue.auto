@@ -13,12 +13,6 @@
         {
           "type": "named",
           "data": {
-            "name": "AutoAlign"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
             "name": "SmartShoot"
           }
         },
@@ -48,27 +42,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "AutoAlign"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "SmartShoot"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "center blue drive to climb"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoAlignToClimb"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoAlign"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SmartShoot"
+                }
+              }
+            ]
           }
         }
       ]

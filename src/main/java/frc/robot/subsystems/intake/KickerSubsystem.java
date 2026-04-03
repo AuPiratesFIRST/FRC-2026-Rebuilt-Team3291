@@ -31,7 +31,7 @@ public class KickerSubsystem extends SubsystemBase {
     // Assign the correct CAN ID for your Kicker/Router motor
     private final SparkMax spark = new SparkMax(30, MotorType.kBrushless);
 
-    private static final double IDLE_SPEED = -0.1;
+    private static final double IDLE_SPEED = -0.4;
 
     /*
      * ================= ========
@@ -95,7 +95,7 @@ public class KickerSubsystem extends SubsystemBase {
     /** Pulls the ball DOWN into the Hopper (Matches Intake direction) */
     public Command routeToHopper() {
         // Adjust the sign depending on which way the motor is mounted!
-        return set(-0.9);
+        return set(-0.94);
     }
 
     public Command routeToShooter() {

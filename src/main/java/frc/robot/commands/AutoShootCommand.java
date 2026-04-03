@@ -42,7 +42,7 @@ public class AutoShootCommand extends Command {
             // FIRE! Push the ball UP through the intake and kicker
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(0.8);
-            agitator.setPowerDirect(0.09);
+            agitator.setPowerDirect(0.52);
         } else {
             // HOLD! Wait for RPM to recover.
             // -0.1 holds the ball slightly down so it doesn't rub the flywheel

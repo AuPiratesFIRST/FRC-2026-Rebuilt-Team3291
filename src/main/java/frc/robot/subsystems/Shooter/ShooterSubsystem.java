@@ -51,10 +51,10 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double MAX_RPM = 6000.0;
     // A good starting point for KitBot intake speed is 1000-1500 RPM
     private static final double INTAKE_RPM = 3900.0;
-    private static final double MIN_RPM = 2000.0;
+    private static final double MIN_RPM = 950.0;
 
     // Default idle to keep belts moving and overcome static friction
-    private static final double IDLE_RPM = 300;
+    private static final double IDLE_RPM = 500;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
@@ -73,9 +73,9 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.02654, 0, 0.,
+                            0.02657, 0, 0.,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(3600))
+                            RotationsPerSecondPerSecond.of(3800))
                     .withSimClosedLoopController(
                             0, 0, 0,
                             RPM.of(MAX_RPM),
@@ -94,7 +94,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     // Coast mode = motor freewheels when disabled (reduces heat)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                     // Limit current to 50A to prevent brownouts
-                    .withStatorCurrentLimit(Amps.of(40))
+                    .withStatorCurrentLimit(Amps.of(45))
                     .withMotorInverted(true)
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",

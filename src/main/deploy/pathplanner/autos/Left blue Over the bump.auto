@@ -11,15 +11,41 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "SmartShoot"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoAlign"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SmartShoot"
+                }
+              }
+            ]
           }
         },
         {
-          "type": "path",
+          "type": "parallel",
           "data": {
-            "pathName": "Left blue drive and align to intake "
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Left blue drive and align to intake "
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake"
+                }
+              }
+            ]
           }
         },
         {
@@ -29,15 +55,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "SmartShoot"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoAlign"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SmartShoot"
+                }
+              }
+            ]
           }
         }
       ]

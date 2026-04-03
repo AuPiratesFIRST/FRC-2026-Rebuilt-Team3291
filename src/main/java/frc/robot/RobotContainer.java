@@ -153,8 +153,7 @@ public class RobotContainer {
                                                 // 2. Feed the ball ONLY when the shooter is at speed
                                                 // This uses your intake AND your kicker subsystems simultaneously
                                                 .alongWith(new AutoShootCommand(shooter, intakeRollerSubsystem, kicker,
-                                                                agitatorSubsystem),
-                                                                turret.shootCommand())
+                                                                agitatorSubsystem))
 
                                                 // 3. Set a strict timeout so the robot doesn't get stuck waiting
                                                 .withTimeout(1.3));
@@ -169,7 +168,7 @@ public class RobotContainer {
 
                 NamedCommands.registerCommand("AutoIntake",
                                 kicker.routeToHopper() // Command to run shooter backward/intake
-                                                .alongWith(intakeRollerSubsystem.in(1.0)) // Command to run rollers at
+                                                .alongWith(intakeRollerSubsystem.in(0.6)) // Command to run rollers at
                                                 // 1.0 speed
                                                 .withTimeout(1.5) // Stop both after 1.5 seconds
                                                 .finallyDo(() -> { // Ensure everything stops when finished
@@ -196,7 +195,7 @@ public class RobotContainer {
                 new PointTowardsZoneTrigger("HubArea")
                                 .whileTrue(new PathPlannerAlign(turret, drivebase));
 
-                NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret, drivebase).withTimeout(1));
+                NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret, drivebase).withTimeout(3));
 
                 NamedCommands.registerCommand("AutoAlignToClimbLEFT",
                                 new AutoAlignToClimb(vision, drivebase, elevatorSubsystem, Side.LEFT));
@@ -232,7 +231,7 @@ public class RobotContainer {
                                 () -> -driver.getLeftY() * speedMultiplier.getAsDouble(), // Forward/Backward
                                 () -> -driver.getLeftX() * speedMultiplier.getAsDouble()) // Left/Right strafe
                                 .deadband(0.15) // Apply 15% deadband to all translation axes
-                                .scaleTranslation(0.8) // Reduce max speed to 80% for better control
+                                .scaleTranslation(0.65) // Reduce max speed to 80% for better control
                                 .allianceRelativeControl(true) // Ensure "Forward" is always away from your alliance
                                                                // wall
                                 .robotRelative(false)
@@ -307,7 +306,9 @@ public class RobotContainer {
                 driver.b().onTrue(
                                 Commands.runOnce(turret::disableHubTracking));
 
-                operator.leftTrigger().whileTrue(intakeRollerSubsystem.in(0.5).alongWith(kicker.routeToHopper()));
+                operator.leftTrigger().whileTrue(intakeRollerSubsystem.in(0.6).alongWith(kicker.routeToHopper()));
+                operator.povUp().whileTrue(intakeRollerSubsystem.out(0.7).alongWith(kicker.routeToShooter(),
+                                agitatorSubsystem.routeToShooter()));
 
                 // Driver
                 // 'A'
@@ -348,24 +349,23 @@ public class RobotContainer {
 
                 // // Manual shooter test (no vision)
 
-                operator.x().whileTrue(
-                                Commands.parallel(
-                                                shooter.setRPM(3000)));
+                // operator.x().whileTrue(
+                // Commands.parallel(
+                // shooter.setRPM(3000),intakeRollerSubsystem.in(0.5).alongWith(kicker.routeToShooter())));
 
                 // Hold 'X' to Auto-Aim on the move. It will automatically calculate
                 // the shot, compensate for drifting, and fire when locked in!
 
-                // driver.x().whileTrue( // Operator 'X' now triggers the shoot command, which
-                // checks fuel
-                // Commands.parallel(
-                // shooter.setRPM(1150),
-                // new AutoShootCommand(shooter, intakeRollerSubsystem, kicker),
-                // turret.shootCommand())); // Use turret::shoot
+                operator.x().whileTrue(
+                                Commands.parallel(
+                                                shooter.setRPM(3000),
+                                                new AutoShootCommand(shooter, intakeRollerSubsystem, kicker,
+                                                                agitatorSubsystem))); // Use turret::shoot
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.
-                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.2)));
-                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(-0.2)));
+                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.25)));
+                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(0)));
                 // driver.povDown().whileTrue(
                 // Commands.deferredProxy(() -> {
                 // boolean isRed = DriverStation.getAlliance().orElse(

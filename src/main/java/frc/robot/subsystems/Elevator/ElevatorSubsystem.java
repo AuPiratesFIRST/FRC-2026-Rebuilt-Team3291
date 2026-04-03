@@ -45,11 +45,11 @@ public class ElevatorSubsystem extends SubsystemBase {
             // vendor-native encoders
             .withMechanismCircumference(Inches.of(spoolDiameter).times(Math.PI))
             .withClosedLoopController(
-                    0, 0, 0, // Gains tuned for 17.8lb lift + 180:1 gear reduction
+                    0.1, 0, 0.2, // Gains tuned for 17.8lb lift + 180:1 gear reduction
                     MetersPerSecond.of(2.0),
                     MetersPerSecondPerSecond.of(8.0))
             // kS = 0.2 (to break friction), kG = 0.5 (to hold robot weight), kV = 1.8
-            .withFeedforward(new ElevatorFeedforward(0.2, 0.5, 0.2, 0.98))
+            .withFeedforward(new ElevatorFeedforward(0.2, 0.5, 0.2, 0.3))
             .withTelemetry("Elevator/Motor", TelemetryVerbosity.LOW)
             .withGearing(new MechanismGearing(GearBox.fromReductionStages(180, 1)))
             .withMotorInverted(false)

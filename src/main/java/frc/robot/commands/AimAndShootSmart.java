@@ -102,14 +102,14 @@ public class AimAndShootSmart extends Command {
 
         // 6. THE FIRING HANDSHAKE
         // Use a small deadband for RPM and Turret
-        boolean atSpeed = Math.abs(shooter.getActualRPM() - targetRPM) < (targetRPM * 0.03);
+        boolean atSpeed = Math.abs(shooter.getActualRPM() - targetRPM) < (targetRPM * 0.05);
         boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 2.0;
 
         lighting.setAligned(aimed);
-        if (atSpeed && aimed) {
+        if (atSpeed) {
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);
-            agitator.setPowerDirect(0.5);
+            agitator.setPowerDirect(0.52);
         } else {
             intake.setPowerDirect(0.0);
             kicker.setPowerDirect(-0.1); // Prevent ball from touching wheel

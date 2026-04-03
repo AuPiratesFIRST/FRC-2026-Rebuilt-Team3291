@@ -100,7 +100,7 @@ public class AgitatorSubsystem extends SubsystemBase {
 
     public Command routeToShooter() {
         // Adjust the sign depending on which way the motor is mounted!
-        return set(-0.8);
+        return set(-0.5);
     }
 
     public Command idle() {

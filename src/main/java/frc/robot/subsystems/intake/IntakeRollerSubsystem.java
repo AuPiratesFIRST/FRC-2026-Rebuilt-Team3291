@@ -20,7 +20,7 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     // 1. Hardware Definition
     private final SparkMax spark = new SparkMax(19, MotorType.kBrushless);
-    private static final double IDLE_SPEED = 0.05;
+    private static final double IDLE_SPEED = 0.35;
 
     // 2. The Smart Motor Controller (The Wrapper)
     private final SmartMotorController intakeSMC;

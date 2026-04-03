@@ -29,8 +29,8 @@ public final class ShooterAimCalculator {
                 rpmMap.put(1.00, 2800.0);
                 rpmMap.put(1.20, 2835.0);
                 rpmMap.put(1.50, 2960.0);
-                rpmMap.put(2.00, 3210.0);
-                rpmMap.put(2.50, 3350.0);
+                rpmMap.put(2.00, 3201.0);
+                rpmMap.put(2.50, 3310.0);
                 rpmMap.put(3.00, 3520.0);
                 rpmMap.put(4.00, 4260.0);
                 rpmMap.put(4.25, 4540.0);
@@ -158,6 +158,6 @@ public final class ShooterAimCalculator {
         }
 
         public static ShooterSolution fallback() {
-                return new ShooterSolution(Degrees.of(65), 3150.0, 0.0, 1.5, true);
+                return new ShooterSolution(Degrees.of(65), 1000.0, 0.0, 1.5, true);
         }
 }

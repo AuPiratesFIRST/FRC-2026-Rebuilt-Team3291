@@ -3,25 +3,41 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 0.5718888888888889,
-        "y": 5.877
+        "x": 1.645,
+        "y": 5.607
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.3995952832845813,
-        "y": 5.877
+        "x": 1.7392473656471332,
+        "y": 4.584767117492572
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.645,
-        "y": 5.607
+        "x": 1.7607111111111111,
+        "y": 2.96311111111111
       },
       "prevControl": {
-        "x": 1.4338376160776374,
-        "y": 5.834755596520366
+        "x": 1.8187950848029217,
+        "y": 3.5831837523433623
+      },
+      "nextControl": {
+        "x": 1.7318676127875927,
+        "y": 2.6551937450793206
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 0.4647000000000001,
+        "y": 0.8485666666666658
+      },
+      "prevControl": {
+        "x": 0.2472776082432163,
+        "y": 0.5659195492436326
       },
       "nextControl": null,
       "isLocked": false,
@@ -33,13 +49,13 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "AutoAlign",
-      "waypointRelativePos": 0.0,
+      "name": "AutoIntake",
+      "waypointRelativePos": 1.35,
       "endWaypointRelativePos": 1.0,
       "command": {
         "type": "named",
         "data": {
-          "name": "AutoAlign"
+          "name": "AutoIntake"
         }
       }
     }
@@ -54,13 +70,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": 0.0
   },
   "reversed": false,
-  "folder": "Center",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": 147.44999650780656
   },
   "useDefaultConstraints": true
 }
