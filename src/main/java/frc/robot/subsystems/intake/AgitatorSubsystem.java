@@ -31,7 +31,7 @@ public class AgitatorSubsystem extends SubsystemBase {
     // Assign the correct CAN ID for your Kicker/Router motor
     private final SparkMax spark = new SparkMax(18, MotorType.kBrushless);
 
-    private static final double IDLE_SPEED = -0.1;
+    private static final double IDLE_SPEED = 0.1;
 
     /*
      * ================= ========

@@ -158,6 +158,6 @@ public final class ShooterAimCalculator {
         }
 
         public static ShooterSolution fallback() {
-                return new ShooterSolution(Degrees.of(65), 1000.0, 0.0, 1.5, true);
+                return new ShooterSolution(Degrees.of(65), 3500.0, 0.0, 1.5, true);
         }
 }

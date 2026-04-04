@@ -38,6 +38,8 @@ public class IntakeRollerSubsystem extends SubsystemBase {
                 .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
                 .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                 .withStatorCurrentLimit(Amps.of(60))
+                .withMotorInverted(true)
+
                 .withTelemetry("Intake/Motor", SmartMotorControllerConfig.TelemetryVerbosity.LOW);
 
         // Initialize the Wrapper using that config
@@ -65,6 +67,10 @@ public class IntakeRollerSubsystem extends SubsystemBase {
     public Command in(double speed) {
         return set(Math.abs(speed));
     }
+
+    // public Command idle() {
+    // return set(IDLE_SPEED).withName("kickerIdle");
+    // }
 
     public Command out(double speed) {
         return set(-Math.abs(speed));

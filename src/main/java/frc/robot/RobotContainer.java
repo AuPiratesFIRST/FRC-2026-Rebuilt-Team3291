@@ -113,7 +113,7 @@ public class RobotContainer {
                 // ready
                 registerFuelSimComponents(drivebase, turret, intakeRollerSubsystem);
                 shooter.setDefaultCommand(shooter.idle());
-                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.idle());
+                intakeRollerSubsystem.setDefaultCommand(intakeRollerSubsystem.stop());
                 kicker.setDefaultCommand(kicker.idle());
                 // agitatorSubsystem.setDefaultCommand(agitatorSubsystem.idle());
                 // elevatorSubsystem.setDefaultCommand(elevatorSubsystem.stow());
@@ -156,7 +156,7 @@ public class RobotContainer {
                                                                 agitatorSubsystem))
 
                                                 // 3. Set a strict timeout so the robot doesn't get stuck waiting
-                                                .withTimeout(1.3));
+                                                .withTimeout(6));
                 NamedCommands.registerCommand("SOTM", new AutoShootOnTheMove(
                                 shooter,
                                 hood,
@@ -170,7 +170,7 @@ public class RobotContainer {
                                 kicker.routeToHopper() // Command to run shooter backward/intake
                                                 .alongWith(intakeRollerSubsystem.in(0.6)) // Command to run rollers at
                                                 // 1.0 speed
-                                                .withTimeout(1.5) // Stop both after 1.5 seconds
+                                                .withTimeout(5) // Stop both after 1.5 seconds
                                                 .finallyDo(() -> { // Ensure everything stops when finished
                                                         shooter.stop();
                                                         intakeRollerSubsystem.stop();
@@ -195,7 +195,7 @@ public class RobotContainer {
                 new PointTowardsZoneTrigger("HubArea")
                                 .whileTrue(new PathPlannerAlign(turret, drivebase));
 
-                NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret, drivebase).withTimeout(3));
+                NamedCommands.registerCommand("AutoAlign", new PathPlannerAlign(turret, drivebase).withTimeout(6));
 
                 NamedCommands.registerCommand("AutoAlignToClimbLEFT",
                                 new AutoAlignToClimb(vision, drivebase, elevatorSubsystem, Side.LEFT));
@@ -226,12 +226,12 @@ public class RobotContainer {
                  * 3. Handling Alliance-relative controls (field-oriented) automatically.
                  */
                 // This returns 0.4 (very slow) if tracking, and 1.0 (normal) if not.
-                DoubleSupplier speedMultiplier = () -> turret.isHubTrackingEnabled() ? 0.6 : 1.0;
+                DoubleSupplier speedMultiplier = () -> turret.isHubTrackingEnabled() ? 0.7 : 1.0;
                 SwerveInputStream driveStream = SwerveInputStream.of(drivebase.getSwerveDrive(),
                                 () -> -driver.getLeftY() * speedMultiplier.getAsDouble(), // Forward/Backward
                                 () -> -driver.getLeftX() * speedMultiplier.getAsDouble()) // Left/Right strafe
                                 .deadband(0.15) // Apply 15% deadband to all translation axes
-                                .scaleTranslation(0.65) // Reduce max speed to 80% for better control
+                                .scaleTranslation(0.69) // Reduce max speed to 80% for better control
                                 .allianceRelativeControl(true) // Ensure "Forward" is always away from your alliance
                                                                // wall
                                 .robotRelative(false)
@@ -364,8 +364,8 @@ public class RobotContainer {
 
                 // Schedule `setHeight` when the Xbox controller's B button is pressed,
                 // cancelling on release.
-                operator.a().whileTrue(elevatorSubsystem.setHeight(Meters.of(0.25)));
-                operator.b().whileTrue(elevatorSubsystem.setHeight(Meters.of(0)));
+                operator.a().whileTrue(elevatorSubsystem.goToHeight(Meters.of(0.28)));
+                operator.b().whileTrue(elevatorSubsystem.goToHeight(Meters.of(0)));
                 // driver.povDown().whileTrue(
                 // Commands.deferredProxy(() -> {
                 // boolean isRed = DriverStation.getAlliance().orElse(

@@ -105,7 +105,7 @@ public class AimAndShootSmart extends Command {
         boolean atSpeed = Math.abs(shooter.getActualRPM() - targetRPM) < (targetRPM * 0.05);
         boolean aimed = Math.abs(turret.getHeadingErrorDegrees()) < 2.0;
 
-        lighting.setAligned(aimed);
+          lighting.setAligned(aimed);
         if (atSpeed) {
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);

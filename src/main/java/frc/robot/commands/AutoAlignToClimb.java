@@ -98,7 +98,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
 
                 // PHASE 2: PRECISION VISION DOCK ON THAT SIDE (Using Unified Command)
                 new ParallelCommandGroup(
-                        elevator.goToHeight(Meters.of(0.3))
+                        elevator.goToHeight(Meters.of(0.27))
                 // new ChaseTowerTagCommand(
                 // vision,
                 // swerve,

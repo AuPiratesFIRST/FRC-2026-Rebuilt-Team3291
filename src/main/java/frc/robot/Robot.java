@@ -50,20 +50,24 @@ public class Robot extends LoggedRobot {
     double dangerTemp = 55.0;
 
     // 2. Check if ANY motor is over the limit
-    boolean coolingRequired = m_robotContainer.getShooter().getTemperature() > dangerTemp ||
-        m_robotContainer.getKicker().getTemperature() > dangerTemp ||
-        // m_robotContainer.getElevatorSubsystem().getTemperature() > dangerTemp ||
-        m_robotContainer.getIntakeRollerSubsystem().getTemperature() > dangerTemp;
+    // boolean coolingRequired = m_robotContainer.getShooter().getTemperature() >
+    // dangerTemp ||
+    // m_robotContainer.getKicker().getTemperature() > dangerTemp ||
+    // // m_robotContainer.getElevatorSubsystem().getTemperature() > dangerTemp ||
+    // m_robotContainer.getIntakeRollerSubsystem().getTemperature() > dangerTemp;
 
-    // 3. Tell the LEDs to show the warning
-    m_robotContainer.getLightingSubsystem().setMotorHot(coolingRequired);
+    // // 3. Tell the LEDs to show the warning
+    // m_robotContainer.getLightingSubsystem().setMotorHot(coolingRequired);
 
-    // OPTIONAL: Print to SmartDashboard so you can see the actual numbers
-    SmartDashboard.putNumber("Temps/KickerTemp", m_robotContainer.getKicker().getTemperature());
-    SmartDashboard.putNumber("Temps/ShooterTemp", m_robotContainer.getShooter().getTemperature());
-    // SmartDashboard.putNumber("Temps/ElevatorTemp",
-    // m_robotContainer.getElevatorSubsystem().getTemperature());
-    SmartDashboard.putNumber("Temps/IntakeRollerTemp", m_robotContainer.getIntakeRollerSubsystem().getTemperature());
+    // // OPTIONAL: Print to SmartDashboard so you can see the actual numbers
+    // SmartDashboard.putNumber("Temps/KickerTemp",
+    // m_robotContainer.getKicker().getTemperature());
+    // SmartDashboard.putNumber("Temps/ShooterTemp",
+    // m_robotContainer.getShooter().getTemperature());
+    // // SmartDashboard.putNumber("Temps/ElevatorTemp",
+    // // m_robotContainer.getElevatorSubsystem().getTemperature());
+    // SmartDashboard.putNumber("Temps/IntakeRollerTemp",
+    // m_robotContainer.getIntakeRollerSubsystem().getTemperature());
 
   }
 

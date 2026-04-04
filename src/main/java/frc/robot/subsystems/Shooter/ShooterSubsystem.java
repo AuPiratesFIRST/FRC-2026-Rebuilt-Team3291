@@ -54,7 +54,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final double MIN_RPM = 950.0;
 
     // Default idle to keep belts moving and overcome static friction
-    private static final double IDLE_RPM = 500;
+    private static final double IDLE_RPM = 980.0;
 
     // ========== HARDWARE ==========
     // SparkMax motor controller controlling one NEO brushless motor
@@ -73,19 +73,19 @@ public class ShooterSubsystem extends SubsystemBase {
                     // PID gains: P=0.001 (gentle), I=0, D=0
                     // Max velocity = 6000 RPM, max acceleration = 600 RPM/s
                     .withClosedLoopController(
-                            0.02657, 0, 0.,
+                            0.02658, 0, 0,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(3800))
+                            RotationsPerSecondPerSecond.of(4850))
                     .withSimClosedLoopController(
                             0, 0, 0,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(3600))
+                            RotationsPerSecondPerSecond.of(4800))
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.165, 0.1199, 1.7))
+                                    0.165, 0.1112, 2.2))
 
-                    .withSimFeedforward(new SimpleMotorFeedforward(0.005, 0.122, 0))
+                    .withSimFeedforward(new SimpleMotorFeedforward(0.005, 0.122, 1.7))
 
                     // 1:1 gear reduction (motor spins faster than flywheel)
                     .withGearing(

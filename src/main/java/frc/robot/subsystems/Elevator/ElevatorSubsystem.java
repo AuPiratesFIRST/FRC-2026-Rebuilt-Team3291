@@ -6,6 +6,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -45,11 +46,13 @@ public class ElevatorSubsystem extends SubsystemBase {
             // vendor-native encoders
             .withMechanismCircumference(Inches.of(spoolDiameter).times(Math.PI))
             .withClosedLoopController(
-                    0.1, 0, 0.2, // Gains tuned for 17.8lb lift + 180:1 gear reduction
+                    0, 0, 0.7, // Gains tuned for 17.8lb lift + 180:1 gear reduction
                     MetersPerSecond.of(2.0),
-                    MetersPerSecondPerSecond.of(8.0))
+                    MetersPerSecondPerSecond.of(4.0))
             // kS = 0.2 (to break friction), kG = 0.5 (to hold robot weight), kV = 1.8
-            .withFeedforward(new ElevatorFeedforward(0.2, 0.5, 0.2, 0.3))
+            .withFeedforward(new ElevatorFeedforward(0.1, 0, 0.25, 0.3))
+            .withSimFeedforward(new SimpleMotorFeedforward(0.2, 0.5, 0))
+
             .withTelemetry("Elevator/Motor", TelemetryVerbosity.LOW)
             .withGearing(new MechanismGearing(GearBox.fromReductionStages(180, 1)))
             .withMotorInverted(false)
@@ -61,6 +64,7 @@ public class ElevatorSubsystem extends SubsystemBase {
     // ---------------- MECHANISM ----------------
     private final ElevatorConfig elevatorConfig = new ElevatorConfig(smartMotor)
             .withStartingHeight(Meters.of(0))
+            .withSoftLimits(Meters.of(0), Meters.of(2.9))
             .withHardLimits(Meters.of(0), Meters.of(maxTravelMeters))
             .withMass(Pounds.of(17.8))
             .withTelemetry("Elevator/Mech", TelemetryVerbosity.LOW);

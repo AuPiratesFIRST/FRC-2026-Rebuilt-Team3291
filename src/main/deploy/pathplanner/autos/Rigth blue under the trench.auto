@@ -53,6 +53,12 @@
           "data": {
             "commands": [
               {
+                "type": "named",
+                "data": {
+                  "name": "DisableAutoAim"
+                }
+              },
+              {
                 "type": "path",
                 "data": {
                   "pathName": "Right Drive from neutral zone to intake 2nd"
@@ -90,6 +96,12 @@
                 }
               }
             ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoAlignToClimbRIGHT"
           }
         }
       ]
