@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 7.681535693034248,
-        "y": 5.542326872199603
+        "x": 7.488374286786939,
+        "y": 5.660277090188747
       },
       "isLocked": false,
       "linkedName": null
@@ -20,24 +20,24 @@
         "y": 7.483152639087019
       },
       "prevControl": {
-        "x": 5.782372510173528,
-        "y": 7.379645597835949
+        "x": 5.642717158007565,
+        "y": 7.3725856782405526
       },
       "nextControl": {
-        "x": 4.479018897045702,
-        "y": 7.629463370330257
+        "x": 4.6256312278763385,
+        "y": 7.65347076034299
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.732253922967189,
-        "y": 6.3963052781740375
+        "x": 4.142567760342367,
+        "y": 7.35376604850214
       },
       "prevControl": {
-        "x": 2.839213937486723,
-        "y": 6.622268893152159
+        "x": 4.295378458511091,
+        "y": 7.551626834220754
       },
       "nextControl": null,
       "isLocked": false,
@@ -47,7 +47,7 @@
   "rotationTargets": [
     {
       "waypointRelativePos": 2.0,
-      "rotationDegrees": 135.0
+      "rotationDegrees": 110.925
     }
   ],
   "constraintZones": [],
@@ -76,7 +76,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 130.0
+    "rotation": 110.925
   },
   "reversed": false,
   "folder": "Left Trench zone ",

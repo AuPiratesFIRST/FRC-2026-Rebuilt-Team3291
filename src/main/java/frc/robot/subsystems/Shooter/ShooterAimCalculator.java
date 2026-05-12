@@ -18,7 +18,7 @@ public final class ShooterAimCalculator {
         private static final double PHASE_DELAY = 0.03;
         private static final double MIN_DIST = 0.9;
         private static final double MAX_DIST = 5.6;
-        public static final double MAX_RPM = 5000.0;
+        public static final double MAX_RPM = 6000.0;
 
         private static final InterpolatingDoubleTreeMap rpmMap = new InterpolatingDoubleTreeMap();
         private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
@@ -26,12 +26,12 @@ public final class ShooterAimCalculator {
         private static final InterpolatingDoubleTreeMap stockpileRpmMap = new InterpolatingDoubleTreeMap();
 
         static {
-                rpmMap.put(1.00, 2800.0);
+                rpmMap.put(0.87, 2600.0);
                 rpmMap.put(1.20, 2835.0);
-                rpmMap.put(1.50, 2960.0);
-                rpmMap.put(2.00, 3201.0);
-                rpmMap.put(2.50, 3310.0);
-                rpmMap.put(3.00, 3520.0);
+                rpmMap.put(1.50, 2940.0);
+                rpmMap.put(2.00, 3210.0);
+                rpmMap.put(2.50, 3320.0);
+                rpmMap.put(3.00, 3525.0);
                 rpmMap.put(4.00, 4260.0);
                 rpmMap.put(4.25, 4540.0);
                 rpmMap.put(4.50, 4590.0);

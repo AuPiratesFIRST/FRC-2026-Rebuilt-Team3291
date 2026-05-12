@@ -138,7 +138,8 @@ public class SwerveSubsystem extends SubsystemBase {
     // var poses = vision.getEstimatedGlobalPoses(swerveDrive.getYaw());
     var poses = vision.getEstimatedGlobalPoses(getHeading());
 
-    // Loop through ALL available camera estimates from BOTH cameras and feed them
+    // Loop through ALL available camera estimates from BOTH cameras and feed
+
     // to YAGSL
     for (var est : poses) {
 

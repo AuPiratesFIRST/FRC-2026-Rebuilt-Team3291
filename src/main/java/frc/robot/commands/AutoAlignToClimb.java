@@ -38,10 +38,10 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
         // Decreasing the number drives the robot CLOSER to the tower.
         // Increasing the number stops the robot FURTHER AWAY.
         double leftFieldApproachX = 1.153; // Was 1.353. Subtracted 0.2m because you said it stopped short.
-        double rightFieldApproachX = 1.053; // Was 1.053. You said this side was perfectly tuned.
+        double rightFieldApproachX = 1.0149; // Was 1.053. You said this side was perfectly tuned.
 
         // --- X-Axis (Depth) Measurements for Vision Docking ---
-        // Tune these independently for the final vision approach!
+        // Tune these independently for the final vis9*ion approach!
         double leftVisionDistance = 0.95; // (Previously 0.8 + 0.15)
         double rightVisionDistance = 0.65; // (Previously 0.8 - 0.15)
 
@@ -88,7 +88,10 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
 
         addCommands(
                 // PHASE 1: PATHFIND TO THE SPECIFIC SIDE
+                new ParallelCommandGroup(
+                        elevator.goToHeight(Meters.of(0.28))),
                 new DeferredCommand(() -> {
+
                     Pose2d target = blueTowerApproach;
                     if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) {
                         target = FlippingUtil.flipFieldPose(blueTowerApproach);
@@ -98,7 +101,7 @@ public class AutoAlignToClimb extends SequentialCommandGroup {
 
                 // PHASE 2: PRECISION VISION DOCK ON THAT SIDE (Using Unified Command)
                 new ParallelCommandGroup(
-                        elevator.goToHeight(Meters.of(0.27))
+                        elevator.goToHeight(Meters.of(0.1))
                 // new ChaseTowerTagCommand(
                 // vision,
                 // swerve,

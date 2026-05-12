@@ -36,18 +36,18 @@ public class AutoShootCommand extends Command {
     @Override
     public void execute() {
         // Are we within 5% of our target RPM?
-        boolean atSpeed = shooter.getActualRPM() >= (shooter.getTargetRPM() * 0.95);
+        boolean atSpeed = shooter.getActualRPM() >= (shooter.getTargetRPM() * 0.93);
 
         if (atSpeed) {
             // FIRE! Push the ball UP through the intake and kicker
             intake.setPowerDirect(1.0);
             kicker.setPowerDirect(1.0);
-            agitator.setPowerDirect(0.22);
+            agitator.setPowerDirect(0.27);
         } else {
             // HOLD! Wait for RPM to recover.
             // -0.1 holds the ball slightly down so it doesn't rub the flywheel
-            intake.setPowerDirect(1);
-            kicker.setPowerDirect(-0.09);
+            intake.setPowerDirect(-0.1);
+            kicker.setPowerDirect(-0.2);
             agitator.setPowerDirect(0.25);
         }
     }

@@ -47,10 +47,10 @@ public class ElevatorSubsystem extends SubsystemBase {
             .withMechanismCircumference(Inches.of(spoolDiameter).times(Math.PI))
             .withClosedLoopController(
                     0, 0, 0.7, // Gains tuned for 17.8lb lift + 180:1 gear reduction
-                    MetersPerSecond.of(2.0),
-                    MetersPerSecondPerSecond.of(4.0))
+                    MetersPerSecond.of(4.0),
+                    MetersPerSecondPerSecond.of(8.0))
             // kS = 0.2 (to break friction), kG = 0.5 (to hold robot weight), kV = 1.8
-            .withFeedforward(new ElevatorFeedforward(0.1, 0, 0.25, 0.3))
+            .withFeedforward(new ElevatorFeedforward(0.2, 0, 0.29, 15))
             .withSimFeedforward(new SimpleMotorFeedforward(0.2, 0.5, 0))
 
             .withTelemetry("Elevator/Motor", TelemetryVerbosity.LOW)
@@ -96,7 +96,7 @@ public class ElevatorSubsystem extends SubsystemBase {
             double seededMeters = correctedPos * maxTravelMeters;
 
             // 5. Tell the motor where it is
-            smartMotor.setEncoderPosition(Meters.of(seededMeters));
+            // smartMotor.setEncoderPosition(Meters.of(seededMeters));
         }
 
         // Default: Pull the robot down to 0 and hold against the springs

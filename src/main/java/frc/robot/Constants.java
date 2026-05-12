@@ -91,7 +91,7 @@ public class Constants {
                 public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS = VecBuilder.fill(1.9, 1.9, 9999.0);
 
                 // ---------- HUB TAGS ----------
-                public static final int[] RED_HUB_TAGS = { 2, 3, 4, 5, 8, 9, 10, 11 };
+                public static final int[] RED_HUB_TAGS = { 3, 4, 8, 10, 11 };
                 public static final int[] BLUE_HUB_TAGS = { 18, 19, 20, 21, 24, 25, 26, 27 };
 
                 // ---------- TOWER TAGS ----------

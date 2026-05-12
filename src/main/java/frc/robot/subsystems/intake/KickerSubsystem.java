@@ -95,7 +95,7 @@ public class KickerSubsystem extends SubsystemBase {
     /** Pulls the ball DOWN into the Hopper (Matches Intake direction) */
     public Command routeToHopper() {
         // Adjust the sign depending on which way the motor is mounted!
-        return set(-0.94);
+        return set(-0.96);
     }
 
     public Command routeToShooter() {
