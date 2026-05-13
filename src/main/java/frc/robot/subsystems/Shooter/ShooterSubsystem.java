@@ -75,7 +75,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     .withClosedLoopController(
                             0.02668, 0, 0,
                             RPM.of(MAX_RPM),
-                            RotationsPerSecondPerSecond.of(5000))
+                            RotationsPerSecondPerSecond.of(5200))
                     .withSimClosedLoopController(
                             0, 0, 0,
                             RPM.of(MAX_RPM),
@@ -83,7 +83,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     // Feedforward: kS=0.25V, kV=0.12V/(rad/s), kA=0.015V/(rad/s²)
                     .withFeedforward(
                             new SimpleMotorFeedforward(
-                                    0.165, 0.112, 4))
+                                    0.165, 0.125, 9))
 
                     .withSimFeedforward(new SimpleMotorFeedforward(0.005, 0.122, 1.7))
 
@@ -94,7 +94,7 @@ public class ShooterSubsystem extends SubsystemBase {
                     // Coast mode = motor freewheels when disabled (reduces heat)
                     .withIdleMode(SmartMotorControllerConfig.MotorMode.COAST)
                     // Limit current to 50A to prevent brownouts
-                    .withStatorCurrentLimit(Amps.of(55))
+                    .withStatorCurrentLimit(Amps.of(57))
                     .withMotorInverted(true)
                     // Medium verbosity logging
                     .withTelemetry("ShooterMotor",
@@ -103,7 +103,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private final FlyWheel flywheel = new FlyWheel(
             new FlyWheelConfig(shooterSMC)
                     .withDiameter(Inches.of(4))
-                    .withMass(Pounds.of(3.58))
+                    .withMass(Pounds.of(3.61))
                     .withUpperSoftLimit(RPM.of(MAX_RPM))
                     .withLowerSoftLimit(RPM.of(MIN_RPM))
                     .withTelemetry("ShooterMech",
